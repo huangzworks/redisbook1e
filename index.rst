@@ -264,38 +264,47 @@ Redis 设计与实现
 简单展示了本书的排版样式。
 
 .. figure:: show-image/1.png
+    :scale: 70%
    
     书本标题
 
 .. figure:: show-image/2.png
+    :scale: 70%
 
     图书信息
 
 .. figure:: show-image/3.png
+    :scale: 70%
 
     第一章章首
 
 .. figure:: show-image/4.png
+    :scale: 70%
 
     《简单动态字符串（SDS）》章节
 
 .. figure:: show-image/5.png
+    :scale: 70%
 
     《对象》章节
 
 .. figure:: show-image/6.png
+    :scale: 70%
 
     《RDB 持久化》章节
 
 .. figure:: show-image/7.png
+    :scale: 70%
 
     《复制》章节
 
 .. figure:: show-image/8.png
+    :scale: 70%
 
     《Sentinel》章节
 
 .. figure:: show-image/9.png
+    :scale: 70%
 
     《集群》章节
 
