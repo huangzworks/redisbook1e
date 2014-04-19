@@ -255,3 +255,47 @@ Redis 设计与实现
   - 成为监视器
   - 向监视器发送命令信息
   - 重点回顾
+
+
+排版章样
+---------------------
+
+以下是本书的一些排版章样，
+简单展示了本书的排版样式。
+
+.. figure:: show-image/1.png
+   
+    书本标题
+
+.. figure:: show-image/2.png
+
+    图书信息
+
+.. figure:: show-image/3.png
+
+    第一章章首
+
+.. figure:: show-image/4.png
+
+    《简单动态字符串（SDS）》章节
+
+.. figure:: show-image/5.png
+
+    《对象》章节
+
+.. figure:: show-image/6.png
+
+    《RDB 持久化》章节
+
+.. figure:: show-image/7.png
+
+    《复制》章节
+
+.. figure:: show-image/8.png
+
+    《Sentinel》章节
+
+.. figure:: show-image/9.png
+
+    《集群》章节
+
