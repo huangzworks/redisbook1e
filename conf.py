@@ -40,7 +40,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'Redis 设计与实现'
+project = u'Redis 设计与实现（新版）'
 copyright = u'2014, huangz'
 
 # The version info for the project you're documenting, acts as replacement for

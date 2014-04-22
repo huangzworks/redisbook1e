@@ -3,7 +3,7 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Redis 设计与实现
+Redis 设计与实现（新版）
 =======================================
 
 欢迎访问新版《Redis 设计与实现》支持网站！
