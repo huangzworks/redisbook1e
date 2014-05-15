@@ -1,0 +1,25 @@
+digraph {
+
+    rankdir = LR;
+
+    //
+
+    node [shape = record];
+
+    table [label = " <head> 哈希表 | <0> 0 | <1> 1 | <2> 2 | <3> 3 "];
+
+    kv1 [label = "<head> 键值对 | { k1 | v1 } "];
+
+    //
+
+    node [shape = plaintext];
+
+    index [label = "i = 2"];
+
+    //
+    
+    table:2 -> kv1:head;
+
+    index -> table:2 [label = "将键 k1 放到\n索引 2 上", style = dashed];
+
+}

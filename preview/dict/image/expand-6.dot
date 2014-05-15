@@ -1,0 +1,48 @@
+digraph {
+
+    rankdir = LR;
+
+    //
+
+    node [shape = record];
+
+    dict [label = "字典| rehashidx \n 2"];
+
+    old_hash [label = "哈希表 | <0> 0 | <1> 1 | <2> 2 | <3> 3 "];
+    new_hash [label = "哈希表 | <0> 0 | <1> 1 | ... | <3> 3 | ... | <7> 7 "]
+
+    kv0 [label = "键值对 | { k0 | v0 }"];
+    kv1 [label = "键值对 | { k1 | v1 }", style = dashed];
+    kv2 [label = "键值对 | { k2 | v2 }"];
+    kv3 [label = "键值对 | { k3 | v3 }"];
+    kv4 [label = "键值对 | { k4 | v4 }"];
+
+    //
+
+    node [shape = plaintext, label = "NULL"];
+
+    oldnull0;
+    oldnull1;
+    oldnull2;
+    oldnull3;
+
+    newnull0;
+    newnull1;
+    newnull3;
+    newnull7;
+
+    //
+
+    dict -> old_hash [label = "原有"];
+    dict -> new_hash [label = "新"];
+
+    old_hash:0 -> oldnull0;
+    old_hash:1 -> oldnull1;
+    old_hash:2 -> kv2 -> oldnull2;
+    old_hash:3 -> kv3 -> oldnull3;
+
+    new_hash:0 -> newnull0;
+    new_hash:1 -> kv1 -> newnull1;
+    new_hash:3 -> kv0 -> newnull3;
+    new_hash:7 -> kv4 -> newnull7;
+}

@@ -1,0 +1,32 @@
+digraph {
+
+    rankdir = LR;
+
+    //
+
+    node [shape = record];
+
+    dict [label = "字典"];
+
+    hash [label = "哈希表 | <0> 0 | <1> 1 | ... | <n> n "];
+
+    kv0 [label = "键值对"];
+    kv1 [label = "键值对"];
+    kvn [label = "键值对"];
+
+    //
+
+    node [shape = plaintext];
+
+    null0 [label = "NULL"];
+    null1 [label = "NULL"];
+    nulln [label = "NULL"];
+
+    //
+
+    dict -> hash;
+
+    hash:0 -> kv0 -> null0;
+    hash:1 -> kv1 -> null1;
+    hash:n -> kvn -> nulln;
+}

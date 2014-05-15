@@ -1,0 +1,37 @@
+digraph {
+
+    rankdir = LR;
+
+    //
+
+    node [shape = record];
+
+    db [label = "数据库 | ... | <msg> \"msg\" | ... | <book_list> \"book-list\" | ... "];
+
+    //
+
+    subgraph cluster_string {
+
+        label = "STRING 结构";
+
+        msg [label = "\"hello world\"", shape = plaintext];
+
+    }
+
+    subgraph cluster_list_node {
+
+        label = "LIST 结构";
+
+        sicp [label = "\"SICP\""];
+        taocp [label = "\"TAOCP\""];
+        csapp [label = "\"CSAPP\""];
+        null [label = "NULL", shape = plaintext];
+
+    }
+
+    //
+
+    db:msg -> msg;
+
+    db:book_list -> sicp -> taocp -> csapp -> null ;
+}

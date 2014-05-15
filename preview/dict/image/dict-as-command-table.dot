@@ -1,0 +1,25 @@
+digraph {
+
+    rankdir = LR;
+    
+    //
+
+    node [shape = record];
+
+    table [label = " 命令表 | ... | <set> \"set\" | ... | <rpush> \"rpush\" | ... | <sadd> \"sadd\" | ..."];
+
+    //
+
+    node [shape = plaintext];
+
+    setCommand [label = "setCommand"];
+    rpushCommand [label = "rpushCommand"];
+    saddCommand [label = "saddCommand"];
+
+    //
+
+    table:set -> setCommand;
+    table:rpush -> rpushCommand;
+    table:sadd -> saddCommand;
+
+}

@@ -21,10 +21,10 @@ Redis 设计与实现（新版）
 或者关注本书作者的\ `微博 <http://weibo.com/huangz1990>`_\ 、\ `twitter <https://twitter.com/huangz1990>`_\ 和\ `豆瓣 <http://www.douban.com/people/i_m_huangz/>`_\ 来获知本书的最新消息。
 
 
-新版目录
------------
+新版目录 & 试读
+-----------------
 
-**全书约有 400 页，分为 4 个部分，共 24 章。**
+全书约有 400 页，分为 4 个部分，共 24 章。**以下目录中可点击的为试读内容。**
 
 - 前言
 
@@ -40,13 +40,13 @@ Redis 设计与实现（新版）
 
 **第一部分：数据结构与对象**
 
-2. 简单动态字符串
+2. :doc:`preview/sds/content`
   
-  - SDS 的定义
-  - SDS 与 C 字符串的区别
-  - SDS API
-  - 重点回顾
-  - 参考资料
+  - :doc:`preview/sds/implementation`
+  - :doc:`preview/sds/different_between_sds_and_c_string`
+  - :doc:`preview/sds/api`
+  - :doc:`preview/sds/review`
+  - :doc:`preview/sds/reference`
 
 3. 链表
 
@@ -54,15 +54,15 @@ Redis 设计与实现（新版）
   - 链表和链表节点的 API
   - 重点回顾
 
-4. 字典
+4. :doc:`preview/dict/content`
 
-  - 字典的实现
-  - 哈希算法
-  - 解决键冲突
-  - rehash
-  - 渐进式 rehash
-  - 字典 API
-  - 重点回顾
+  - :doc:`preview/dict/datastruct`
+  - :doc:`preview/dict/hash_algorithm`
+  - :doc:`preview/dict/collision_resolution`
+  - :doc:`preview/dict/rehashing`
+  - :doc:`preview/dict/incremental_rehashing`
+  - :doc:`preview/dict/api`
+  - :doc:`preview/dict/review`
 
 5. 跳跃表
 

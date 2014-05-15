@@ -1,0 +1,57 @@
+digraph {
+
+    rankdir = LR;
+
+    //
+
+    node [shape = record];
+
+    db [label = "数据库 | ... | <msg> \"msg\" | ... | <book_list> \"book-list\" | ... | <website> \"website\""];
+
+    //
+
+    subgraph cluster_string {
+
+        label = "STRING 结构";
+
+        msg [label = "\"hello world\"", shape = plaintext];
+
+    }
+
+    subgraph cluster_list_node {
+
+        label = "LIST 结构";
+
+        sicp [label = "\"SICP\""];
+        taocp [label = "\"TAOCP\""];
+        csapp [label = "\"CSAPP\""];
+        null [label = "NULL", shape = plaintext];
+
+    }
+
+    subgraph cluster_hash {
+
+        label = "HASH 结构";
+
+        website [label = " <redis> \"Redis\" | <mongodb> \"MongoDB\" | <zeromq> \"ZeroMQ\""];
+
+        node [shape = plaintext];
+
+        redis [label = "\"redis.io\""];
+        mongodb [label = "\"mongodb.org\""];
+        zeromq [label = "\"zeromq.org\""];
+    }
+
+    //
+
+    db:msg -> msg;
+
+    db:book_list -> sicp -> taocp -> csapp -> null ;
+
+    db:website -> website;
+
+    website:redis -> redis;
+    website:mongodb -> mongodb;
+    website:zeromq -> zeromq;
+
+}

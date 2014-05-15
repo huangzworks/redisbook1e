@@ -1,0 +1,344 @@
+SDS 的应用
+^^^^^^^^^^^^^^^
+
+SDS 是 Redis 默认使用的字符串表示：
+在 Redis 里面，
+只有在需要字符串字面量的时候，
+才会考虑使用 C 字符串，
+其他大多数情况下，
+程序都会使用 SDS 、
+或是持有 SDS 指针的字符串对象。
+
+打印日志是 Redis 里使用 C 字符串的典型场景：
+
+::
+
+    redisLog(REDIS_WARNING,"Redis is now ready to exit, bye bye...");
+
+当字符串不仅仅是用作字符串字面量，
+而是作为一个被处理的对象来使用时，
+Redis 就会使用 SDS 来表示字符串。
+
+比如说，
+当一个字符串需要执行拼接、截断、获取长度等操作时，
+Redis 就会使用 SDS 而不是 C 字符串。
+
+因为 Redis 程序中包含大量需要被处理的字符串对象，
+所以对 SDS 的应用遍布了 Redis 的方方面面，
+以下将介绍其中几个最重要的应用场景。
+
+实现字符串对象
+""""""""""""""""""""""""""""""""""
+
+Redis 数据库里面的所有字符串都使用字符串对象来表示。
+
+字符串对象本身并不保存字符串，
+它将字符串保存到一个 SDS 里面，
+并持有指向这个 SDS 的指针，
+当需要访问字符串对象的值时，
+程序就访问相应 SDS 所保存的字符串值：
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        //
+
+        string_object [label = "字符串\n对象", shape = circle];
+
+        sds [label = "SDS", shape = box];
+
+        //
+
+        string_object -> sds [label = "持有"];
+    }
+
+比如说，
+当用户执行以下命令时，
+Redis 会在数据库中创建两个字符串对象来表示键和值，
+这两个字符串对象分别指向两个 SDS ，
+一个 SDS 保存字符串 ``"message"`` ，
+另一个 SDS 保存字符串 ``"hello world"`` ：
+
+::
+
+    redis 127.0.0.1:6379> SET "message" "hello world"
+    OK
+
+以下是另一个例子 ——
+它用 :ref:`SADD` 命令创建了一个集合，
+这个集合的键是一个字符串对象，
+这个字符串对象用一个 SDS 保存了字符串 ``"database"`` ，
+集合的三个成员也同样是字符串对象 ——
+它们分别用三个 SDS 来保存 ``"Redis"`` 、 ``"MongoDB"`` 和 ``"Neo4j"`` 三个字符串：
+
+::
+
+    redis 127.0.0.1:6379> SADD "database" "Redis" "MongoDB" "Neo4j"
+    (integer) 3
+
+实现 AOF 缓存
+"""""""""""""""""""""""""""""""""""
+
+当 Redis 在 AOF 持久化模式下运行时，
+程序会不断地将服务器成功执行的写入命令记录到 AOF 文件中，
+从而对数据库的状态进行持久化：
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        //
+
+        command_list [label = "SET ... \n SADD ... \n LPUSH ... \n DEL ...", shape = box];
+
+        aof_program [label = "AOF \n 持久化程序", shape = box];
+
+        aof_file [label = "AOF \n 文件", shape = circle];
+
+        //
+
+        edge [style = dashed];
+
+        command_list -> aof_program [label = "传给"];
+
+        aof_program -> aof_file [label = "写入"];
+    }
+
+受限于计算机硬件条件，
+将数据写入到文件通常是一个比较耗时的动作，
+与此相比，
+将数据写入到内存则要快很多，
+因此，
+为了让服务器主线程可以尽快地完成写入操作，
+Redis 会首先将 AOF 数据写入到一个内存缓存里面：
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        //
+
+        command_list [label = "SET ... \n SADD ... \n LPUSH ... \n DEL ...", shape = box];
+
+        aof_program [label = "AOF \n 缓存写入程序", shape = box];
+
+        aof_buffer [label = "AOF \n 缓存", shape = circle];
+
+        //
+
+        edge [style = dashed];
+
+        command_list -> aof_program [label = "传给"];
+
+        aof_program -> aof_buffer [label = "写入"];
+    }
+
+之后再由后台程序将内存缓存中的数据写入到 AOF 文件上面：
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        //
+
+        aof_buffer [label = "AOF \n 缓存", shape = circle];
+
+        bg [label = "后台 AOF \n 持久化程序", shape = box];
+
+        aof_file [label = "AOF \n 文件", shape = circle];
+
+        //
+
+        edge [style = dashed];
+
+        aof_buffer -> bg [label ="传给"];
+
+        bg -> aof_file [label = "写入"];
+    }
+
+.. .. graphviz::
+        digraph {
+            rankdir = LR;
+            //
+            command_list [label = "写入命令 \n SET ... \n SADD ... \n LPUSH ... \n DEL ...", shape = box];
+            aof_program [label = "AOF \n 持久化程序", shape = box];
+            aof_buffer [label = "AOF\n缓存", shape = circle];
+            bg [label = "后台程序", shape = box];
+            aof_file [label = "AOF \n 文件", shape = circle];
+            //
+            command_list -> aof_program [label = "传给"];
+            aof_program -> aof_buffer [label = "写入"];
+            aof_buffer -> bg [label ="传给"];
+            bg -> aof_file [label = "写入"];
+        }
+
+通过这个内存缓存，
+Redis 解除了服务器主线程和 AOF 文件之间的关系耦合，
+使得主线程可以将时间尽可能地花在处理命令请求上面，
+而不会在写入文件方面浪费时间。
+
+AOF 程序所使用的这个内存缓存就是一个 SDS 。
+
+需要注意的一点是，
+因为 AOF 数据的写入是通过不断地执行拼接操作
+（类似于 ``<string.h>/strcat`` 函数）来完成的，
+因此，
+SDS 的拼接操作必须能够高效地执行，
+这样才能充分地发挥缓存的作用。
+
+在后面介绍 SDS 的时候我们会看到，
+SDS 对拼接操作进行了优化：
+比起拼接 C 字符串，
+拼接 SDS 所需的时间和空间消耗都有所降低。
+
+实现命令缓存和结果缓存
+"""""""""""""""""""""""""""""""""""""""
+
+Redis 服务器的典型运作模式是这样的 ——
+客户端向服务器发送一个命令请求，
+然后服务器接收并处理这个命令请求，
+最后向客户端回传命令的执行结果：
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        //
+
+        client [label = "客户端", shape = "circle"];
+
+        server [label = "服务器", shape = "circle"];
+
+        //
+
+        edge [style = dashed];
+
+        client -> server [label = "发送命令请求"];
+
+        server -> client [label = "回传命令结果"];
+    }
+
+比如说，
+客户端可以向服务器发送一个 :ref:`PING` 命令，
+如果服务器没有故障的话，
+那么客户端将接收到服务器返回的 ``"PONG"`` 回复：
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        //
+
+        client [label = "客户端", shape = "circle"];
+
+        server [label = "服务器", shape = "circle"];
+
+        //
+
+        edge [style = dashed];
+
+        client -> server [label = "\"PING\""];
+
+        server -> client [label = "\"PONG\""];
+    }
+
+如果我们进一步放大 Redis 服务器的内部构造，
+那么可以看到，
+在服务器内部，
+有一个查询缓存，
+一个结果缓存，
+以及一个命令执行器：
+
+.. graphviz::
+
+    digraph G {
+
+        rankdir = LR;
+
+        edge [style = dashed];
+
+        subgraph cluster_server {
+
+            label = "服务器";
+
+            query_buf [label = "查询缓存", shape = box];
+
+            result_buf [label = "结果缓存", shape = box];
+
+            executor [label = "命令执行器"];
+
+            //
+
+            query_buf -> executor [label = "传送命令"];
+            result_buf -> executor [label = "写入结果", dir = back];
+        }
+
+        client [label = "客户端", shape = circle];
+
+        client -> query_buf [label = "发送命令请求"];
+        client -> result_buf [label = "回传命令结果", dir = back];
+
+    }
+
+查询缓存记录了客户端发送来的命令，
+命令执行器负责执行查询缓存中的命令，
+结果缓存则保存命令执行器产生的命令结果。
+
+当命令执行器就绪时，
+查询缓存中的命令会被传入到命令执行器里面，
+执行命令所产生的结果会被写入到结果缓存里面，
+然后服务器再将结果缓存里面的内容回传给发送命令的客户端。
+
+下图以 :ref:`PING` 命令为例子，
+展示了命令从发送到完成的整个过程：
+
+.. graphviz::
+
+    digraph G {
+
+        rankdir = LR;
+
+        edge [style = dashed];
+
+        subgraph cluster_server {
+
+            label = "服务器";
+
+            query_buf [label = "查询缓存", shape = box];
+
+            result_buf [label = "结果缓存", shape = box];
+
+            executor [label = "命令执行器"];
+
+            //
+
+            query_buf -> executor [label = "传送 \"PING\" 命令"];
+            result_buf -> executor [label = "写入 \"PONG\"", dir = back];
+        }
+
+        client [label = "客户端", shape = circle];
+
+        client -> query_buf [label = "发送 \"PING\" 命令"];
+        client -> result_buf [label = "回传 \"PONG\"", dir = back];
+
+    }
+
+上面提到的查询缓存和结果缓存都是使用 SDS 来实现的，
+在后面的章节，
+详细介绍 Redis 命令执行原理的时候，
+我们会再次碰到这两个缓存。
+
+

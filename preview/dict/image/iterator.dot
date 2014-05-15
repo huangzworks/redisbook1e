@@ -1,0 +1,48 @@
+digraph {
+
+    rankdir = LR;
+
+    //
+
+    node [shape = record];
+
+    dictht0 [label = " <head> dictht | <table> table | <size> size \n 4 | <sizemask> sizemask \n 3 | <used> used \n 6"];
+
+    table0 [label = "<0> 0 | <1> 1 | <2> 2 | <3> 3"];
+
+    kv0 [label = "dictEntry | { k1 | v1 }"];
+    kv1 [label = "dictEntry | { k2 | v2 }"];
+    kv2 [label = "dictEntry | { k3 | v3 }"];
+    kv3 [label = "dictEntry | { k4 | v4 }"];
+    kv4 [label = "dictEntry | { k5 | v5 }"];
+    kv5 [label = "dictEntry | { k6 | v6 }"];
+
+    //
+
+    node [shape = plaintext, label = "NULL"];
+
+    null0;
+    null1;
+    null2;
+    null3;
+
+    //
+
+    dictht0:table -> table0;
+
+    edge [style = dashed];
+
+    table0:0 -> kv0 [label = "1"];
+    kv0 -> kv1 [label = "2"];
+    kv1 -> null0;
+
+    table0:1 -> kv2 [label = "3"];
+    kv2 -> null1;
+
+    table0:2 -> kv3 [label = "4"];
+    kv3 -> kv4 [label = "5"];
+    kv4 -> null2;
+
+    table0:3 -> kv5 [label = "6"];
+    kv5 -> null3;
+}

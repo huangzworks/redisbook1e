@@ -1,0 +1,24 @@
+digraph {
+
+    rankdir = LR;
+
+    //
+
+    node [shape = record];
+
+    table [label = "命令表 | ... | <set> \"set\" | ... | <get> \"get\" | ... "];
+
+    //
+
+    node [shape = plaintext];
+
+    set [label = "setCommand"];
+
+    get [label = "getCommand"];
+
+    //
+
+    table:set -> set;
+    table:get -> get;
+
+}

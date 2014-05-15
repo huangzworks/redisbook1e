@@ -1,0 +1,26 @@
+digraph {
+
+    rankdir = LR;
+
+    node [shape = plaintext];
+
+    add [label = "尝试添加\n 键值对\n k4 和 v4"];
+
+    hash [label = "index(k4) = 0"];
+
+    node [shape = record];
+
+    table [label = " <head> 哈希表 | <0> 0 | <1> 1 | <2> 2 | <3> 3 "];
+
+    kv1 [label = "<head> 键值对 | { k1 | v1 } "];
+    kv2 [label = "<head> 键值对 | { k2 | v2 } "];
+    kv3 [label = "<head> 键值对 | { k3 | v3 } "];
+
+    table:0 -> kv2:head;
+    table:2 -> kv1:head;
+    table:3 -> kv3:head;
+
+    add -> hash;
+    hash -> table:0 [label = "冲突"];
+
+}

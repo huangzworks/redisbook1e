@@ -1,0 +1,34 @@
+digraph {
+
+    rankdir = LR;
+
+    //
+
+    node [shape = record];
+
+    dict [label = "字典| rehashidx \n -1"];
+
+    old_hash [label = "哈希表 | <0> 0 | <1> 1 | <2> 2 | <3> 3 "];
+
+    kv0 [label = "键值对 | { k0 | v0 }"];
+    kv1 [label = "键值对 | { k1 | v1 }"];
+    kv2 [label = "键值对 | { k2 | v2 }"];
+
+    //
+
+    node [shape = plaintext, label = "NULL"];
+
+    oldnull0;
+    oldnull1;
+    oldnull2;
+    oldnull3;
+
+    //
+
+    dict -> old_hash;
+
+    old_hash:0 -> kv0 -> oldnull0;
+    old_hash:1 -> kv1 -> oldnull1;
+    old_hash:2 -> kv2 -> oldnull2;
+    old_hash:3 -> oldnull3;
+}

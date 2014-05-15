@@ -1,0 +1,17 @@
+digraph {
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    website [label = " \"website\" | ... | <redis> \"Redis\" | ... "];
+
+    node [shape = plaintext];
+
+    redis [label = "\"redis.io\""];
+
+    //
+
+    website:redis -> redis;
+
+}

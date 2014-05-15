@@ -1,0 +1,31 @@
+digraph {
+
+    rankdir = LR;
+
+    //
+
+    node [shape = record];
+
+    dictht [label = " <head> dictht | <table> table | <size> size \n 4 | <sizemask> sizemask \n 3 | <used> used \n 0"];
+
+    table [label = " <0> 0 | <1> 1 | <2> 2 | <3> 3 "];
+
+    //
+
+    node [shape = plaintext, label = "NULL"];
+
+    null0;
+    null1;
+    null2;
+    null3;
+
+    //
+
+    dictht:table -> table;
+
+    table:0 -> null0;
+    table:1 -> null1;
+    table:2 -> null2;
+    table:3 -> null3;
+
+}

@@ -1,0 +1,31 @@
+digraph {
+
+    rankdir = LR;
+
+    //
+
+    node [shape = plaintext];
+
+    find [label = "查找 k2", shape = plaintext];
+
+    hash [label = "计算得出 k2 \n 的索引值为 0 ", shape = plaintext];
+
+    //
+
+    node [shape = record];
+
+    table [label = " <head> 哈希表 | <0> 0 | <1> 1 | <2> 2 | <3> 3 "];
+
+    kv1 [label = "<head> 键值对 | { k1 | v1 } "];
+    kv2 [label = "<head> 键值对 | { k2 | v2 } "];
+    kv3 [label = "<head> 键值对 | { k3 | v3 } "];
+
+    //
+
+    find -> hash -> table:0;
+
+    table:0 -> kv2:head;
+    table:2 -> kv1:head;
+    table:3 -> kv3:head;
+
+}

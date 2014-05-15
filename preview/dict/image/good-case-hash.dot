@@ -1,0 +1,31 @@
+digraph {
+
+    rankdir = LR;
+
+    //
+
+    node [shape = record];
+
+    table [label = " <head> 哈希表 | <0> 0 | <1> 1 | <2> 2 | <3> 3 "];
+
+    kv0 [label = "<head> 键值对 "];
+    kv1 [label = "<head> 键值对 "];
+    kv2 [label = "<head> 键值对 "];
+    kv3 [label = "<head> 键值对 "];
+
+    //
+
+    node [shape = plaintext, label = "NULL"];
+
+    null0;
+    null1;
+    null2;
+    null3;
+
+    //
+
+    table:0 -> kv0:head -> null0;
+    table:1 -> kv1:head -> null1;
+    table:2 -> kv2:head -> null2;
+    table:3 -> kv3:head -> null3;
+}

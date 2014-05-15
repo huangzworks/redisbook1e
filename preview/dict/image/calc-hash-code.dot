@@ -1,0 +1,21 @@
+digraph {
+
+    rankdir = LR;
+
+    //
+
+    node [shape = record];
+
+    table [label = " <head> 哈希表 | <0> 0 | <1> 1 | <2> 2 | <3> 3 "];
+
+    //
+
+    node [shape = plaintext];
+
+    hash [label = "h = hash(k1) = 10"];
+
+    //
+    
+    hash -> table [label = "应该将 k1 放到\n哪个索引里面？"];
+
+}

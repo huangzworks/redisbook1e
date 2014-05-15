@@ -1,0 +1,34 @@
+digraph {
+
+    rankdir = LR;
+
+    //
+
+    node [shape = record];
+
+    table [label = "哈希表 | <0> 0 | <1> 1 | <2> 2 | <3> 3 | ..."];
+
+    kv5 [label = "键值对"];
+    kv6 [label = "键值对"];
+
+    kv7 [label = "键值对"];
+    kv8 [label = "键值对"];
+
+    node [shape = plaintext, label = "NULL"];
+
+    n0;
+    n1;
+    n2;
+    n3;
+
+    rehashidx [label = "rehashidx = 2", shape = plaintext];
+
+    //
+
+    table:0 -> n0;
+    table:1 -> n1;
+    table:2 -> kv5 -> kv6 -> n2;
+    table:3 -> kv7 -> kv8 -> n3;
+}
+
+

@@ -1,0 +1,24 @@
+digraph {
+
+    rankdir = LR;
+
+    //
+
+    node [shape = record];
+
+    db [label = "数据库 | ... | <msg> \"msg\" | ... "];
+
+    //
+
+    subgraph cluster_string {
+
+        label = "STRING 结构";
+
+        msg [label = "\"hello world\"", shape = plaintext];
+
+    }
+
+    //
+
+    db:msg -> msg;
+}

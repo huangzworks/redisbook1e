@@ -1,0 +1,42 @@
+digraph {
+
+    rankdir = LR;
+
+    //
+
+    node [shape = record];
+
+    dict [label = " <head> dict | type | privdata | <ht> ht | rehashidx \n -1 | iterators \n 0 "];
+
+    dictht0 [label = " <head> dictht | <table> table | <size> size \n 4 | <sizemask> sizemask \n 3 | <used> used \n 2"];
+
+    dictht1 [label = " <head> dictht | <table> table | <size> size \n 0 | <sizemask> sizemask \n 0 | <used> used \n 0"];
+
+    table0 [label = " <0> 0 | <1> 1 | <2> 2 | <3> 3 "];
+    table1 [label = "NULL", shape = plaintext];
+
+    dictEntry0 [label = " <head> dictEntry | { k0 | v0 }"];
+    dictEntry1 [label = " <head> dictEntry | { k1 | v1 }"];
+
+    //
+
+    node [shape = plaintext, label = "NULL"];
+
+    null0;
+    null1;
+    null2;
+    null3;
+
+    //
+
+    dict:ht -> dictht0 [label = "ht[0]"];
+    dict:ht -> dictht1 [label = "ht[1]"];
+
+    dictht0:table -> table0;
+    dictht1:table -> table1;
+
+    table0:0 -> null0;
+    table0:1 -> dictEntry0 -> null1;
+    table0:2 -> null2;
+    table0:3 -> dictEntry1 -> null3;
+}

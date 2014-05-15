@@ -1,0 +1,19 @@
+digraph {
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    dict [label = "字典 | <k1> k1 | <k2> k2 | <k3> k3  | <k4> k4 "];
+
+    node [shape = plaintext];
+
+    add [label = "添加"];
+
+    dict:k1 -> v1;
+    dict:k2 -> v2;
+    dict:k3 -> v3;
+    dict:k4 -> v4;
+
+    add -> dict:k4 [style = dashed];
+}

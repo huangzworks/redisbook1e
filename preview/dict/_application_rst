@@ -1,0 +1,178 @@
+字典的应用
+----------------
+
+字典在 Redis 中的应用非常多，
+它既是 HASH 结构的底层实现之一，
+又协助构建了 Redis 中的很多其他功能，
+本节将对字典的其中几个主要用例进行介绍。
+
+
+实现 HASH 结构
+^^^^^^^^^^^^^^^^^^^
+
+字典是 HASH 结构的底层实现之一：
+当我们对一个使用字典作为底层实现的 HASH 结构进行操作时，
+实际上就是操作一个字典。
+
+举个例子，
+如果 ``"website"`` 是字典实现的 HASH 结构，
+那么执行 :ref:`HSET` 命令相当于将给定的键值对关联到字典中：
+
+::
+
+    redis 127.0.0.1:6379> HSET "website" "Redis" "redis.io"
+    (integer) 1
+
+上面的 :ref:`HSET` 命令执行之后，
+``"website"`` 字典将变成这个样子：
+
+.. graphviz:: image/add-hash.dot
+
+执行 :ref:`HGET` 命令相当于在字典中查找给定键所对应的值：
+
+::
+
+    redis 127.0.0.1:6379> HGET "website" "Redis"
+    "redis.io"
+
+上面的命令将让程序在 ``"website"`` 字典中查找并返回 ``"Redis"`` 键的值：
+
+.. graphviz:: image/search-hash.dot
+
+执行 :ref:`HLEN` 等于返回字典所保存键值对的数量：
+
+::
+
+    redis 127.0.0.1:6379> HLEN "website"
+    (integer) 3
+
+而执行 :ref:`HGETALL` 则等于迭代整个字典，
+并打印其中的所有键值对：
+
+::
+
+    redis 127.0.0.1:6379> HGETALL "website"
+    1) "Redis"
+    2) "redis.io"
+    3) "MongoDB"
+    4) "mongodb.org"
+    5) "ZeroMQ"
+    6) "zeromq.org"
+
+HASH 结构的其他命令也可以用类似的方式构建。
+
+
+数据库
+^^^^^^^^^^^^
+
+Redis 作为一个键值数据库（key-value database）服务器，
+它的数据库本身也是使用字典来构建的：
+数据库的每个键都是一个字典键，
+而数据库的每个值也都是一个字典值。
+
+另外，
+因为 Redis 允许使用多种不同的结构，
+所以数据库字典的值也有可能是多种不同类型的结构。
+
+比如说，
+当我们用 :ref:`SET` 命令设置一个 STRING 键时，
+程序将在数据库中创建一个 STRING 结构：
+
+::
+
+    redis 127.0.0.1:6379> SET "msg" "hello world"
+    OK
+
+上面的 :ref:`SET` 命令执行之后，
+数据库将变成这个样子：
+
+.. graphviz:: image/db-as-dict-1.dot
+
+与此类似，
+执行 :ref:`RPUSH` 可以产生一个 LIST 结构：
+
+::
+
+    redis 127.0.0.1:6379> RPUSH "book-list" "SICP" "TAOCP" "CSAPP"
+    (integer) 3
+
+上面的 :ref:`RPUSH` 命令执行之后，
+数据库将变成这个样子：
+
+.. graphviz:: image/db-as-dict-2.dot
+
+而执行以下 :ref:`HSET` 命令：
+
+::
+
+    redis 127.0.0.1:6379> HSET "website" "Redis" "redis.io"
+    (integer) 1
+
+    redis 127.0.0.1:6379> HSET "website" "MongoDB" "mongodb.org"
+    (integer) 1
+
+    redis 127.0.0.1:6379> HSET "website" "ZeroMQ" "zeromq.org"
+    (integer) 1
+
+则产生一个 HASH 结构：
+
+.. graphviz:: image/db-as-dict-3.dot
+
+针对数据库的其他命令也是基于字典来实现的，
+以下是其中一些例子：
+
+- :ref:`DEL` ：从数据库中删除一个键值对等于从字典中删除一个键值对。
+
+- :ref:`KEYS` ：遍历数据库中的所有键值对等于遍历字典中的所有键值对。
+
+- :ref:`EXISTS` ：检查一个键是否存在于数据库等于检查给定键是否存在于字典。
+
+- :ref:`RANDOMKEY` ：从数据库中随机返回一个键值对等于从字典中随机返回一个键值对。
+
+
+命令表
+^^^^^^^^^^^
+
+在 Redis 里面，
+每个命令都有一个与之相应的实现函数，
+这些实现函数实际执行了命令所指定的动作。
+
+比如说：
+
+- :ref:`SET` 命令的实现函数为 ``setCommand`` ，该函数为给定的字符串键设置相应的值。
+
+- :ref:`RPUSH` 命令的实现函数为 ``rpushCommand`` ，该函数将任意数量的项推入到列表的尾部。
+
+- :ref:`SADD` 命令的实现函数为 ``saddCommand`` ，该函数将任意数量的元素加入到集合中。
+
+等等。
+
+当客户端以 ``<COMMAND> <arg0> <arg1> <...> <argN>`` 的格式向服务器发送命令请求时，
+服务器首先会根据 ``COMMAND`` 参数来查找命令的实现函数，
+然后通过执行实现函数来完成这个命令请求。
+
+举个例子，
+如果客户端向服务器发送命令请求 ``SADD "animals" "cat" "dog" "bear"`` ，
+那么服务器需要根据命令名 ``SADD`` 来查找相应的 ``saddCommand`` 函数，
+然后通过执行 ``saddCommand`` 函数来完成这次命令请求。
+
+为了实现根据命令名查找实现函数的功能，
+服务器在内部维持了一个称为命令表（command tbale）的字典：
+字典的键为字符串表示的命令名，
+而字典的值则是命令的实现函数。
+
+以下是字典表的大概样子：
+
+.. graphviz:: image/dict-as-command-table.dot
+
+因为命令表使用大小写无关的哈希算法来计算给定键的哈希值，
+所以在查找一个给定的命令时，
+无论输入的字符串是大写还是小写，
+它们查找的命令都是相同的。
+
+比如 ``"SADD"`` 和 ``"sadd"`` 都会同样找到函数 ``saddCommand`` ：
+
+.. graphviz:: image/search-in-command-table.dot
+
+之后只要执行 ``saddCommand`` 命令，
+服务器就可以完成客户端这次的 ``SADD`` 命令请求了。
