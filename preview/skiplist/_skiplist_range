@@ -1,0 +1,196 @@
+范围 API
+^^^^^^^^^^^^^^^^^^^
+
+在上一节，
+我们介绍了对跳跃表进行创建、插入和释放等操作的 API ，
+在这一节，
+我们将介绍跳跃表的范围 API 。
+
+因为跳跃表的节点是按顺序排序的，
+通过利用这个性质，
+程序可以在 :math:`O(\log N)` 平均复杂度下查找给定的节点，
+并且可以执行一系列有序操作，
+比如说：
+
+- 返回所有分值大于 ``v`` 的节点
+
+- 返回所有分值小于 ``v`` 的节点
+
+- 返回或者删除分值介于 ``x`` 至 ``y`` 之间的节点
+
+- 计算分值介于 ``x`` 和 ``y`` 之间的节点
+
+- 等等
+
+::
+
+    /* Struct to hold a inclusive/exclusive range spec. 
+     * 
+     * 表示开区间/闭区间范围的结构
+     */
+    typedef struct {
+
+        // 最小值和最大值
+        double min, max;
+
+        // 指示最小值和最大值是否*不*包含在范围之内
+        // 值为 1 表示不包含，值为 0 表示包含
+        int minex, maxex; /* are min or max exclusive? */
+
+    } zrangespec;
+
+围绕跳跃表和这个区间结构，
+Redis 构建了一些列范围操作 API ，
+包括：
+
+- ``zslIsInRange`` :
+
+- ``zslFirstInRange`` ：
+
+- ``zslLastInRange`` ：
+
+- ``zslDeleteRangeByScore`` ：
+
+- ``zslDeleteRangeByRank`` ：
+
+TODO : 贴一个跳跃表图，然后基于这个图测试以上各个 API ，这样更节省空间，不用一个个 API 展示。
+
+zslIsInRange
+"""""""""""""""""""
+
+``zslIsInRange`` 检查跳跃表中是否有节点包含了给定范围内的分值：
+
+::
+
+    int zslIsInRange(zskiplist *zsl, zrangespec *range);
+
+如果 ``zsl`` 中有至少一个节点的分值在 ``range`` 所描述的范围之内，
+那么 ``zslIsInRange`` 返回 ``1`` ，
+否则返回 ``0`` 。
+
+举个例子，
+对于以下跳跃表来说：
+
+.. graphviz:: image/skiplist_example.dot
+
+使用以下 ``range`` 值调用 ``zslIsInRange`` ，
+函数将返回 ``1`` —— 
+因为跳跃表中存在分值介于 ``1.0`` 至 ``3.0`` 之间的节点：
+
+::
+
+    zrangespec range { .min = 1.0, .max = 3.0, .minex = 0, .maxec = 0 };
+
+另一方面，
+使用以下 ``range`` 值调用 ``zslIsInRange`` ，
+函数将返回 ``0`` —— 
+因为跳跃表中没有任何分值介于 ``123.0`` 和 ``10086.0`` 之间的节点：
+
+::
+
+    zrangespec range { .min = 123.0, .max = 10086.0, .minex = 0, .maxec = 0 };
+
+``zslIsInRange`` 的实现方法是沿着层的前进指针移动，
+检查各个节点的分值是否在给定区间的范围之内，
+因为区间检查只针对分值进行，
+和节点的成员对象无关，
+所以检查一个节点的复杂度仅为 :math:`O(1)` ，
+因此，
+``zslIsInRange`` 的平均复杂度为 :math:`O(\log N)` ，
+最坏复杂度为 :math:`O(N)` 。
+
+zslFirstInRange
+"""""""""""""""""""
+
+``zslFirstInRange`` 接受一个跳跃表 ``zsl`` 和范围 ``range`` ，
+返回表中第一个分值在给定范围之内的节点：
+
+::
+
+    zskiplistNode *zslFirstInRange(zskiplist *zsl, zrangespec range);
+
+如果跳跃表中不存在给定范围之内的节点，
+那么 ``zslFirstInRange`` 返回 ``NULL`` 。
+
+举个例子，
+对于以下跳跃表来说：
+
+.. graphviz:: image/skiplist/first_in_range.dot
+
+给定以下范围值 ``range`` ：
+
+::
+
+    zrangespec range { .min = 1.0, .max = 3.0, .minex = 0, .maxec = 0 };
+
+调用 ``zslFirstInRange(zsl, range);`` 将返回图中用虚线包围的节点。
+
+而对于以下范围值 ``range`` ：
+
+::
+
+    zrangespec range { .min = 123.0, .max = 10086.0, .minex = 0, .maxec = 0 };
+
+调用 ``zslFirstInRange(zsl, range);`` 将返回 ``NULL`` ，
+因为跳跃表中没有任何节点的分值在给定范围之内。
+
+因为 ``zslFirstInRange`` 的工作就是沿着层的前进指针移动，
+对沿途各个节点的分值进行 :math:`O(1)` 复杂度的检查，
+直到遇到跳跃表中第一个分值在给定范围之内的节点为止，
+因此，
+``zslFirstInRange`` 的平均复杂度为 :math:`O(\log N)` ，
+最坏复杂度为 :math:`O(N)` 。
+
+zslLastInRange
+"""""""""""""""""""
+
+``zslLastInRange`` 接受一个跳跃表 ``zsl`` 和范围 ``range`` ， 
+返回表中最后一个分值在给定范围之内的节点：
+
+::
+
+    zskiplistNode *zslLastInRange(zskiplist *zsl, zrangespec range);
+
+举个例子，
+对于以下跳跃表来说：
+
+.. graphviz:: image/skiplist/last_in_range.dot
+
+使用以下范围值调用 ``zslLastInRange(zsl, range);`` ，
+函数将返回图中用虚线包围的节点：
+
+::
+
+    zrangespec range { .min = 1.0, .max = 3.0, .minex = 0, .maxec = 0 };
+
+另一方面，
+对于以下范围值，
+``zslLastInRange(zsl, range);`` 将返回 ``NULL`` ，
+因为跳跃表中没有任何节点的分值在给定范围之内：
+
+::
+
+    zrangespec range { .min = 123.0, .max = 10086.0, .minex = 0, .maxec = 0 };
+
+因为 ``zslLastInRange`` 的工作就是沿着层的前进指针移动，
+对沿途各个节点的分值进行 :math:`O(1)` 复杂度的检查，
+直到遇到跳跃表中最后一个分值在给定范围之内的节点为止，
+因此，
+``zslLastInRange`` 的平均复杂度为 :math:`O(\log N)` ，
+最坏复杂度为 :math:`O(N)` 。
+
+.. topic:: ``zslLastInRange`` 遍历的方向
+
+    从直觉上来讲，
+    ``zslLastInRange`` 使用节点的后退指针，
+    从表尾向表头方向进行遍历似乎会更自然一些。
+
+    但是因为每个节点只有一个后退指针，
+    所以使用后退指针来遍历所有节点的平均和最坏复杂度都是 :math:`O(N)` 。
+
+    与此相比，
+    使用层的前进指针来遍历复杂度会更低一些（平均 :math:`O(\log N)` ，最坏 :math:`O(N)` ），
+    所以程序才会使用前进指针来进行遍历，
+    而不是后退指针。
+
+

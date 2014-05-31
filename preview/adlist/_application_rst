@@ -1,0 +1,413 @@
+应用
+^^^^^^^^^^^^
+
+在 Redis 的实现中，
+有一些数据并不适合使用数组来表示，
+可能这些数据需要经常地调整数据项的位置，
+或者数据的长度经常会有变化，
+等等。
+
+当出现这种情况时，
+Redis 就会使用链表来关联这些数据。
+
+链表作为容器数据结构，
+经常会和其他数据结构（比如 SDS 、字典）以及对象（比如字符串对象）组合使用，
+因此，
+链表在 Redis 中的应用相当多。
+
+以下将对链表的几个重要应用场景进行介绍。
+
+实现列表键
+""""""""""""""
+
+链表最重要的功能之一就是实现列表键,
+链表是列表键两种底层实现的其中一种。
+
+当链表是列表键的底层实现时，
+对列表键进行操作就等于对链表进行操作。
+
+举个例子，
+假设列表键 ``"msg"`` 的底层实现为链表，
+当使用 :ref:`LRANGE` 访问整个列表的所有元素时，
+程序就会遍历列表键所对应的链表，
+并打印链表中的所有元素：
+
+::
+
+    redis 127.0.0.1:6379> LRANGE msg 0 -1
+    1) "hello"
+    2) "world"
+
+``"msg"`` 在底层所使用的链表可以用下图表示：
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        node [shape = record];
+
+        //
+
+        subgraph cluster_key {
+
+            label = "键";
+
+            msg [label = "\"msg\"", shape = plaintext];
+
+        }
+
+        subgraph cluster_values {
+
+            label = "值";
+
+            hello [label = "\"hello\""];
+            world [label = "\"world\""];
+
+            hello -> world;
+
+        }
+
+        //
+
+        msg -> hello;
+
+    }
+
+当使用 :ref:`RPUSH` 命令，
+将一个新元素推入到列表键的末尾时，
+程序会将代表新元素的对象添加到相应链表的末尾：
+
+::
+
+    redis 127.0.0.1:6379> RPUSH msg "again"
+    (integer) 3
+
+现在，
+``"msg"`` 键所对应的链表会被更新为以下状态：
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        node [shape = record];
+
+        //
+
+        subgraph cluster_key {
+
+            label = "键";
+
+            msg [label = "\"msg\"", shape = plaintext];
+
+        }
+
+        subgraph cluster_values {
+
+            label = "值";
+
+            hello [label = "\"hello\""];
+            world [label = "\"world\""];
+            again [label = "\"again\""];
+
+            hello -> world -> again;
+
+        }
+
+        //
+
+        msg -> hello;
+
+    }
+
+列表键的其他操作，
+比如 :ref:`LPOP` 、 :ref:`LINDEX` 、 :ref:`LINSERT` 、 :ref:`LLEN` 等命令，
+都可以直接映射到链表操作上面。
+
+我们将在本节详细了解链表的具体实现，
+并在之后的对象相关章节中，
+继续了解列表键的实现细节。
+
+缓存链表
+""""""""""""""""
+
+在 Redis 服务器内部，
+有时候为了保存一些体积非常大的数据，
+程序需要使用一个容量非常大的缓存。
+
+但是，
+受限于系统环境和配置等原因，
+分配一个非常大的缓存块并不总是可行的。
+
+为了解决这个问题，
+Redis 采用了一种分而治之的办法来分配大容量缓存：
+不是一次性分配一个大小为 :math:`nb` 的缓存块，
+而是分配 :math:`n` 个大小为 :math:`b` 的缓存块，
+然后用链表将这些缓存块串连起来使用。
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        node [shape = record];
+
+        //
+
+        buffer [shape = plaintext];
+
+        //
+
+        subgraph cluster_block {
+
+            label = "用链表串连起来的多个缓存块";
+
+            more [label = "...", shape = plaintext];
+
+            b1 -> b2 -> more -> bn;
+        }
+
+        buffer -> b1;
+    }
+
+缓存链表技术不仅对分配大容量缓存有用，
+在程序不知道该分配多大的缓存时，
+这种技术也可以派上用场。
+
+举个例子，
+当 Redis 服务器执行完一个客户端发来的命令之后，
+它需要将命令的结果保存在结果缓存里面，
+并等待程序将结果缓存里的内容回传给客户端。
+
+但是这里有一个问题，
+根据所执行命令的不同，
+一个命令的结果可能非常大，
+也可能非常小：
+如果 Redis 只为结果缓存分配一小块空间，
+那么在命令结果稍微比较大的时候，
+结果缓存就会因为大小受限而出错；
+另一方面，
+如果一开始就为结果缓存分配一个非常大的空间，
+那么在大部分命令只返回小结果的情况下，
+大体积的结果缓存又会造成浪费。
+
+为了解决这个问题，
+Redis 使用了链表缓存来实现结果缓存：
+程序一开始只分配一个大小为 :math:`b` 的缓存块，
+并将它作为结果缓存链表的表头节点：
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        node [shape = record];
+
+        //
+
+        buffer [label = "result\nbuffer", shape = plaintext];
+
+        //
+
+        subgraph cluster_block {
+
+            label = "结果缓存链表";
+
+            b1;
+        }
+
+        buffer -> b1;
+    }
+
+当块 :math:`b1` 不足以保存结果数据时，
+程序将一个新的缓存块 :math:`b2` 添加到链表表尾，
+并将 :math:`b2` 也用于保存结果缓存：
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        node [shape = record];
+
+        //
+
+        buffer [label = "result\nbuffer", shape = plaintext];
+
+        //
+
+        subgraph cluster_block {
+
+            label = "结果缓存链表";
+
+            b1 -> b2;
+        }
+
+        buffer -> b1;
+    }
+
+如果使用 :math:`b1` 块和 :math:`b2` 块仍然不足以保存结果数据的话，
+那么程序继续分配 :math:`b3` 块、 :math:`b4` 块、 :math:`b5` 块，
+等等，
+直到缓存块成功保存所有结果数据为止
+（另一种可能的情况是，结果数据实在太大，程序放弃保存这个结果）：
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        node [shape = record];
+
+        //
+
+        buffer [label = "result\nbuffer", shape = plaintext];
+
+        //
+
+        subgraph cluster_block {
+
+            label = "结果缓存链表";
+
+            more [label = "...", shape = plaintext];
+
+            b1 -> b2 -> b3 -> more;
+        }
+
+        buffer -> b1;
+    }
+
+Redis 的命令回复功能和 AOF 重写功能都用到了缓存链表技术，
+之后详细介绍这两个功能的时候，
+我们会再次提到缓存链表。
+
+实现频道的发布与订阅功能
+""""""""""""""""""""""""""
+
+在 Redis 的发布与订阅功能中，
+客户端可以通过 :ref:`SUBSCRIBE` 命令订阅它们感兴趣的频道，
+当有新信息被发送到某个频道时，
+信息会被转发给所有订阅了这个频道的客户端。
+
+举个例子，
+假设 ``c1`` 、 ``c2`` 和 ``c3`` 三个客户端都订阅了频道 ``"message"`` ：
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = BT;
+
+        //
+
+        message [label = "\"message\"", shape = box];
+
+        //
+
+        edge [style = dashed, label = "SUBSCRIBE"];
+
+        node [shape = circle];
+
+        //
+
+        c1 -> message;
+        c2 -> message;
+        c3 -> message;
+    }
+
+那么当信息 ``"hello world"`` 被发送至频道 ``"message"`` 的时候，
+客户端 ``c1`` 、 ``c2`` 和 ``c3`` 都将收到这条信息：
+
+.. graphviz::
+
+    digraph {
+
+        publish [label = "PUBLISH \"message\" \"hello world\"", shape = plaintext];
+
+        message [label = "\"message\"", shape = box];
+
+        //
+
+        edge [style = dashed, label = "\"hello world\""];
+
+        publish -> message;
+
+        node [shape = circle];
+
+        message -> c1;
+        message -> c2;
+        message -> c3;
+
+    }
+
+因为对于每个频道来说，
+订阅这个频道的客户端都可以有任意多个，
+所以 Redis 不能使用数组来记录频道的订阅客户端，
+否则的话，
+每当某个频道增加或减少一个订阅客户端，
+就需要对频道所对应的整个数组进行内存重分配。
+
+为了解决这个问题，
+Redis 使用链表来记录频道的订阅客户端：
+每个被订阅的频道都对应一个链表，
+链表里包含了所有订阅这个频道的客户端。
+
+比如说，
+对于前面列举的，
+客户端 ``c1`` 、 ``c2`` 和 ``c3`` 订阅频道 ``"message"`` 的例子，
+在程序内部，
+就有以下这样一个链表，
+它记录了所有订阅 ``"message"`` 频道的客户端：
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        //
+
+        subgraph cluster_channel {
+
+            label = "频道";
+
+            message [label = "\"message\"", shape = plaintext];
+
+        }
+
+        //
+
+        subgraph cluster_nodes {
+
+            label = "订阅频道的客户端";
+        
+            node [shape = box];
+
+            c1 -> c2 -> c3;
+        }
+
+        // 必须放在这里，否则 c1 的 shape 会变形
+        message -> c1;
+    }
+
+当有新的客户端订阅 ``"message"`` 频道的时候，
+新客户端的信息会被添加到链表里面。
+
+当现有的客户端退订 ``"message"`` 频道的时候，
+退订客户端的信息会从链表中移除。
+
+当有信息被发送至 ``"message"`` 频道的时候，
+程序会遍历整个链表，
+将信息发送给所有订阅客户端。
+
+在之后的章节中，
+我们会再次讨论订阅与发布功能的具体实现。
+
+

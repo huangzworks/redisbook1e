@@ -1,0 +1,568 @@
+链表迭代器
+^^^^^^^^^^^^^^^^^
+
+Redis 的链表带有自己的迭代器实现：
+迭代器可以在不暴露链表内部实现的前提下，
+以统一的方式，
+对链表的各个元素进行顺序访问。
+
+链表迭代器不仅被外部程序使用，
+链表的实现本身，
+比如前面提到的，
+查找链表节点的 ``listSearchKey`` 函数，
+以及复制链表副本的 ``listDup`` 函数，
+都在实现的内部使用了链表迭代器。
+
+链表迭代器可以通过两种不同的方向，
+对链表进行迭代：
+
+- 从表头开始迭代：首先访问链表的第一个节点（表头节点），其次访问链表的第二个节点，以此类推。
+
+- 从表尾开始迭代：首先访问链表的最后一个节点（表尾节点），其次访问链表的倒数第二个节点，以此类推。
+
+举个例子，
+对于一个带有三个节点的链表来说：
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        node [shape = record];
+
+        //
+
+        list [label = "list | <head> head | <tail> tail | <len> len \n 3 | ... "];
+
+        head_null [label = "NULL", shape = plaintext];
+        x [label = "<head> listNode | value \n x"];
+        y [label = "<head> listNode | value \n y"];
+        z [label = "<head> listNode | value \n z"];
+        tail_null [label = "NULL", shape = plaintext];
+
+        //
+
+        list:head -> x;
+        list:tail -> z;
+
+        x -> y;
+        y -> x;
+
+        y -> z;
+        z -> y;
+
+        head_null -> x [dir = back];
+        z -> tail_null;
+    }
+
+从表头开始迭代的迭代器将首先访问链表的第一个节点，
+然后访问链表的第二个节点，
+再然后访问链表的第三个节点，
+最后访问第三个节点的 ``next`` 指针所指向的 ``NULL`` 。
+
+下图用虚线标示了迭代器的访问轨迹，
+虚线上的数字记录了迭代器的访问次序：
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        edge [style = dashed];
+
+        node [shape = record];
+
+        //
+
+        iter [label = "迭代", shape = plaintext];
+
+        //
+
+        list [label = "list | <head> head | <tail> tail | <len> len \n 3 | ... "];
+
+        //
+
+        subgraph cluster_nodes {
+
+            style = invisible;
+
+            x [label = "<head> listNode | value \n x"];
+            y [label = "<head> listNode | value \n y"];
+            z [label = "<head> listNode | value \n z"];
+
+            null [label = "NULL", shape = plaintext];
+        }
+
+        //
+
+        iter -> list:head;
+        list:head -> x [label = "1"];
+        x -> y [label = "2"];
+        y -> z [label = "3"];
+        z -> null [label = "4"];
+    }
+
+另一方面，
+从表尾开始迭代的迭代器首先访问链表的第三个节点，
+再访问链表的第二个节点，
+然后访问链表的第一个节点，
+最后访问第一个节点的 ``prev`` 指针所指向的 ``NULL`` 。
+
+下图用虚线标示了迭代器的访问轨迹，
+虚线上的数字记录了迭代器的访问次序：
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        node [shape = record];
+
+        edge [style = dashed];
+
+        //
+
+        iter [label = "迭代", shape = plaintext];
+
+        list [label = "<list> list | <head> head | <tail> tail | <len> len \n 3 | ... "];
+
+        //
+
+        subgraph cluster_nodes {
+
+            style = invisible;
+
+            //
+
+            null [label = "NULL", shape = plaintext];
+
+            x [label = "<head> listNode | value \n x"];
+            y [label = "<head> listNode | value \n y"];
+            z [label = "<head> listNode | value \n z"];
+
+            //
+
+            edge [dir = back];
+
+            null -> x [label = "4"];
+            x -> y [label = "3"];
+            y -> z [label = "2"];
+
+        }
+
+        // 为了让链表不变形而增加的连接
+        list:list -> null [style = invis];
+
+        iter -> list:tail;
+
+        list:tail -> z [label = "1"];
+    }
+
+创建迭代器
+""""""""""""""""
+
+::
+
+    listIter *listGetIterator(list *list, int direction);
+
+``listGetIterator`` 函数用于创建链表迭代器，
+它接受 ``list`` 和 ``direction`` 两个参数：
+
+- ``list`` 参数为被迭代的链表；
+
+- ``direction`` 参数决定了迭代的方向；
+
+其中，
+``direction`` 的值可以是 ``redis.h/AL_START_HEAD`` 或者 ``redis.h/AL_START_TAIL`` ：
+
+- ``AL_START_HEAD`` 表示迭代从表头节点开始；
+
+- ``AL_START_TAIL`` 表示迭代从表尾节点开始；
+
+``listGetIterator`` 返回一个指向 ``listIter`` 结构的指针，
+这个 ``listIter`` 就是链表的迭代器：
+
+::
+
+    /*
+     * 链表迭代器
+     */
+    typedef struct listIter {
+
+        // 当前迭代到的节点
+        listNode *next;
+
+        // 迭代的方向
+        int direction;
+
+    } listIter;
+
+``listIter`` 结构的 ``next`` 成员是一个带有歧义的名字：
+这个成员实际上指向的是迭代器当前迭代到的链表节点，
+这个节点会在迭代器下一次被 ``listNext`` 函数访问时返回。
+
+对于一个链表 ``l`` ，
+执行调用 ``listGetIterator(l, AL_START_HEAD);`` 将返回一个 ``next`` 指针指向 ``l`` 的表头节点的迭代器：
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        node [shape = record];
+
+        //
+
+        iter [label = "listIter | <next> next | <direction> direction \n AL_START_HEAD"];
+
+        iter:next -> head;
+
+        //
+
+        subgraph cluster_ll {
+
+            style = invisible;
+
+            //
+
+            list [label = "list | <head> head | <tail> tail | <len> len \n ... | ... "];
+
+            head [label = "<head> listNode | value \n ..."];
+            more [label = "...", shape = plaintext];
+            tail [label = "<head> listNode | value \n ..."];
+
+            //
+
+            list:head -> head;
+            list:tail -> tail;
+            head -> more;
+            more -> head;
+            more ->tail;
+            tail -> more;
+
+
+        }
+    }
+
+另一方面，
+如果执行 ``listGetIterator(l, AL_START_TAIL);`` ，
+那么返回一个 ``next`` 指针指向 ``l`` 的表尾节点的迭代器：
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        node [shape = record];
+
+        //
+
+        iter [label = "listIter | <next> next | <direction> direction \n AL_START_TAIL"];
+
+        //
+
+        subgraph cluster_ll {
+
+            style = invisible;
+
+            list [label = "list | <head> head | <tail> tail | <len> len \n ... | ... "];
+
+            head [label = "<head> listNode | value \n ..."];
+            more [label = "...", shape = plaintext];
+            tail [label = "<head> listNode | value \n ..."];
+
+
+            //
+
+            list:head -> head;
+            list:tail -> tail;
+            head -> more;
+            more -> head;
+            more ->tail;
+            tail -> more;
+        }
+
+        // 必须放这里，否则链表会以表尾为表头展示
+        iter:next -> tail;
+    }
+
+``listGetIterator`` 函数的工作就是创建一个 ``listIter`` 结构，
+并初始化它的成员，
+它的复杂度为 :math:`O(1)` 。
+
+返回迭代器的当前节点
+"""""""""""""""""""""""""
+
+::
+
+    listNode *listNext(listIter *iter);
+
+``listNext`` 函数执行以下两个动作：
+
+1. 返回迭代器 ``next`` 成员当前所指向的节点；
+
+2. 对迭代器 ``next`` 成员的指针进行更新，
+   让它指向迭代器下一次要访问的节点。
+
+如果链表中的所有节点都已经迭代完了，
+那么 ``listNext`` 返回 ``NULL`` ；
+如果链表还未迭代完的话，
+那么返回一个指向链表节点的指针。
+
+迭代器 ``direction`` 成员的值决定了迭代器下个要访问的节点：
+
+- 如果 ``direction`` 成员的值为 ``AL_START_HEAD`` ， 那么当前节点 ``next`` 指针所指向的节点就是下个节点；
+
+- 如果 ``direction`` 成员的值为 ``AL_START_TAIL`` ， 那么当前节点 ``prev`` 指针所指向的节点就是下个节点。
+
+比如说，
+对于以下链表和迭代器：
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        node [shape = record];
+
+        //
+
+        list [label = "list | <head> head | <tail> tail | <len> len \n 3 | ... "];
+
+        x [label = "<head> listNode | value \n x"];
+        y [label = "<head> listNode | value \n y"];
+        z [label = "<head> listNode | value \n z"];
+
+        iter [label = "listIter | <next> next | <direction> direction \n AL_START_HEAD"];
+
+        //
+
+        list:head -> x;
+        list:tail -> z;
+
+        x -> y;
+        y -> x;
+
+        y -> z;
+        z -> y;
+
+        // 
+
+        iter:next -> x;
+    }
+
+调用 ``listNext`` 将返回包含值 ``x`` 的节点，
+并将迭代器的 ``next`` 指针指向包含值 ``y`` 的节点：
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        node [shape = record];
+
+        //
+
+        iter [label = "listIter | <next> next | <direction> direction \n AL_START_HEAD"];
+
+        ret [label = "返回", shape = plaintext];
+
+        //
+
+        subgraph cluster_ll {
+
+            style = invisible;
+
+            //
+
+            list [label = "list | <head> head | <tail> tail | <len> len \n 3 | ... "];
+
+            x [label = "<head> listNode | value \n x"];
+            y [label = "<head> listNode | value \n y"];
+            z [label = "<head> listNode | value \n z"];
+
+            //
+
+            list:head -> x;
+            list:tail -> z;
+
+            x -> y;
+            y -> x;
+
+            y -> z;
+            z -> y;
+        }
+
+        ret -> x [style = dashed];
+
+        iter:next -> y [style = dashed];
+
+    }
+
+因为迭代器的方向为 ``AL_START_HEAD`` ，
+所以迭代器会沿着节点的 ``next`` 指针前进：
+当前节点的 ``next`` 指针所指向的节点，
+就是迭代器要访问的下一个节点。
+
+另一方面，
+对于以下链表和迭代器：
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        node [shape = record];
+
+        //
+        
+        iter [label = "listIter | <next> next | <direction> direction \n AL_START_TAIL"];
+
+        //
+
+        subgraph cluster_ll {
+
+            style = invisible;
+
+            //
+
+            list [label = "list | <head> head | <tail> tail | <len> len \n 3 | ... "];
+
+            x [label = "<head> listNode | value \n x"];
+            y [label = "<head> listNode | value \n y"];
+            z [label = "<head> listNode | value \n z"];
+
+            //
+
+            list:head -> x;
+            list:tail -> z;
+
+            x -> y;
+            y -> x;
+
+            y -> z;
+            z -> y;
+        }
+
+        // 必须放这里，否则链表会以表尾为表头展示
+        iter:next -> z;
+    }
+
+调用 ``listNext`` 将返回包含值 ``z`` 的节点，
+并将迭代器的 ``next`` 指针指向包含值 ``y`` 的节点：
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        node [shape = record];
+
+        //
+
+        iter [label = "listIter | <next> next | <direction> direction \n AL_START_TAIL"];
+
+        ret [label = "返回", shape = plaintext];
+
+        //
+
+        subgraph cluster_ll {
+
+            style = invisible;
+
+            //
+
+            list [label = "list | <head> head | <tail> tail | <len> len \n 3 | ... "];
+
+            x [label = "<head> listNode | value \n x"];
+            y [label = "<head> listNode | value \n y"];
+            z [label = "<head> listNode | value \n z"];
+
+            //
+
+            list:head -> x;
+            list:tail -> z;
+
+            x -> y;
+            y -> x;
+
+            y -> z;
+            z -> y;
+        }
+
+        ret -> z [style = dashed];
+
+        iter:next -> y [style = dashed];
+
+    }
+
+因为迭代器的方向为 ``AL_START_TAIL`` ，
+所以迭代器会沿着节点的 ``prev`` 指针前进：
+当前节点的 ``prev`` 指针所指向的节点，
+就是迭代器要访问的下一个节点。
+
+``listNext`` 函数的工作就是返回和更新迭代器的 ``next`` 指针，
+其中，
+更新 ``next`` 指针的工作只需访问一个节点就可以完成，
+因此，
+``listNext`` 的复杂度为 :math:`O(1)` 。
+
+重置迭代器
+"""""""""""""""
+
+``listRewind`` 函数将迭代器的当前节点重置为链表的表头节点，
+并将迭代器的方向设置为 ``AL_START_HEAD`` 。
+
+以下是 ``listRewind`` 函数的定义：
+
+::
+
+    void listRewind(list *list, listIter *li) {
+
+        // 重置指针
+        li->next = list->head;
+
+        // 重置方向
+        li->direction = AL_START_HEAD;
+    }
+
+``listRewindTail`` 函数将迭代器的当前节点重置为链表的表尾节点，
+并将迭代器的方向设置为 ``AL_START_TAIL`` 。
+
+以下是 ``listRewindTail`` 函数的定义：
+
+::
+
+    void listRewindTail(list *list, listIter *li) {
+
+        // 重置指针
+        li->next = list->tail;
+
+        // 重置方向
+        li->direction = AL_START_TAIL;
+    }
+
+``listRewind`` 和 ``listRewindTail`` 的复杂度都是 :math:`O(1)` 。
+
+释放迭代器
+"""""""""""""""
+
+``listReleaseIterator`` 释放给定的迭代器结构：
+
+::
+
+    void listReleaseIterator(listIter *iter);
+
+因为 ``listReleaseIterator`` 函数的工作就是释放 ``iter`` 指针所指向的 ``listIter`` 结构的内存，
+所以它的复杂度为 :math:`O(1)` 。
+
+

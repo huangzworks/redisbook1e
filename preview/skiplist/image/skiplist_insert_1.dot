@@ -1,0 +1,34 @@
+digraph {
+
+    rankdir = LR;
+
+    node [shape = record, width = "0.5"];
+
+    //
+
+    l [label = " <header> header | <tail> tail | level \n 2 | length \n 1 "];
+
+    header [label = " <l32> L32 | ... | <l3> L3 | <l2> L2 | <l1> L1 "];
+
+    B [label = " <l2> L2 | <l1> L1 | <backward> BW | 2.0 | <obj> o2 ", style = dashed];
+
+    backward_null [label = "NULL", shape = plaintext];
+    n1 [label = "NULL", shape = plaintext];
+    n2 [label = "NULL", shape = plaintext];
+    n3 [label = "NULL", shape = plaintext];
+    n32 [label = "NULL", shape = plaintext];
+
+    // 
+
+    l:header -> header;
+    l:tail -> B:obj [style = dashed];
+
+    header:l1 -> B:l1 [label = "1", style = dashed];
+    B:l1 -> n1 [label = "0"];
+    header:l2 -> B:l2 [label = "1", style = dashed];
+    B:l2 -> n2 [label = "0"];
+    header:l3 -> n3 [label = "0"];
+    header:l32 -> n32 [label = "0"];
+
+    backward_null -> B:backward [dir = back];
+}

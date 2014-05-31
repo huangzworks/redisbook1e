@@ -48,11 +48,11 @@ Redis 设计与实现（新版）
   - :doc:`preview/sds/review`
   - :doc:`preview/sds/reference`
 
-3. 链表
+3. :doc:`preview/adlist/content`
 
-  - 链表和链表节点的实现
-  - 链表和链表节点的 API
-  - 重点回顾
+  - :doc:`preview/adlist/implementation`
+  - :doc:`preview/adlist/api`
+  - :doc:`preview/adlist/review`
 
 4. :doc:`preview/dict/content`
 
@@ -64,28 +64,28 @@ Redis 设计与实现（新版）
   - :doc:`preview/dict/api`
   - :doc:`preview/dict/review`
 
-5. 跳跃表
+5. :doc:`preview/skiplist/content`
 
-  - 跳跃表的实现
-  - 跳跃表 API
-  - 重点回顾
+  - :doc:`preview/skiplist/datastruct`
+  - :doc:`preview/skiplist/api`
+  - :doc:`preview/skiplist/review`
 
-6. 整数集合
+6. :doc:`preview/intset/content`
 
-  - 整数集合的实现
-  - 升级
-  - 升级的好处
-  - 降级
-  - 整数集合 API
-  - 重点回顾
+  - :doc:`preview/intset/datastruct`
+  - :doc:`preview/intset/upgrade`
+  - :doc:`preview/intset/why_upgrade`
+  - :doc:`preview/intset/downgrade`
+  - :doc:`preview/intset/api`
+  - :doc:`preview/intset/review`
 
-7. 压缩列表
+7. :doc:`preview/ziplist/content`
 
-  - 压缩列表的构成
-  - 压缩列表节点的构成
-  - 连锁更新
-  - 压缩列表 API
-  - 重点回顾
+  - :doc:`preview/ziplist/list`
+  - :doc:`preview/ziplist/node`
+  - :doc:`preview/ziplist/cascade_update`
+  - :doc:`preview/ziplist/api`
+  - :doc:`preview/ziplist/review`
 
 8. 对象
 

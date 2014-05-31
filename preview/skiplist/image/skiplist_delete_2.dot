@@ -1,0 +1,16 @@
+digraph {
+
+    rankdir = LR;
+
+    node [shape = record, width = "0.5"];
+
+    //
+
+    del [label = "删除", shape = plaintext];
+
+    l [label = " <header> header | <tail> tail | level \n 5 | length \n 3 "];
+
+    //
+
+    del -> l [style = dashed];
+}

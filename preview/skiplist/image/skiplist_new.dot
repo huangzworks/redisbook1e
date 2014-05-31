@@ -1,0 +1,40 @@
+digraph {
+
+    rankdir = LR;
+
+    node [shape = record, width = "0.5"];
+
+    //
+
+    l [label = " <header> header | <tail> tail | level \n 1 | length \n 0 "];
+
+    tail_null [label = "NULL", shape = plaintext];
+
+    subgraph cluster_nodes {
+
+        style = invisible;
+
+        header [label = " <l32> L32 | ... | <l3> L3 | <l2> L2 | <l1> L1 "];
+
+    }
+
+    subgraph cluster_nulls {
+
+        style = invisible;
+
+        n1 [label = "NULL", shape = plaintext];
+        n2 [label = "NULL", shape = plaintext];
+        n3 [label = "NULL", shape = plaintext];
+        n32 [label = "NULL", shape = plaintext];
+    }
+
+    // 
+
+    l:header -> header;
+    l:tail -> tail_null;
+
+    header:l1 -> n1 [label = "0"];
+    header:l2 -> n2 [label = "0"];
+    header:l3 -> n3 [label = "0"];
+    header:l32 -> n32 [label = "0"];
+}

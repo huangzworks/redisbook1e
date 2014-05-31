@@ -1,0 +1,32 @@
+digraph {
+
+    rankdir = LR;
+
+    node [shape = record, width = "0.5"];
+
+    //
+
+    subgraph cluster_nodes {
+
+        style = invisible;
+
+        A [label = " <l4> L4 | <l3> L3 | <l2> L2 | <l1> L1 | <backward> BW | 1.0 | o1 "];
+
+        B [label = " <l2> L2 | <l1> L1 | <backward> BW | 1.0 | o2 "];
+
+        C [label = " <l5> L5 | <l4> L4 | <l3> L3 | <l2> L2 | <l1> L1 | <backward> BW | 1.0 | o3 "];
+
+    }
+
+    //
+
+    A:l4 -> C:l4 [label = "2"];
+    A:l3 -> C:l3 [label = "2"];
+    A:l2 -> B:l2 [label = "1"];
+    A:l1 -> B:l1 [label = "1"];
+
+    B:l2 -> C:l2 [label = "1"];
+    B:l1 -> C:l1 [label = "1"];
+
+    A:backward -> B:backward -> C:backward [dir = back];
+}

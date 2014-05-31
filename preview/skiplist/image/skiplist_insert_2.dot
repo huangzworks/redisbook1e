@@ -1,0 +1,43 @@
+digraph {
+
+    rankdir = LR;
+
+    node [shape = record, width = "0.5"];
+
+    //
+
+    l [label = " <header> header | <tail> tail | level \n 4 | length \n 2 "];
+
+    header [label = " <l32> L32 | ... | <l4> L4 | <l3> L3 | <l2> L2 | <l1> L1 "];
+
+    A [label = " <l4> L4 | <l3> L3 | <l2> L2 | <l1> L1 | <backward> BW | 1.0 | o1 ", style = dashed];
+
+    B [label = " <l2> L2 | <l1> L1 | <backward> BW | 2.0 | o2 "];
+
+    backward_null [label = "NULL", shape = plaintext];
+    n1 [label = "NULL", shape = plaintext];
+    n2 [label = "NULL", shape = plaintext];
+    n3 [label = "NULL", shape = plaintext];
+    n4 [label = "NULL", shape = plaintext];
+    n32 [label = "NULL", shape = plaintext];
+
+    // 
+
+    l:header -> header;
+    l:tail -> B;
+
+    header:l1 -> A:l1 [label = "1", style = dashed];
+    A:l1-> B:l1 [label = "1", style = dashed];
+    B:l1 -> n1 [label = "0"];
+    header:l2 -> A:l2 [label = "1", style = dashed];
+    A:l2-> B:l2 [label = "1", style = dashed];
+    B:l2 -> n2 [label = "0"];
+    header:l3 -> A:l3 [label = "1", style = dashed];
+    A:l3 -> n3 [label = "0"];
+    header:l4 -> A:l4 [label = "1", style = dashed];
+    A:l4 -> n4 [label = "0"];
+    header:l32 -> n32 [label = "0"];
+
+    backward_null -> A:backward [dir = back];
+    A:backward -> B:backward [dir = back, style = dashed];
+}
