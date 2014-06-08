@@ -21,6 +21,12 @@ Redis 设计与实现（新版）
 或者关注本书作者的\ `微博 <http://weibo.com/huangz1990>`_\ 、\ `twitter <https://twitter.com/huangz1990>`_\ 和\ `豆瓣 <http://www.douban.com/people/i_m_huangz/>`_\ 来获知本书的最新消息。
 
 
+相关链接
+------------------
+
+新版《Redis 设计与实现》的豆瓣主页： http://book.douban.com/subject/25900156/
+
+
 新版目录 & 试读
 -----------------
 
