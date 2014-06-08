@@ -14,7 +14,9 @@ Redis 设计与实现（新版）
 
 新版《Redis 设计与实现》对\ `旧版《Redis 设计与实现》 <http://origin.redisbook.com>`_\ 进行了完全重写，
 并添加了包括复制、Sentinel、集群、二进制位操作和排序在内的众多新主题，
-内容覆盖 Redis 2.6 至 Redis 3.0 。
+内容覆盖 Redis 2.6 至 Redis 3.0 
+（具体细节请查看 :doc:`different`\ ）。
+
 
 新版《Redis 设计与实现》将由机械工业出版社出版，
 **目前书本仍在排版当中，
