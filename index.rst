@@ -6,6 +6,10 @@
 Redis 设计与实现（新版）
 =======================================
 
+.. image:: image/cover.jpg
+   :align: left
+   :scale: 50%
+
 欢迎访问新版《Redis 设计与实现》支持网站！
 
 新版《Redis 设计与实现》对\ `旧版《Redis 设计与实现》 <http://origin.redisbook.com>`_\ 进行了完全重写，
@@ -19,10 +23,6 @@ Redis 设计与实现（新版）
 
 你可以通过访问本站，
 或者关注本书作者的\ `微博 <http://weibo.com/huangz1990>`_\ 、\ `twitter <https://twitter.com/huangz1990>`_\ 和\ `豆瓣 <http://www.douban.com/people/i_m_huangz/>`_\ 来获知本书的最新消息。
-
-
-相关链接
-------------------
 
 新版《Redis 设计与实现》的豆瓣主页： http://book.douban.com/subject/25900156/
 
