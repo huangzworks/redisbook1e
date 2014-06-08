@@ -8,7 +8,7 @@ Redis 设计与实现（新版）
 
 .. image:: image/cover.jpg
    :align: left
-   :scale: 50%
+   :scale: 55%
 
 欢迎访问新版《Redis 设计与实现》支持网站！
 
@@ -19,9 +19,7 @@ Redis 设计与实现（新版）
 
 
 新版《Redis 设计与实现》将由机械工业出版社出版，
-**目前书本仍在排版当中，
-预计 5 月印刷，
-6 月发售。**
+**预计 2014 年 6 月发售。**
 
 你可以通过访问本站，
 或者关注本书作者的\ `微博 <http://weibo.com/huangz1990>`_\ 、\ `twitter <https://twitter.com/huangz1990>`_\ 和\ `豆瓣 <http://www.douban.com/people/i_m_huangz/>`_\ 来获知本书的最新消息。
