@@ -27,7 +27,14 @@ Redis 设计与实现（新版）
 新版《Redis 设计与实现》的豆瓣主页： http://book.douban.com/subject/25900156/
 
 
-新版目录 & 试读
+购买方法
+----------------
+
+《Redis 设计与实现》目前尚未开始销售，
+请通过微博和 twitter 等渠道关注书本的最新消息。
+
+
+查看目录并试读
 -----------------
 
 全书约有 400 页，分为 4 个部分，共 24 章。**以下目录中可点击的为试读内容。**
@@ -261,56 +268,3 @@ Redis 设计与实现（新版）
   - 成为监视器
   - 向监视器发送命令信息
   - 重点回顾
-
-
-排版章样
----------------------
-
-以下是本书的一些排版章样，
-简单展示了本书的排版样式。
-
-.. figure:: show-image/1.png
-    :scale: 70%
-   
-    书本标题
-
-.. figure:: show-image/2.png
-    :scale: 70%
-
-    图书信息
-
-.. figure:: show-image/3.png
-    :scale: 70%
-
-    第一章章首
-
-.. figure:: show-image/4.png
-    :scale: 70%
-
-    《简单动态字符串（SDS）》章节
-
-.. figure:: show-image/5.png
-    :scale: 70%
-
-    《对象》章节
-
-.. figure:: show-image/6.png
-    :scale: 70%
-
-    《RDB 持久化》章节
-
-.. figure:: show-image/7.png
-    :scale: 70%
-
-    《复制》章节
-
-.. figure:: show-image/8.png
-    :scale: 70%
-
-    《Sentinel》章节
-
-.. figure:: show-image/9.png
-    :scale: 70%
-
-    《集群》章节
-
