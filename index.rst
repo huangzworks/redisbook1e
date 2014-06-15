@@ -3,34 +3,28 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Redis 设计与实现（新版）
+Redis 设计与实现
 =======================================
 
 .. image:: image/cover.jpg
    :align: left
    :scale: 55%
 
-欢迎访问新版《Redis 设计与实现》支持网站！
+欢迎来到《Redis 设计与实现》的支持网站！
 
-新版《Redis 设计与实现》对\ `旧版《Redis 设计与实现》 <http://origin.redisbook.com>`_\ 进行了完全重写，
-并添加了包括复制、Sentinel、集群、二进制位操作和排序在内的众多新主题，
-内容覆盖 Redis 2.6 至 Redis 3.0 
-（具体细节请查看 :doc:`different`\ ）。
+《Redis 设计与实现》一书全面而完整地讲解了 Redis 的内部运行机制，
+对 Redis 的大多数单机功能以及所有多机功能的实现原理进行了介绍，
+展示了这些功能的核心数据结构以及关键的算法思想。
+通过阅读本书，
+读者可以快速、有效地了解 Redis 的内部构造以及运作机制，
+从而学会如何更高效地使用 Redis 。
 
-新版《Redis 设计与实现》将由机械工业出版社出版，
-**预计 2014 年 6 月发售。**
+《Redis 设计与实现》目前\ `正在互动出版网（china-pub）进行预售 <http://product.china-pub.com/3770218>`_\ ，
+你也可以通过访问\ `《Redis 设计与实现》的豆瓣页面 <http://book.douban.com/subject/25900156/>`_\ 来查看书本的评分和评论信息。
+（注意，有意购买作者签名版的读者请不要预定普通版本，签名版的具体购买方式和费用将在最近公布。）
 
 你可以通过访问本站，
 或者关注本书作者的\ `微博 <http://weibo.com/huangz1990>`_\ 、\ `twitter <https://twitter.com/huangz1990>`_\ 和\ `豆瓣 <http://www.douban.com/people/i_m_huangz/>`_\ 来获知本书的最新消息。
-
-新版《Redis 设计与实现》的豆瓣主页： http://book.douban.com/subject/25900156/
-
-
-购买
-----------------
-
-《Redis 设计与实现》目前尚未开始销售，
-请通过微博和 twitter 等渠道关注书本的最新消息。
 
 
 内容与特色介绍
@@ -57,14 +51,37 @@ Redis 设计与实现（新版）
   帮助读者更好地理解书中的知识点。
 - 关注功能的高层设计思路而不是底层的实现代码，
   让读者无须花时间研读代码就可以了解到 Redis 的内部实现。
-- 提供了带有中文注释的 Redis 源码，
+- 提供带有中文注释的 Redis 源码，
   帮助有需要的读者做进一步的学习。
 
 
 查看目录并试读
 -----------------
 
-《Redis 设计与实现》全书约有 400 页，分为 4 个部分，共 24 章。
+《Redis 设计与实现》全书共有 388 页，分为 4 个部分，共 24 章。
 
-请访问\ :doc:`toc`\ 页面来查看本书的详细目录，
+请访问 :doc:`toc` 页面来查看本书的详细目录，
 并试读公开的章节。
+
+
+相关资源
+-----------------
+
+Redis 3.0 源码注释 —— 
+包含中文注释的 Redis 3.0 源码，
+帮助有兴趣的读者深入了解 Redis 的实现细节。
+即将公开，
+敬请期待。
+
+`《Redis 多机特性工作原理简介》 <http://www.chinahadoop.cn/course/31>`_ ——
+这个课程对 Redis 的复制、Sentinel 和集群三个特性的工作原理进行了基本的介绍。
+因为课程的内容都提取自本书的《复制》、《Sentinel》和《集群》三个章节，
+所以可以把这个课程看作是这三个章节的简介版本。
+
+`旧版《Redis 设计与实现》 <http://origin.redisbook.com>`_ ——
+本书的上一版，
+介绍了 Redis 2.6 的内部运作机制和单机功能。
+要了解本书和旧版之间的区别，
+请阅读 :doc:`different` 页面。
+
+
