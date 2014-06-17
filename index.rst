@@ -21,7 +21,9 @@ Redis 设计与实现
 
 《Redis 设计与实现》目前\ `正在互动出版网（china-pub）进行预售 <http://product.china-pub.com/3770218>`_\ ，
 你也可以通过访问\ `《Redis 设计与实现》的豆瓣页面 <http://book.douban.com/subject/25900156/>`_\ 来查看书本的评分和评论信息。
-（注意，有意购买作者签名版的读者请不要预定普通版本，签名版的具体购买方式和费用将在最近公布。）
+
+本书提供了作者签名版可供销售，
+请访问 :doc:`signed` 页面了解更多信息。
 
 你可以通过访问本站，
 或者关注本书作者的\ `微博 <http://weibo.com/huangz1990>`_\ 、\ `twitter <https://twitter.com/huangz1990>`_\ 和\ `豆瓣 <http://www.douban.com/people/i_m_huangz/>`_\ 来获知本书的最新消息。
