@@ -31,7 +31,11 @@
 .. note::
 
     此价格最后更新自 2014 年 6 月 17 日，
-    你可以访问亚马逊、京东、当当和 `china-pub <http://product.china-pub.com/3770218>`_ 查看最新价格，
+    你可以访问
+    `亚马逊 <http://www.amazon.cn/%E6%95%B0%E6%8D%AE%E5%BA%93%E6%8A%80%E6%9C%AF%E4%B8%9B%E4%B9%A6-Redis%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0-%E9%BB%84%E5%81%A5%E5%AE%8F/dp/B00L4XHH0S>`_ 、
+    `京东商城 <http://item.jd.com/11486101.html>`_ 、
+    当当网和
+    `china-pub <http://product.china-pub.com/3770218>`_ 查看最新价格，
     并在发现更低的价格时通知我进行更新。
 
 至于快递费用则根据购买者所在的地点不同而不同（快递商为\ `顺丰速运 <http://www.sf-express.com/cn/sc/>`_\ ），

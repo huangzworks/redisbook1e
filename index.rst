@@ -19,10 +19,12 @@ Redis 设计与实现
 读者可以快速、有效地了解 Redis 的内部构造以及运作机制，
 从而学会如何更高效地使用 Redis 。
 
-《Redis 设计与实现》目前\ `正在互动出版网（china-pub）进行预售 <http://product.china-pub.com/3770218>`_\ ，
-你也可以通过访问\ `《Redis 设计与实现》的豆瓣页面 <http://book.douban.com/subject/25900156/>`_\ 来查看书本的评分和评论信息。
+你可以在 `互动出版网（china-pub） <http://product.china-pub.com/3770218>`_ 、
+`京东商城 <http://item.jd.com/11486101.html>`_ 或者
+`亚马逊 <http://www.amazon.cn/%E6%95%B0%E6%8D%AE%E5%BA%93%E6%8A%80%E6%9C%AF%E4%B8%9B%E4%B9%A6-Redis%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0-%E9%BB%84%E5%81%A5%E5%AE%8F/dp/B00L4XHH0S>`_ 购买本书。
 
-本书提供了作者签名版可供销售，
+另外，
+本书还提供了作者签名版可供购买，
 请访问 :doc:`signed` 页面了解更多信息。
 
 你可以通过访问本站，
