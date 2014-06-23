@@ -20,8 +20,9 @@ Redis 设计与实现
 从而学会如何更高效地使用 Redis 。
 
 你可以在 `互动出版网（china-pub） <http://product.china-pub.com/3770218>`_ 、
-`京东商城 <http://item.jd.com/11486101.html>`_ 或者
-`亚马逊 <http://www.amazon.cn/%E6%95%B0%E6%8D%AE%E5%BA%93%E6%8A%80%E6%9C%AF%E4%B8%9B%E4%B9%A6-Redis%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0-%E9%BB%84%E5%81%A5%E5%AE%8F/dp/B00L4XHH0S>`_ 购买本书。
+`京东商城 <http://item.jd.com/11486101.html>`_ 、
+`亚马逊 <http://www.amazon.cn/%E6%95%B0%E6%8D%AE%E5%BA%93%E6%8A%80%E6%9C%AF%E4%B8%9B%E4%B9%A6-Redis%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0-%E9%BB%84%E5%81%A5%E5%AE%8F/dp/B00L4XHH0S>`_ 或者
+`当当网 <http://product.dangdang.com/23501734.html>`_ 购买本书。
 
 另外，
 本书还提供了作者签名版可供购买，
