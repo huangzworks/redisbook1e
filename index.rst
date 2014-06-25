@@ -99,6 +99,7 @@ Redis 3.0 源码注释 ——
    :maxdepth: 1
 
    errata/chp4
+   errata/chp6
 
 读者可以在阅读本书之前，
 根据这些勘误对书本内容进行校正，
