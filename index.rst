@@ -91,11 +91,9 @@ Redis 设计与实现
 相关资源
 -----------------
 
-Redis 3.0 源码注释 —— 
+`Redis 3.0 源码注释 <https://github.com/huangz1990/redis-3.0-annotated>`_ —— 
 包含中文注释的 Redis 3.0 源码，
 帮助有兴趣的读者深入了解 Redis 的实现细节。
-即将公开，
-敬请期待。
 
 `《Redis 多机特性工作原理简介》 <http://www.chinahadoop.cn/course/31>`_ ——
 这个课程对 Redis 的复制、Sentinel 和集群三个特性的工作原理进行了基本的介绍。
