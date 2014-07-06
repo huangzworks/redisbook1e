@@ -86,6 +86,7 @@ Redis 设计与实现
    errata/chp4
    errata/chp6
    errata/chp9
+   errata/chp13
    errata/chp14
 
 如果读者发现了目前尚未记录的错误，
