@@ -4,6 +4,7 @@
 .. toctree::
    :maxdepth: 1
 
+   chp2
    chp4
    chp6
    chp9
