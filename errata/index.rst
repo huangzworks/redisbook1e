@@ -6,6 +6,7 @@
 
    chp2
    chp4
+   chp5
    chp6
    chp9
    chp13
