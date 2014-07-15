@@ -51,11 +51,11 @@
 
 ::
 
-    redis> SET story "Long, long ago there lived a king ..."
+    redis> SET story "Long, long, long ago there lived a king ..."
     OK
 
     redis> STRLEN story
-    (integer) 37
+    (integer) 43
 
     redis> OBJECT ENCODING story
     "raw"
@@ -72,7 +72,7 @@
 
         redisObject [label = " redisObject | type \n REDIS_STRING | encoding \n REDIS_ENCODING_RAW | <ptr> ptr | ... "];
 
-        sdshdr [label = " <head> sdshdr | free \n 0 | len \n 37 | <buf> buf"];
+        sdshdr [label = " <head> sdshdr | free \n 0 | len \n 43 | <buf> buf"];
 
         buf [label = " { 'L' | 'o' | 'n' | 'g' | ... | 'k' | 'i' | 'n' | 'g' | ' ' | '.' | '.' | '.' | '\\0' } " ];
 
