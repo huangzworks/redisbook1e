@@ -25,11 +25,11 @@
 103 页
 -----------
 
-在此页末尾的 ``EXPIREAT`` 函数中：
+在此页末尾的 ``PEXPIREAT`` 函数中：
 
 .. code-block:: python
 
-    def EXPIREAT(key, expire_time_in_ms):
+    def PEXPIREAT(key, expire_time_in_ms):
 
         # ...
 
