@@ -10,5 +10,6 @@
    chp6
    chp8
    chp9
+   chp12
    chp13
    chp14

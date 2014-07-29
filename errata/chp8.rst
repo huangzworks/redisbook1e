@@ -82,3 +82,25 @@ Redis 将这个值从 ``32`` 改为了 ``39`` ，
     那么字符串对象将使用 ``embstr`` 编码的方式来保存这个字符串值。
 
 感谢 `xp <http://redisbook.com/en/latest/preview/object/string.html#comment-1481763423>`_ 反馈这个问题。
+
+
+75 页
+------------
+
+在 8.5 节开头的介绍内容中，
+第二段代码：
+
+::
+
+    redis> SAD Dfruits "apple" "banana" "cherry"
+    (integer)3
+
+中的 ``SADD`` 命令印刷出错，
+正确的代码应该为：
+
+::
+
+    redis> SADD fruits "apple" "banana" "cherry"
+    (integer)3
+
+感谢 `zhkzyth <http://www.douban.com/people/zhkzyth/>`_ 反馈这个错误。
