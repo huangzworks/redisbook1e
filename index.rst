@@ -93,6 +93,11 @@ Redis 设计与实现
 包含中文注释的 Redis 3.0 源码，
 帮助有兴趣的读者深入了解 Redis 的实现细节。
 
+`《Redis 设计与实现》图片集 <1e-gallery.redisbook.com>`_ ——
+展示了本书包含的绝大多数图片以及图片的源码，
+方便读者在写博客、记笔记或者做演讲稿时引用本书的图片，
+或者通过阅读图片的源码来学习 dot 语言和 Graphviz 图片生成工具。
+
 `《Redis 多机特性工作原理简介》 <http://www.chinahadoop.cn/course/31>`_ ——
 这个课程对 Redis 的复制、Sentinel 和集群三个特性的工作原理进行了基本的介绍。
 因为课程的内容都提取自本书的《复制》、《Sentinel》和《集群》三个章节，
