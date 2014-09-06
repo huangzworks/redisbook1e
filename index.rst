@@ -166,7 +166,6 @@ Redis 设计与实现
   - 自动间隔性保存
   - :doc:`preview/rdb/rdb_struct`
   - 分析 RDB 文件
-  - 重点回顾
   - :doc:`preview/rdb/review`
 
 11. AOF 持久化
