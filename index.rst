@@ -321,6 +321,12 @@ Redis 设计与实现
 包含中文注释的 Redis 3.0 源码，
 帮助有兴趣的读者深入了解 Redis 的实现细节。
 
+`《如何阅读 Redis 源码》 <http://blog.huangz.me/en/latest/diary/2014/how-to-read-redis-source-code.html>`_ ——
+文章给出了一个推荐的 Redis 源码阅读顺序以供参考，
+读者可以在阅读完本书之后，
+根据文章描述的顺序来尝试阅读源码，
+从而进一步提高对 Redis 的了解。
+
 `《Redis 设计与实现》图片集 <1e-gallery.redisbook.com>`_ ——
 展示了本书包含的绝大多数图片以及图片的源码，
 方便读者在写博客、记笔记或者做演讲稿时引用本书的图片，
