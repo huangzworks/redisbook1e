@@ -327,7 +327,7 @@ Redis 设计与实现
 根据文章描述的顺序来尝试阅读源码，
 从而进一步提高对 Redis 的了解。
 
-`《Redis 设计与实现》图片集 <1e-gallery.redisbook.com>`_ ——
+`《Redis 设计与实现》图片集 <http://1e-gallery.redisbook.com>`_ ——
 展示了本书包含的绝大多数图片以及图片的源码，
 方便读者在写博客、记笔记或者做演讲稿时引用本书的图片，
 或者通过阅读图片的源码来学习 dot 语言和 Graphviz 图片生成工具。
