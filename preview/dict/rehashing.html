@@ -1,0 +1,398 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>rehash &mdash; Redis 设计与实现</title>
+    
+    <link rel="stylesheet" href="../../_static/pyramid.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="Redis 设计与实现" href="../../index.html" /> 
+
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+
+  </head>
+  <body>
+
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li><a href="../../index.html">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="rehash">
+<h1>rehash<a class="headerlink" href="#rehash" title="Permalink to this headline">¶</a></h1>
+<p>随着操作的不断执行，
+哈希表保存的键值对会逐渐地增多或者减少，
+为了让哈希表的负载因子（load factor）维持在一个合理的范围之内，
+当哈希表保存的键值对数量太多或者太少时，
+程序需要对哈希表的大小进行相应的扩展或者收缩。</p>
+<p>扩展和收缩哈希表的工作可以通过执行 rehash （重新散列）操作来完成，
+Redis 对字典的哈希表执行 rehash 的步骤如下：</p>
+<ol class="arabic simple">
+<li>为字典的 <code class="docutils literal"><span class="pre">ht[1]</span></code> 哈希表分配空间，
+这个哈希表的空间大小取决于要执行的操作，
+以及 <code class="docutils literal"><span class="pre">ht[0]</span></code> 当前包含的键值对数量
+（也即是 <code class="docutils literal"><span class="pre">ht[0].used</span></code> 属性的值）：<ul>
+<li>如果执行的是扩展操作，
+那么 <code class="docutils literal"><span class="pre">ht[1]</span></code> 的大小为第一个大于等于 <code class="docutils literal"><span class="pre">ht[0].used</span> <span class="pre">*</span> <span class="pre">2</span></code> 的 <img class="math" src="../../_images/math/e3eac54d53c30794ee37c4f02cf34a4901a8f0c4.png" alt="2^n"/> （<code class="docutils literal"><span class="pre">2</span></code> 的 <code class="docutils literal"><span class="pre">n</span></code> 次方幂）；</li>
+<li>如果执行的是收缩操作，
+那么 <code class="docutils literal"><span class="pre">ht[1]</span></code> 的大小为第一个大于等于 <code class="docutils literal"><span class="pre">ht[0].used</span></code> 的 <img class="math" src="../../_images/math/e3eac54d53c30794ee37c4f02cf34a4901a8f0c4.png" alt="2^n"/> 。</li>
+</ul>
+</li>
+<li>将保存在 <code class="docutils literal"><span class="pre">ht[0]</span></code> 中的所有键值对 rehash 到 <code class="docutils literal"><span class="pre">ht[1]</span></code> 上面：
+rehash 指的是重新计算键的哈希值和索引值，
+然后将键值对放置到 <code class="docutils literal"><span class="pre">ht[1]</span></code> 哈希表的指定位置上。</li>
+<li>当 <code class="docutils literal"><span class="pre">ht[0]</span></code> 包含的所有键值对都迁移到了 <code class="docutils literal"><span class="pre">ht[1]</span></code> 之后
+（<code class="docutils literal"><span class="pre">ht[0]</span></code> 变为空表），
+释放 <code class="docutils literal"><span class="pre">ht[0]</span></code> ，
+将 <code class="docutils literal"><span class="pre">ht[1]</span></code> 设置为 <code class="docutils literal"><span class="pre">ht[0]</span></code> ，
+并在 <code class="docutils literal"><span class="pre">ht[1]</span></code> 新创建一个空白哈希表，
+为下一次 rehash 做准备。</li>
+</ol>
+<p>举个例子，
+假设程序要对图 4-8 所示字典的 <code class="docutils literal"><span class="pre">ht[0]</span></code> 进行扩展操作，
+那么程序将执行以下步骤：</p>
+<ol class="arabic simple">
+<li><code class="docutils literal"><span class="pre">ht[0].used</span></code> 当前的值为 <code class="docutils literal"><span class="pre">4</span></code> ，
+<code class="docutils literal"><span class="pre">4</span> <span class="pre">*</span> <span class="pre">2</span> <span class="pre">=</span> <span class="pre">8</span></code> ，
+而 <code class="docutils literal"><span class="pre">8</span></code> （<img class="math" src="../../_images/math/623164f835a0a677bb37fdd50a06823d4f74beb6.png" alt="2^3"/>）恰好是第一个大于等于 <code class="docutils literal"><span class="pre">4</span></code> 的 <code class="docutils literal"><span class="pre">2</span></code> 的 <code class="docutils literal"><span class="pre">n</span></code> 次方，
+所以程序会将 <code class="docutils literal"><span class="pre">ht[1]</span></code> 哈希表的大小设置为 <code class="docutils literal"><span class="pre">8</span></code> 。
+图 4-9 展示了 <code class="docutils literal"><span class="pre">ht[1]</span></code> 在分配空间之后，
+字典的样子。</li>
+<li>将 <code class="docutils literal"><span class="pre">ht[0]</span></code> 包含的四个键值对都 rehash 到 <code class="docutils literal"><span class="pre">ht[1]</span></code> ，
+如图 4-10 所示。</li>
+<li>释放 <code class="docutils literal"><span class="pre">ht[0]</span></code> ，并将 <code class="docutils literal"><span class="pre">ht[1]</span></code> 设置为 <code class="docutils literal"><span class="pre">ht[0]</span></code> ，然后为 <code class="docutils literal"><span class="pre">ht[1]</span></code> 分配一个空白哈希表，如图 4-11 所示。</li>
+</ol>
+<p>至此，
+对哈希表的扩展操作执行完毕，
+程序成功将哈希表的大小从原来的 <code class="docutils literal"><span class="pre">4</span></code> 改为了现在的 <code class="docutils literal"><span class="pre">8</span></code> 。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-93608325578e8e45848938ef420115bf2227639e.png" alt="digraph {
+
+    label = &quot;\n 图 4-8    执行 rehash 之前的字典&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    // 字典
+
+    dict [label = &quot; &lt;head&gt; dict | type | privdata | &lt;ht&gt; ht | rehashidx \n -1 &quot;];
+
+    // 哈希表
+
+    dictht0 [label = &quot; &lt;head&gt; dictht | &lt;table&gt; table | &lt;size&gt; size \n 4 | &lt;sizemask&gt; sizemask \n 3 | &lt;used&gt; used \n 4&quot;];
+
+    dictht1 [label = &quot; &lt;head&gt; dictht | &lt;table&gt; table | &lt;size&gt; size \n 0 | &lt;sizemask&gt; sizemask \n 0 | &lt;used&gt; used \n 0&quot;];
+
+    table0 [label = &quot; &lt;head&gt; dictEntry*[4] | &lt;0&gt; 0 | &lt;1&gt; 1 | &lt;2&gt; 2 | &lt;3&gt; 3 &quot;];
+
+    table1 [label = &quot;NULL&quot;, shape = plaintext];
+
+    // 哈希表节点
+
+    kv0 [label = &quot; &lt;head&gt; dictEntry | { k0 | v0 } &quot;];
+    kv1 [label = &quot; &lt;head&gt; dictEntry | { k1 | v1 } &quot;];
+    kv2 [label = &quot; &lt;head&gt; dictEntry | { k2 | v2 } &quot;];
+    kv3 [label = &quot; &lt;head&gt; dictEntry | { k3 | v3 } &quot;];
+
+    //
+
+    node [shape = plaintext, label = &quot;NULL&quot;];
+
+    null0;
+    null1;
+    null2;
+    null3;
+
+    //
+
+    dict:ht -&gt; dictht0:head [label = &quot;ht[0]&quot;];
+    dict:ht -&gt; dictht1:head [label = &quot;ht[1]&quot;];
+
+    dictht0:table -&gt; table0:head;
+    dictht1:table -&gt; table1;
+
+    table0:0 -&gt; kv2:head -&gt; null0;
+    table0:1 -&gt; kv0:head -&gt; null1;
+    table0:2 -&gt; kv3:head -&gt; null2;
+    table0:3 -&gt; kv1:head -&gt; null3;
+
+}" />
+</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-b68acb4d868ec7d79a44935ce08a159746ca58da.png" alt="digraph {
+
+    label = &quot;\n 图 4-9    为字典的 ht[1] 哈希表分配空间&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    // 字典
+
+    dict [label = &quot; &lt;head&gt; dict | type | privdata | &lt;ht&gt; ht | rehashidx \n -1 &quot;];
+
+    // 哈希表
+
+    dictht0 [label = &quot; &lt;head&gt; dictht | &lt;table&gt; table | &lt;size&gt; size \n 4 | &lt;sizemask&gt; sizemask \n 3 | &lt;used&gt; used \n 4&quot;];
+
+    dictht1 [label = &quot; &lt;head&gt; dictht | &lt;table&gt; table | &lt;size&gt; size \n 8 | &lt;sizemask&gt; sizemask \n 7 | &lt;used&gt; used \n 0&quot;];
+
+    table0 [label = &quot; &lt;head&gt; dictEntry*[4] | &lt;0&gt; 0 | &lt;1&gt; 1 | &lt;2&gt; 2 | &lt;3&gt; 3 &quot;];
+
+    table1 [label = &quot; &lt;head&gt; dictEntry*[8] | &lt;0&gt; 0 | &lt;1&gt; 1 | &lt;2&gt; 2 | ... | &lt;7&gt; 7 &quot;];
+
+    // 哈希表节点
+
+    kv0 [label = &quot; &lt;head&gt; dictEntry | { k0 | v0 } &quot;];
+    kv1 [label = &quot; &lt;head&gt; dictEntry | { k1 | v1 } &quot;];
+    kv2 [label = &quot; &lt;head&gt; dictEntry | { k2 | v2 } &quot;];
+    kv3 [label = &quot; &lt;head&gt; dictEntry | { k3 | v3 } &quot;];
+
+    //
+
+    node [shape = plaintext, label = &quot;NULL&quot;];
+
+    //
+
+    dict:ht -&gt; dictht0:head [label = &quot;ht[0]&quot;];
+    dict:ht -&gt; dictht1:head [label = &quot;ht[1]&quot;];
+
+    dictht0:table -&gt; table0:head;
+    dictht1:table -&gt; table1:head;
+
+    table0:0 -&gt; kv2:head -&gt; null0;
+    table0:1 -&gt; kv0:head -&gt; null1;
+    table0:2 -&gt; kv3:head -&gt; null2;
+    table0:3 -&gt; kv1:head -&gt; null3;
+
+    table1:0 -&gt; null10;
+    table1:1 -&gt; null11;
+    table1:2 -&gt; null12;
+    table1:7 -&gt; null17;
+
+}" />
+</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-92dc47e4329eabae941cddfd727b736ef738e8cf.png" alt="digraph {
+
+    label = &quot;\n 图 4-10    ht[0] 的所有键值对都已经被迁移到 ht[1]&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    // 字典
+
+    dict [label = &quot; &lt;head&gt; dict | type | privdata | &lt;ht&gt; ht | rehashidx \n -1 &quot;];
+
+    // 哈希表
+
+    dictht0 [label = &quot; &lt;head&gt; dictht | &lt;table&gt; table | &lt;size&gt; size \n 4 | &lt;sizemask&gt; sizemask \n 3 | &lt;used&gt; used \n 0&quot;];
+
+    dictht1 [label = &quot; &lt;head&gt; dictht | &lt;table&gt; table | &lt;size&gt; size \n 8 | &lt;sizemask&gt; sizemask \n 7 | &lt;used&gt; used \n 4&quot;];
+
+    table0 [label = &quot; &lt;head&gt; dictEntry*[4] | &lt;0&gt; 0 | &lt;1&gt; 1 | &lt;2&gt; 2 | &lt;3&gt; 3 &quot;];
+
+    table1 [label = &quot; &lt;head&gt; dictEntry*[8] | ... | &lt;1&gt; 1 | ... | &lt;4&gt; 4 | &lt;5&gt; 5 | ... | &lt;7&gt; 7 &quot;];
+
+    // 哈希表节点
+
+    kv0 [label = &quot; &lt;head&gt; dictEntry | { k0 | v0 } &quot;];
+    kv1 [label = &quot; &lt;head&gt; dictEntry | { k1 | v1 } &quot;];
+    kv2 [label = &quot; &lt;head&gt; dictEntry | { k2 | v2 } &quot;];
+    kv3 [label = &quot; &lt;head&gt; dictEntry | { k3 | v3 } &quot;];
+
+    //
+
+    node [shape = plaintext, label = &quot;NULL&quot;];
+
+    //
+
+    dict:ht -&gt; dictht0:head [label = &quot;ht[0]&quot;];
+    dict:ht -&gt; dictht1:head [label = &quot;ht[1]&quot;];
+
+    dictht0:table -&gt; table0:head;
+    dictht1:table -&gt; table1:head;
+
+    table0:0 -&gt; null0;
+    table0:1 -&gt; null1;
+    table0:2 -&gt; null2;
+    table0:3 -&gt; null3;
+
+    table1:1 -&gt; kv3:head -&gt; null11;
+    table1:4 -&gt; kv2:head -&gt; null14;
+    table1:5 -&gt; kv0:head -&gt; null15;
+    table1:7 -&gt; kv1:head -&gt; null17;
+
+}" />
+</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-fa28d986a72f1f48b83c7f959ea217b1f9527d3c.png" alt="digraph {
+
+    label = &quot;\n 图 4-11    完成 rehash 之后的字典&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    // 字典
+
+    dict [label = &quot; &lt;head&gt; dict | type | privdata | &lt;ht&gt; ht | rehashidx \n -1 &quot;];
+
+    // 哈希表
+
+    dictht0 [label = &quot; &lt;head&gt; dictht | &lt;table&gt; table | &lt;size&gt; size \n 8 | &lt;sizemask&gt; sizemask \n 7 | &lt;used&gt; used \n 4&quot;];
+
+    dictht1 [label = &quot; &lt;head&gt; dictht | &lt;table&gt; table | &lt;size&gt; size \n 0 | &lt;sizemask&gt; sizemask \n 0 | &lt;used&gt; used \n 0&quot;];
+
+    table0 [label = &quot; &lt;head&gt; dictEntry*[8] | ... | &lt;1&gt; 1 | ... | &lt;4&gt; 4 | &lt;5&gt; 5 | ... | &lt;7&gt; 7 &quot;];
+
+    table1 [label = &quot;NULL&quot;, shape = plaintext];
+
+    // 哈希表节点
+
+    kv0 [label = &quot; &lt;head&gt; dictEntry | { k0 | v0 } &quot;];
+    kv1 [label = &quot; &lt;head&gt; dictEntry | { k1 | v1 } &quot;];
+    kv2 [label = &quot; &lt;head&gt; dictEntry | { k2 | v2 } &quot;];
+    kv3 [label = &quot; &lt;head&gt; dictEntry | { k3 | v3 } &quot;];
+
+    //
+
+    node [shape = plaintext, label = &quot;NULL&quot;];
+
+    //
+
+    dict:ht -&gt; dictht0:head [label = &quot;ht[0]&quot;];
+    dict:ht -&gt; dictht1:head [label = &quot;ht[1]&quot;];
+
+    dictht0:table -&gt; table0:head;
+    dictht1:table -&gt; table1;
+
+    table0:1 -&gt; kv3:head -&gt; null11;
+    table0:4 -&gt; kv2:head -&gt; null14;
+    table0:5 -&gt; kv0:head -&gt; null15;
+    table0:7 -&gt; kv1:head -&gt; null17;
+
+}" />
+</p>
+<div class="section" id="id1">
+<h2>哈希表的扩展与收缩<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<p>当以下条件中的任意一个被满足时，
+程序会自动开始对哈希表执行扩展操作：</p>
+<ol class="arabic simple">
+<li>服务器目前没有在执行 <em class="xref std std-ref">BGSAVE</em> 命令或者 <em class="xref std std-ref">BGREWRITEAOF</em> 命令，
+并且哈希表的负载因子大于等于 <code class="docutils literal"><span class="pre">1</span></code> ；</li>
+<li>服务器目前正在执行 <em class="xref std std-ref">BGSAVE</em> 命令或者 <em class="xref std std-ref">BGREWRITEAOF</em> 命令，
+并且哈希表的负载因子大于等于 <code class="docutils literal"><span class="pre">5</span></code> ；</li>
+</ol>
+<p>其中哈希表的负载因子可以通过公式：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="cp"># 负载因子 = 哈希表已保存节点数量 / 哈希表大小</span>
+<span class="n">load_factor</span> <span class="o">=</span> <span class="n">ht</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">used</span> <span class="o">/</span> <span class="n">ht</span><span class="p">[</span><span class="mi">0</span><span class="p">].</span><span class="n">size</span>
+</pre></div>
+</div>
+<p>计算得出。</p>
+<p>比如说，
+对于一个大小为 <code class="docutils literal"><span class="pre">4</span></code> ，
+包含 <code class="docutils literal"><span class="pre">4</span></code> 个键值对的哈希表来说，
+这个哈希表的负载因子为：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">load_factor</span> <span class="o">=</span> <span class="mi">4</span> <span class="o">/</span> <span class="mi">4</span> <span class="o">=</span> <span class="mi">1</span>
+</pre></div>
+</div>
+<p>又比如说，
+对于一个大小为 <code class="docutils literal"><span class="pre">512</span></code> ，
+包含 <code class="docutils literal"><span class="pre">256</span></code> 个键值对的哈希表来说，
+这个哈希表的负载因子为：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">load_factor</span> <span class="o">=</span> <span class="mi">256</span> <span class="o">/</span> <span class="mi">512</span> <span class="o">=</span> <span class="mf">0.5</span>
+</pre></div>
+</div>
+<p>根据 <em class="xref std std-ref">BGSAVE</em> 命令或 <em class="xref std std-ref">BGREWRITEAOF</em> 命令是否正在执行，
+服务器执行扩展操作所需的负载因子并不相同，
+这是因为在执行 <em class="xref std std-ref">BGSAVE</em> 命令或 <em class="xref std std-ref">BGREWRITEAOF</em> 命令的过程中，
+Redis 需要创建当前服务器进程的子进程，
+而大多数操作系统都采用写时复制（<a class="reference external" href="http://en.wikipedia.org/wiki/Copy-on-write">copy-on-write</a>）技术来优化子进程的使用效率，
+所以在子进程存在期间，
+服务器会提高执行扩展操作所需的负载因子，
+从而尽可能地避免在子进程存在期间进行哈希表扩展操作，
+这可以避免不必要的内存写入操作，
+最大限度地节约内存。</p>
+<p>另一方面，
+当哈希表的负载因子小于 <code class="docutils literal"><span class="pre">0.1</span></code> 时，
+程序自动开始对哈希表执行收缩操作。</p>
+</div>
+</div>
+
+
+
+            <div class="section" id="discuss">
+    <h2>
+        讨论
+        <a class="headerlink" href="#discuss" title="永久链接至标题">¶</a>
+    </h2>
+    <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'redisbookv1'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li><a href="../../index.html">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, 黄健宏（huangz）.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+    </div>
+  </body>
+</html>

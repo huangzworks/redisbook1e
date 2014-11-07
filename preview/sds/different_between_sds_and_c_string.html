@@ -1,0 +1,886 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>SDS 与 C 字符串的区别 &mdash; Redis 设计与实现</title>
+    
+    <link rel="stylesheet" href="../../_static/pyramid.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="Redis 设计与实现" href="../../index.html" /> 
+
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+
+  </head>
+  <body>
+
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li><a href="../../index.html">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="sds-c">
+<h1>SDS 与 C 字符串的区别<a class="headerlink" href="#sds-c" title="Permalink to this headline">¶</a></h1>
+<p>根据传统，
+C 语言使用长度为 <code class="docutils literal"><span class="pre">N+1</span></code> 的字符数组来表示长度为 <code class="docutils literal"><span class="pre">N</span></code> 的字符串，
+并且字符数组的最后一个元素总是空字符 <code class="docutils literal"><span class="pre">'\0'</span></code> 。</p>
+<p>比如说，
+图 2-3 就展示了一个值为 <code class="docutils literal"><span class="pre">&quot;Redis&quot;</span></code> 的 C 字符串：</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-cd9ca0391fd6ab95a2c5b48d5f5fbd0da2db1cab.png" alt="digraph {
+
+    label = &quot;\n 图 2-3    C 字符串&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    //
+
+    buf [label = &quot;{ 'R' | 'e' | 'd' | 'i' | 's' | '\\0' }&quot;];
+
+}" />
+</p>
+<p>C 语言使用的这种简单的字符串表示方式，
+并不能满足 Redis 对字符串在安全性、效率、以及功能方面的要求，
+本节接下来的内容将详细对比 C 字符串和 SDS 之间的区别，
+并说明 SDS 比 C 字符串更适用于 Redis 的原因。</p>
+<div class="section" id="id1">
+<h2>常数复杂度获取字符串长度<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<p>因为 C 字符串并不记录自身的长度信息，
+所以为了获取一个 C 字符串的长度，
+程序必须遍历整个字符串，
+对遇到的每个字符进行计数，
+直到遇到代表字符串结尾的空字符为止，
+这个操作的复杂度为 <img class="math" src="../../_images/math/4d51d3f476c76dc066b26271168bc3b67f49d2be.png" alt="O(N)"/> 。</p>
+<p>举个例子，
+图 2-4 展示了程序计算一个 C 字符串长度的过程。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-15702f3018be5f9c38705fe1a3c3179cfc7ce208.png" alt="digraph {
+
+    rankdir = TB;
+
+    node [shape = record];
+
+    str [label = &quot; &lt;1&gt; 'R' | &lt;2&gt; 'e' | &lt;3&gt; 'd' | &lt;4&gt; 'i' | &lt;5&gt; 's' | &lt;6&gt; '\\0' &quot;];
+
+    node [shape = plaintext];
+
+    p1 [label = &quot;len = 1&quot;];
+
+    p1 -&gt; str:1;
+
+}" />
+</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-11db45788777fdf62308ab859e5e4418276616b1.png" alt="digraph {
+
+    rankdir = TB;
+
+    node [shape = record];
+
+    str [label = &quot; &lt;1&gt; 'R' | &lt;2&gt; 'e' | &lt;3&gt; 'd' | &lt;4&gt; 'i' | &lt;5&gt; 's' | &lt;6&gt; '\\0' &quot;];
+
+    node [shape = plaintext];
+
+    p2 [label = &quot;len = 2&quot;];
+
+    p2 -&gt; str:2;
+
+}" />
+</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-22f91c392200e20da51ad61306765bee1d874a13.png" alt="digraph {
+
+    rankdir = TB;
+
+    node [shape = record];
+
+    str [label = &quot; &lt;1&gt; 'R' | &lt;2&gt; 'e' | &lt;3&gt; 'd' | &lt;4&gt; 'i' | &lt;5&gt; 's' | &lt;6&gt; '\\0' &quot;];
+
+    node [shape = plaintext];
+
+    p3 [label = &quot;len = 3&quot;];
+
+    p3 -&gt; str:3;
+
+}" />
+</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-ff4aa6ea06fabe2bdf8f26325bca6a02fa480da8.png" alt="digraph {
+
+    rankdir = TB;
+
+    node [shape = record];
+
+    str [label = &quot; &lt;1&gt; 'R' | &lt;2&gt; 'e' | &lt;3&gt; 'd' | &lt;4&gt; 'i' | &lt;5&gt; 's' | &lt;6&gt; '\\0' &quot;];
+
+    node [shape = plaintext];
+
+    p4 [label = &quot;len = 4&quot;];
+
+    p4 -&gt; str:4;
+
+}" />
+</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-59da530d8d0f16ce3eff95e285460b9ea5a0f389.png" alt="digraph {
+
+    rankdir = TB;
+
+    node [shape = record];
+
+    str [label = &quot; &lt;1&gt; 'R' | &lt;2&gt; 'e' | &lt;3&gt; 'd' | &lt;4&gt; 'i' | &lt;5&gt; 's' | &lt;6&gt; '\\0' &quot;];
+
+    node [shape = plaintext];
+
+    p5 [label = &quot;len = 5&quot;];
+
+    p5 -&gt; str:5;
+
+}" />
+</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-e505478b940695671030146e66d6b3b292e7ae8c.png" alt="digraph {
+
+    label = &quot;\n 图 2-4    计算 C 字符串长度的过程&quot;;
+
+    rankdir = TB;
+
+    node [shape = record];
+
+    str [label = &quot; &lt;1&gt; 'R' | &lt;2&gt; 'e' | &lt;3&gt; 'd' | &lt;4&gt; 'i' | &lt;5&gt; 's' | &lt;6&gt; '\\0' &quot;];
+
+    node [shape = plaintext];
+
+    p6 [label = &quot;发现空字符 \n 停止计数 \n 字符串的长度为 5 字节&quot;];
+
+    p6 -&gt; str:6;
+
+}" />
+</p>
+<p>和 C 字符串不同，
+因为 SDS 在 <code class="docutils literal"><span class="pre">len</span></code> 属性中记录了 SDS 本身的长度，
+所以获取一个 SDS 长度的复杂度仅为 <img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</p>
+<p>举个例子，
+对于图 2-5 所示的 SDS 来说，
+程序只要访问 SDS 的 <code class="docutils literal"><span class="pre">len</span></code> 属性，
+就可以立即知道 SDS 的长度为 <code class="docutils literal"><span class="pre">5</span></code> 字节：</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-dbd2f4d49a9f495f18093129393569f93e645529.png" alt="digraph {
+
+    label = &quot;\n 图 2-5    五字节长的 SDS&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    //
+
+    sdshdr [label = &quot;sdshdr | free \n 0 | len \n 5 | &lt;buf&gt; buf&quot;];
+
+    buf [label = &quot;{ 'R' | 'e' | 'd' | 'i' | 's' | '\\0' }&quot;];
+
+    //
+
+    sdshdr:buf -&gt; buf;
+
+}" />
+</p>
+<p>又比如说，
+对于图 2-6 展示的 SDS 来说，
+程序只要访问 SDS 的 <code class="docutils literal"><span class="pre">len</span></code> 属性，
+就可以立即知道 SDS 的长度为 <code class="docutils literal"><span class="pre">11</span></code> 字节。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-33b39668e26fa63350b177c13b38f201fcebb6c4.png" alt="digraph {
+
+    label = &quot;\n 图 2-6    十一字节长的 SDS&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    //
+
+    sdshdr [label = &quot;sdshdr | free \n 0 | len \n 11 | &lt;buf&gt; buf&quot;];
+
+    buf [label = &quot;{ 'h' | 'e' | 'l' | 'l' | 'o' | ' ' | 'w' | 'o' | 'r' | 'l' | 'd' | '\\0' }&quot;];
+
+    //
+
+    sdshdr:buf -&gt; buf;
+
+}" />
+</p>
+<p>设置和更新 SDS 长度的工作是由 SDS 的 API 在执行时自动完成的，
+使用 SDS 无须进行任何手动修改长度的工作。</p>
+<p>通过使用 SDS 而不是 C 字符串，
+Redis 将获取字符串长度所需的复杂度从 <img class="math" src="../../_images/math/4d51d3f476c76dc066b26271168bc3b67f49d2be.png" alt="O(N)"/> 降低到了 <img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> ，
+这确保了获取字符串长度的工作不会成为 Redis 的性能瓶颈。</p>
+<p>比如说，
+因为字符串键在底层使用 SDS 来实现，
+所以即使我们对一个非常长的字符串键反复执行 <em class="xref std std-ref">STRLEN</em> 命令，
+也不会对系统性能造成任何影响，
+因为 <em class="xref std std-ref">STRLEN</em> 命令的复杂度仅为 <img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</p>
+</div>
+<div class="section" id="id2">
+<h2>杜绝缓冲区溢出<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<p>除了获取字符串长度的复杂度高之外，
+C 字符串不记录自身长度带来的另一个问题是容易造成缓冲区溢出（buffer overflow）。</p>
+<p>举个例子，
+<code class="docutils literal"><span class="pre">&lt;string.h&gt;/strcat</span></code> 函数可以将 <code class="docutils literal"><span class="pre">src</span></code> 字符串中的内容拼接到 <code class="docutils literal"><span class="pre">dest</span></code> 字符串的末尾：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="kt">char</span> <span class="o">*</span><span class="nf">strcat</span><span class="p">(</span><span class="kt">char</span> <span class="o">*</span><span class="n">dest</span><span class="p">,</span> <span class="k">const</span> <span class="kt">char</span> <span class="o">*</span><span class="n">src</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>因为 C 字符串不记录自身的长度，
+所以 <code class="docutils literal"><span class="pre">strcat</span></code> 假定用户在执行这个函数时，
+已经为 <code class="docutils literal"><span class="pre">dest</span></code> 分配了足够多的内存，
+可以容纳 <code class="docutils literal"><span class="pre">src</span></code> 字符串中的所有内容，
+而一旦这个假定不成立时，
+就会产生缓冲区溢出。</p>
+<p>举个例子，
+假设程序里有两个在内存中紧邻着的 C 字符串 <code class="docutils literal"><span class="pre">s1</span></code> 和 <code class="docutils literal"><span class="pre">s2</span></code> ，
+其中 <code class="docutils literal"><span class="pre">s1</span></code> 保存了字符串 <code class="docutils literal"><span class="pre">&quot;Redis&quot;</span></code> ，
+而 <code class="docutils literal"><span class="pre">s2</span></code> 则保存了字符串 <code class="docutils literal"><span class="pre">&quot;MongoDB&quot;</span></code> ，
+如图 2-7 所示。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-7daf86931b270e1f4bacf20e3f56ebcb2fc7e08e.png" alt="digraph {
+
+    label = &quot;\n 图 2-7    在内存中紧邻的两个 C 字符串&quot;;
+
+    rankdir = TB;
+
+    //
+
+    node [shape = record];
+
+    memory [label = &quot; ... | &lt;s1&gt; 'R' | 'e' | 'd' | 'i' | 's' | '\\0' | &lt;s2&gt; 'M' | 'o' | 'n' | 'g' | 'o' | 'D' | 'B' | '\\0' | ... &quot;];
+
+    //
+
+    node [shape = plaintext];
+
+    s1 -&gt; memory:s1;
+
+    s2 -&gt; memory:s2;
+
+}" />
+</p>
+<p>如果一个程序员决定通过执行：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">strcat</span><span class="p">(</span><span class="n">s1</span><span class="p">,</span> <span class="s">&quot; Cluster&quot;</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>将 <code class="docutils literal"><span class="pre">s1</span></code> 的内容修改为 <code class="docutils literal"><span class="pre">&quot;Redis</span> <span class="pre">Cluster&quot;</span></code> ，
+但粗心的他却忘了在执行 <code class="docutils literal"><span class="pre">strcat</span></code> 之前为 <code class="docutils literal"><span class="pre">s1</span></code> 分配足够的空间，
+那么在 <code class="docutils literal"><span class="pre">strcat</span></code> 函数执行之后，
+<code class="docutils literal"><span class="pre">s1</span></code> 的数据将溢出到 <code class="docutils literal"><span class="pre">s2</span></code> 所在的空间中，
+导致 <code class="docutils literal"><span class="pre">s2</span></code> 保存的内容被意外地修改，
+如图 2-8 所示。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-2ff855d462d63f935deedb05c0d6447ed4b44bb3.png" alt="digraph {
+
+    label = &quot;\n 图 2-8    s1 的内容溢出到了 s2 所在的位置上&quot;;
+
+    rankdir = TB;
+
+    //
+
+    node [shape = record];
+
+    memory [label = &quot; ... | &lt;s1&gt; 'R' | 'e' | 'd' | 'i' | 's' | ' ' | &lt;s2&gt; 'C' | 'l' | 'u' | 's' | 't' | 'e' | 'r' | '\\0' | ... &quot;];
+
+    //
+
+    node [shape = plaintext];
+
+    s1 -&gt; memory:s1;
+
+    s2 -&gt; memory:s2;
+
+}" />
+</p>
+<p>与 C 字符串不同，
+SDS 的空间分配策略完全杜绝了发生缓冲区溢出的可能性：
+当 SDS API 需要对 SDS 进行修改时，
+API 会先检查 SDS 的空间是否满足修改所需的要求，
+如果不满足的话，
+API 会自动将 SDS 的空间扩展至执行修改所需的大小，
+然后才执行实际的修改操作，
+所以使用 SDS 既不需要手动修改 SDS 的空间大小，
+也不会出现前面所说的缓冲区溢出问题。</p>
+<p>举个例子，
+SDS 的 API 里面也有一个用于执行拼接操作的 <code class="docutils literal"><span class="pre">sdscat</span></code> 函数，
+它可以将一个 C 字符串拼接到给定 SDS 所保存的字符串的后面，
+但是在执行拼接操作之前，
+<code class="docutils literal"><span class="pre">sdscat</span></code> 会先检查给定 SDS 的空间是否足够，
+如果不够的话，
+<code class="docutils literal"><span class="pre">sdscat</span></code> 就会先扩展 SDS 的空间，
+然后才执行拼接操作。</p>
+<p>比如说，
+如果我们执行：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">sdscat</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s">&quot; Cluster&quot;</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>其中 SDS 值 <code class="docutils literal"><span class="pre">s</span></code> 如图 2-9 所示，
+那么 <code class="docutils literal"><span class="pre">sdscat</span></code> 将在执行拼接操作之前检查 <code class="docutils literal"><span class="pre">s</span></code> 的长度是否足够，
+在发现 <code class="docutils literal"><span class="pre">s</span></code> 目前的空间不足以拼接 <code class="docutils literal"><span class="pre">&quot;</span> <span class="pre">Cluster&quot;</span></code> 之后，
+<code class="docutils literal"><span class="pre">sdscat</span></code> 就会先扩展 <code class="docutils literal"><span class="pre">s</span></code> 的空间，
+然后才执行拼接 <code class="docutils literal"><span class="pre">&quot;</span> <span class="pre">Cluster&quot;</span></code> 的操作，
+拼接操作完成之后的 SDS 如图 2-10 所示。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-87e1f7dda1bde2b3dd53c143a12a3a12ec1949b7.png" alt="digraph {
+
+    label = &quot;\n 图 2-9    sdscat 执行之前的 SDS&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    //
+
+    sdshdr [label = &quot;sdshdr | free \n 0 | len \n 5 | &lt;buf&gt; buf&quot;];
+
+    buf [label = &quot;{ 'R' | 'e' | 'd' | 'i' | 's' | '\\0' }&quot;];
+
+    //
+
+    sdshdr:buf -&gt; buf;
+
+}" />
+</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-a52da469a2a921623086793193a2d35eb1fed716.png" alt="digraph {
+
+    label = &quot;\n 图 2-10    sdscat 执行之后的 SDS&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    //
+
+    sdshdr [label = &quot;sdshdr | free \n 13 | len \n 13 | &lt;buf&gt; buf&quot;];
+
+    buf [label = &quot;{ 'R' | 'e' | 'd' | 'i' | 's' | ' ' | 'C' | 'l' | 'u' | 's' | 't' | 'e' | 'r'| '\\0' | ... }&quot;];
+
+    //
+
+    sdshdr:buf -&gt; buf;
+
+}" />
+</p>
+<p>注意图 2-10 所示的 SDS ：
+<code class="docutils literal"><span class="pre">sdscat</span></code> 不仅对这个 SDS 进行了拼接操作，
+它还为 SDS 分配了 <code class="docutils literal"><span class="pre">13</span></code> 字节的未使用空间，
+并且拼接之后的字符串也正好是 <code class="docutils literal"><span class="pre">13</span></code> 字节长，
+这种现象既不是 bug 也不是巧合，
+它和 SDS 的空间分配策略有关，
+接下来的小节将对这一策略进行说明。</p>
+</div>
+<div class="section" id="id3">
+<h2>减少修改字符串时带来的内存重分配次数<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<p>正如前两个小节所说，
+因为 C 字符串并不记录自身的长度，
+所以对于一个包含了 <code class="docutils literal"><span class="pre">N</span></code> 个字符的 C 字符串来说，
+这个 C 字符串的底层实现总是一个 <code class="docutils literal"><span class="pre">N+1</span></code> 个字符长的数组（额外的一个字符空间用于保存空字符）。</p>
+<p>因为 C 字符串的长度和底层数组的长度之间存在着这种关联性，
+所以每次增长或者缩短一个 C 字符串，
+程序都总要对保存这个 C 字符串的数组进行一次内存重分配操作：</p>
+<ul class="simple">
+<li>如果程序执行的是增长字符串的操作，
+比如拼接操作（append），
+那么在执行这个操作之前，
+程序需要先通过内存重分配来扩展底层数组的空间大小 ——
+如果忘了这一步就会产生缓冲区溢出。</li>
+<li>如果程序执行的是缩短字符串的操作，
+比如截断操作（trim），
+那么在执行这个操作之后，
+程序需要通过内存重分配来释放字符串不再使用的那部分空间 ——
+如果忘了这一步就会产生内存泄漏。</li>
+</ul>
+<p>举个例子，
+如果我们持有一个值为 <code class="docutils literal"><span class="pre">&quot;Redis&quot;</span></code> 的 C 字符串 <code class="docutils literal"><span class="pre">s</span></code> ，
+那么为了将 <code class="docutils literal"><span class="pre">s</span></code> 的值改为 <code class="docutils literal"><span class="pre">&quot;Redis</span> <span class="pre">Cluster&quot;</span></code> ，
+在执行：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">strcat</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s">&quot; Cluster&quot;</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>之前，
+我们需要先使用内存重分配操作，
+扩展 <code class="docutils literal"><span class="pre">s</span></code> 的空间。</p>
+<p>之后，
+如果我们又打算将 <code class="docutils literal"><span class="pre">s</span></code> 的值从 <code class="docutils literal"><span class="pre">&quot;Redis</span> <span class="pre">Cluster&quot;</span></code> 改为 <code class="docutils literal"><span class="pre">&quot;Redis</span> <span class="pre">Cluster</span> <span class="pre">Tutorial&quot;</span></code> ，
+那么在执行：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">strcat</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s">&quot; Tutorial&quot;</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>之前，
+我们需要再次使用内存重分配扩展 <code class="docutils literal"><span class="pre">s</span></code> 的空间，
+诸如此类。</p>
+<p>因为内存重分配涉及复杂的算法，
+并且可能需要执行系统调用，
+所以它通常是一个比较耗时的操作：</p>
+<ul class="simple">
+<li>在一般程序中，
+如果修改字符串长度的情况不太常出现，
+那么每次修改都执行一次内存重分配是可以接受的。</li>
+<li>但是 Redis 作为数据库，
+经常被用于速度要求严苛、数据被频繁修改的场合，
+如果每次修改字符串的长度都需要执行一次内存重分配的话，
+那么光是执行内存重分配的时间就会占去修改字符串所用时间的一大部分，
+如果这种修改频繁地发生的话，
+可能还会对性能造成影响。</li>
+</ul>
+<p>为了避免 C 字符串的这种缺陷，
+SDS 通过未使用空间解除了字符串长度和底层数组长度之间的关联：
+在 SDS 中，
+<code class="docutils literal"><span class="pre">buf</span></code> 数组的长度不一定就是字符数量加一，
+数组里面可以包含未使用的字节，
+而这些字节的数量就由 SDS 的 <code class="docutils literal"><span class="pre">free</span></code> 属性记录。</p>
+<p>通过未使用空间，
+SDS 实现了空间预分配和惰性空间释放两种优化策略。</p>
+<div class="section" id="id4">
+<h3>空间预分配<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<p>空间预分配用于优化 SDS 的字符串增长操作：
+当 SDS 的 API 对一个 SDS 进行修改，
+并且需要对 SDS 进行空间扩展的时候，
+程序不仅会为 SDS 分配修改所必须要的空间，
+还会为 SDS 分配额外的未使用空间。</p>
+<p>其中，
+额外分配的未使用空间数量由以下公式决定：</p>
+<ul class="simple">
+<li>如果对 SDS 进行修改之后，
+SDS 的长度（也即是 <code class="docutils literal"><span class="pre">len</span></code> 属性的值）将小于 <code class="docutils literal"><span class="pre">1</span> <span class="pre">MB</span></code> ，
+那么程序分配和 <code class="docutils literal"><span class="pre">len</span></code> 属性同样大小的未使用空间，
+这时 SDS <code class="docutils literal"><span class="pre">len</span></code> 属性的值将和 <code class="docutils literal"><span class="pre">free</span></code> 属性的值相同。
+举个例子，
+如果进行修改之后，
+SDS 的 <code class="docutils literal"><span class="pre">len</span></code> 将变成 <code class="docutils literal"><span class="pre">13</span></code> 字节，
+那么程序也会分配 <code class="docutils literal"><span class="pre">13</span></code> 字节的未使用空间，
+SDS 的 <code class="docutils literal"><span class="pre">buf</span></code> 数组的实际长度将变成 <code class="docutils literal"><span class="pre">13</span> <span class="pre">+</span> <span class="pre">13</span> <span class="pre">+</span> <span class="pre">1</span> <span class="pre">=</span> <span class="pre">27</span></code> 字节（额外的一字节用于保存空字符）。</li>
+<li>如果对 SDS 进行修改之后，
+SDS 的长度将大于等于 <code class="docutils literal"><span class="pre">1</span> <span class="pre">MB</span></code> ，
+那么程序会分配 <code class="docutils literal"><span class="pre">1</span> <span class="pre">MB</span></code> 的未使用空间。
+举个例子，
+如果进行修改之后，
+SDS 的 <code class="docutils literal"><span class="pre">len</span></code> 将变成 <code class="docutils literal"><span class="pre">30</span> <span class="pre">MB</span></code> ，
+那么程序会分配 <code class="docutils literal"><span class="pre">1</span> <span class="pre">MB</span></code> 的未使用空间，
+SDS 的 <code class="docutils literal"><span class="pre">buf</span></code> 数组的实际长度将为 <code class="docutils literal"><span class="pre">30</span> <span class="pre">MB</span> <span class="pre">+</span> <span class="pre">1</span> <span class="pre">MB</span> <span class="pre">+</span> <span class="pre">1</span> <span class="pre">byte</span></code> 。</li>
+</ul>
+<p>通过空间预分配策略，
+Redis 可以减少连续执行字符串增长操作所需的内存重分配次数。</p>
+<p>举个例子，
+对于图 2-11 所示的 SDS 值 <code class="docutils literal"><span class="pre">s</span></code> 来说，
+如果我们执行：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">sdscat</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s">&quot; Cluster&quot;</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>那么 <code class="docutils literal"><span class="pre">sdscat</span></code> 将执行一次内存重分配操作，
+将 SDS 的长度修改为 <code class="docutils literal"><span class="pre">13</span></code> 字节，
+并将 SDS 的未使用空间同样修改为 <code class="docutils literal"><span class="pre">13</span></code> 字节，
+如图 2-12 所示。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-75c915b3f40fc1586e518b42830a3d8ba4119cf7.png" alt="digraph {
+
+    label = &quot;\n 图 2-11    执行 sdscat 之前的 SDS&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    //
+
+    sdshdr [label = &quot;sdshdr | free \n 0 | len \n 5 | &lt;buf&gt; buf&quot;];
+
+    buf [label = &quot;{ 'R' | 'e' | 'd' | 'i' | 's' | '\\0' }&quot;];
+
+    //
+
+    sdshdr:buf -&gt; buf;
+
+}" />
+</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-42ee54f9997d36b2b8ffb0ab75dce2fd509882db.png" alt="digraph {
+
+    label = &quot;\n 图 2-12    执行 sdscat 之后的 SDS&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    //
+
+    sdshdr [label = &quot;sdshdr | free \n 13 | len \n 13 | &lt;buf&gt; buf&quot;];
+
+    buf [label = &quot;{ 'R' | 'e' | 'd' | 'i' | 's' | ' ' | 'C' | 'l' | 'u' | 's' | 't' | 'e' | 'r'| '\\0' | ... }&quot;];
+
+    //
+
+    sdshdr:buf -&gt; buf;
+
+}" />
+</p>
+<p>如果这时，
+我们再次对 <code class="docutils literal"><span class="pre">s</span></code> 执行：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">sdscat</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s">&quot; Tutorial&quot;</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>那么这次 <code class="docutils literal"><span class="pre">sdscat</span></code> 将不需要执行内存重分配：
+因为未使用空间里面的 <code class="docutils literal"><span class="pre">13</span></code> 字节足以保存 <code class="docutils literal"><span class="pre">9</span></code> 字节的 <code class="docutils literal"><span class="pre">&quot;</span> <span class="pre">Tutorial&quot;</span></code> ，
+执行 <code class="docutils literal"><span class="pre">sdscat</span></code> 之后的 SDS 如图 2-13 所示。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-3398fdf9cc2ab046814e2721f69cc4ed97f043ab.png" alt="digraph {
+
+    label = &quot;\n 图 2-13    再次执行 sdscat 之后的 SDS&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    //
+
+    sdshdr [label = &quot;sdshdr | free \n 4 | len \n 22 | &lt;buf&gt; buf&quot;];
+
+    //buf [label = &quot;{ 'R' | 'e' | 'd' | 'i' | 's' | ' ' | 'C' | 'l' | 'u' | 's' | 't' | 'e' | 'r'| ' ' | 'T' | 'u' | 't' | 'o' | 'r' | 'i' | 'a' | 'l' | '\\0' | ... }&quot;];
+    buf [label = &quot;{ 'R' | 'e' | 'd' | 'i' | 's' | ... | ' ' | 'T' | 'u' | 't' | 'o' | 'r' | 'i' | 'a' | 'l' | '\\0' | ... }&quot;];
+
+    //
+
+    sdshdr:buf -&gt; buf;
+
+}" />
+</p>
+<p>在扩展 SDS 空间之前，
+SDS API 会先检查未使用空间是否足够，
+如果足够的话，
+API 就会直接使用未使用空间，
+而无须执行内存重分配。</p>
+<p>通过这种预分配策略，
+SDS 将连续增长 <code class="docutils literal"><span class="pre">N</span></code> 次字符串所需的内存重分配次数从必定 <code class="docutils literal"><span class="pre">N</span></code> 次降低为最多 <code class="docutils literal"><span class="pre">N</span></code> 次。</p>
+</div>
+<div class="section" id="id5">
+<h3>惰性空间释放<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h3>
+<p>惰性空间释放用于优化 SDS 的字符串缩短操作：
+当 SDS 的 API 需要缩短 SDS 保存的字符串时，
+程序并不立即使用内存重分配来回收缩短后多出来的字节，
+而是使用 <code class="docutils literal"><span class="pre">free</span></code> 属性将这些字节的数量记录起来，
+并等待将来使用。</p>
+<p>举个例子，
+<code class="docutils literal"><span class="pre">sdstrim</span></code> 函数接受一个 SDS 和一个 C 字符串作为参数，
+从 SDS 左右两端分别移除所有在 C 字符串中出现过的字符。</p>
+<p>比如对于图 2-14 所示的 SDS 值 <code class="docutils literal"><span class="pre">s</span></code> 来说，
+执行：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">sdstrim</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s">&quot;XY&quot;</span><span class="p">);</span>   <span class="c1">// 移除 SDS 字符串中的所有 &#39;X&#39; 和 &#39;Y&#39;</span>
+</pre></div>
+</div>
+<p>会将 SDS 修改成图 2-15 所示的样子。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-e0b39c48a2c522f5f7802f1e325b5cb25ac92579.png" alt="digraph {
+
+    label = &quot;\n 图 2-14    执行 sdstrim 之前的 SDS&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    //
+
+    sdshdr [label = &quot;sdshdr | free \n 0 | len \n 11 | &lt;buf&gt; buf&quot;];
+
+    buf [label = &quot; { 'X' | 'Y' | 'X' | 'X' | 'Y' | 'a' | 'b' | 'c' | 'X' | 'Y' | 'Y' | '\\0' } &quot;];
+
+    //
+
+    sdshdr:buf -&gt; buf;
+
+}" />
+</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-c58adbc4441b5622084daeee71c0cb306db28741.png" alt="digraph {
+
+    label = &quot;\n 图 2-15    执行 sdstrim 之后的 SDS&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    //
+
+    sdshdr [label = &quot;sdshdr | free \n 8 | len \n 3 | &lt;buf&gt; buf&quot;];
+
+    buf [label = &quot; { 'a' | 'b' | 'c' | '\\0' | &lt;1&gt; | &lt;2&gt; | &lt;3&gt; | &lt;4&gt; | &lt;5&gt; | &lt;6&gt; | &lt;7&gt; | &lt;8&gt; } &quot;];
+
+    //
+
+    sdshdr:buf -&gt; buf;
+
+}" />
+</p>
+<p>注意执行 <code class="docutils literal"><span class="pre">sdstrim</span></code> 之后的 SDS 并没有释放多出来的 <code class="docutils literal"><span class="pre">8</span></code> 字节空间，
+而是将这 <code class="docutils literal"><span class="pre">8</span></code> 字节空间作为未使用空间保留在了 SDS 里面，
+如果将来要对 SDS 进行增长操作的话，
+这些未使用空间就可能会派上用场。</p>
+<p>举个例子，
+如果现在对 <code class="docutils literal"><span class="pre">s</span></code> 执行：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">sdscat</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s">&quot; Redis&quot;</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>那么完成这次 <code class="docutils literal"><span class="pre">sdscat</span></code> 操作将不需要执行内存重分配：
+因为 SDS 里面预留的 <code class="docutils literal"><span class="pre">8</span></code> 字节空间已经足以拼接 <code class="docutils literal"><span class="pre">6</span></code> 个字节长的 <code class="docutils literal"><span class="pre">&quot;</span> <span class="pre">Redis&quot;</span></code> ，
+如图 2-16 所示。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-d518d01875adb59245dce35983eab3528f2e59ea.png" alt="digraph {
+
+    label = &quot;\n 图 2-16    执行 sdscat 之后的的 SDS&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    //
+
+    sdshdr [label = &quot;sdshdr | free \n 2 | len \n 9 | &lt;buf&gt; buf&quot;];
+
+    buf [label = &quot; { 'a' | 'b' | 'c' | ' ' | 'R' | 'e' | 'd' | 'i' | 's' | '\\0' | &lt;1&gt; | &lt;2&gt; } &quot;];
+
+    //
+
+    sdshdr:buf -&gt; buf;
+
+}" />
+</p>
+<p>通过惰性空间释放策略，
+SDS 避免了缩短字符串时所需的内存重分配操作，
+并为将来可能有的增长操作提供了优化。</p>
+<p>与此同时，
+SDS 也提供了相应的 API ，
+让我们可以在有需要时，
+真正地释放 SDS 里面的未使用空间，
+所以不用担心惰性空间释放策略会造成内存浪费。</p>
+</div>
+</div>
+<div class="section" id="id6">
+<h2>二进制安全<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h2>
+<p>C 字符串中的字符必须符合某种编码（比如 ASCII），
+并且除了字符串的末尾之外，
+字符串里面不能包含空字符，
+否则最先被程序读入的空字符将被误认为是字符串结尾 ——
+这些限制使得 C 字符串只能保存文本数据，
+而不能保存像图片、音频、视频、压缩文件这样的二进制数据。</p>
+<p>举个例子，
+如果有一种使用空字符来分割多个单词的特殊数据格式，
+如图 2-17 所示，
+那么这种格式就不能使用 C 字符串来保存，
+因为 C 字符串所用的函数只会识别出其中的 <code class="docutils literal"><span class="pre">&quot;Redis&quot;</span></code> ，
+而忽略之后的 <code class="docutils literal"><span class="pre">&quot;Cluster&quot;</span></code> 。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-0fcb9185ccc066e9f298c00d8fd272f52cd1e43d.png" alt="digraph {
+
+    label = &quot;\n 图 2-17    使用空字符来分割单词的特殊数据格式&quot;;
+
+    node [shape = record];
+
+    content [label = &quot; 'R' | 'e' | 'd' | 'i' | 's' | '\\0' | 'C' | 'l' | 'u' | 's' | 't' | 'e' | 'r' | '\\0' &quot;];
+
+}" />
+</p>
+<p>虽然数据库一般用于保存文本数据，
+但使用数据库来保存二进制数据的场景也不少见，
+因此，
+为了确保 Redis 可以适用于各种不同的使用场景，
+SDS 的 API 都是二进制安全的（binary-safe）：
+所有 SDS API 都会以处理二进制的方式来处理 SDS 存放在 <code class="docutils literal"><span class="pre">buf</span></code> 数组里的数据，
+程序不会对其中的数据做任何限制、过滤、或者假设 ——
+数据在写入时是什么样的，
+它被读取时就是什么样。</p>
+<p>这也是我们将 SDS 的 <code class="docutils literal"><span class="pre">buf</span></code> 属性称为字节数组的原因 ——
+Redis 不是用这个数组来保存字符，
+而是用它来保存一系列二进制数据。</p>
+<p>比如说，
+使用 SDS 来保存之前提到的特殊数据格式就没有任何问题，
+因为 SDS 使用 <code class="docutils literal"><span class="pre">len</span></code> 属性的值而不是空字符来判断字符串是否结束，
+如图 2-18 所示。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-a34fffb686d81038f6bafbca7be99831df8b3e6b.png" alt="digraph {
+
+    label = &quot;\n 图 2-18    保存了特殊数据格式的 SDS&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    //
+
+    sdshdr [label = &quot;sdshdr | free \n 0 | len \n 14 | &lt;buf&gt; buf&quot;];
+
+    buf [label = &quot; { 'R' | 'e' | 'd' | 'i' | 's' | '\\0' | 'C' | 'l' | 'u' | 's' | 't' | 'e' | 'r' | '\\0' | '\\0' } &quot;];
+
+    //
+
+    sdshdr:buf -&gt; buf;
+
+}" />
+</p>
+<p>通过使用二进制安全的 SDS ，
+而不是 C 字符串，
+使得 Redis 不仅可以保存文本数据，
+还可以保存任意格式的二进制数据。</p>
+</div>
+<div class="section" id="c">
+<h2>兼容部分 C 字符串函数<a class="headerlink" href="#c" title="Permalink to this headline">¶</a></h2>
+<p>虽然 SDS 的 API 都是二进制安全的，
+但它们一样遵循 C 字符串以空字符结尾的惯例：
+这些 API 总会将 SDS 保存的数据的末尾设置为空字符，
+并且总会在为 <code class="docutils literal"><span class="pre">buf</span></code> 数组分配空间时多分配一个字节来容纳这个空字符，
+这是为了让那些保存文本数据的 SDS 可以重用一部分 <code class="docutils literal"><span class="pre">&lt;string.h&gt;</span></code> 库定义的函数。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-82a01911a9b47725ee97416aac875752fa3bdd2b.png" alt="digraph {
+
+    label = &quot;\n 图 2-19    一个保存着文本数据的 SDS&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    //
+
+    sdshdr [label = &quot;sdshdr | free \n 0 | len \n 11 | &lt;buf&gt; buf&quot;];
+
+    buf [label = &quot;{ 'h' | 'e' | 'l' | 'l' | 'o' | ' ' | 'R' | 'e' | 'd' | 'i' | 's' | '\\0' }&quot;];
+
+    //
+
+    sdshdr:buf -&gt; buf;
+
+}" />
+</p>
+<p>举个例子，
+如图 2-19 所示，
+如果我们有一个保存文本数据的 SDS 值 <code class="docutils literal"><span class="pre">sds</span></code> ，
+那么我们就可以重用 <code class="docutils literal"><span class="pre">&lt;string.h&gt;/strcasecmp</span></code> 函数，
+使用它来对比 SDS 保存的字符串和另一个 C 字符串：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">strcasecmp</span><span class="p">(</span><span class="n">sds</span><span class="o">-&gt;</span><span class="n">buf</span><span class="p">,</span> <span class="s">&quot;hello world&quot;</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>这样 Redis 就不用自己专门去写一个函数来对比 SDS 值和 C 字符串值了。</p>
+<p>与此类似，
+我们还可以将一个保存文本数据的 SDS 作为 <code class="docutils literal"><span class="pre">strcat</span></code> 函数的第二个参数，
+将 SDS 保存的字符串追加到一个 C 字符串的后面：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">strcat</span><span class="p">(</span><span class="n">c_string</span><span class="p">,</span> <span class="n">sds</span><span class="o">-&gt;</span><span class="n">buf</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>这样 Redis 就不用专门编写一个将 SDS 字符串追加到 C 字符串之后的函数了。</p>
+<p>通过遵循 C 字符串以空字符结尾的惯例，
+SDS 可以在有需要时重用 <code class="docutils literal"><span class="pre">&lt;string.h&gt;</span></code> 函数库，
+从而避免了不必要的代码重复。</p>
+</div>
+<div class="section" id="id7">
+<h2>总结<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h2>
+<p>表 2-1 对 C 字符串和 SDS 之间的区别进行了总结。</p>
+<hr class="docutils" />
+<p>表 2-1    C 字符串和 SDS 之间的区别</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="50%" />
+<col width="50%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">C 字符串</th>
+<th class="head">SDS</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>获取字符串长度的复杂度为 <img class="math" src="../../_images/math/4d51d3f476c76dc066b26271168bc3b67f49d2be.png" alt="O(N)"/> 。</td>
+<td>获取字符串长度的复杂度为 <img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</td>
+</tr>
+<tr class="row-odd"><td>API 是不安全的，可能会造成缓冲区溢出。</td>
+<td>API 是安全的，不会造成缓冲区溢出。</td>
+</tr>
+<tr class="row-even"><td>修改字符串长度 <code class="docutils literal"><span class="pre">N</span></code> 次必然需要执行 <code class="docutils literal"><span class="pre">N</span></code> 次内存重分配。</td>
+<td>修改字符串长度 <code class="docutils literal"><span class="pre">N</span></code> 次最多需要执行 <code class="docutils literal"><span class="pre">N</span></code> 次内存重分配。</td>
+</tr>
+<tr class="row-odd"><td>只能保存文本数据。</td>
+<td>可以保存文本或者二进制数据。</td>
+</tr>
+<tr class="row-even"><td>可以使用所有 <code class="docutils literal"><span class="pre">&lt;string.h&gt;</span></code> 库中的函数。</td>
+<td>可以使用一部分 <code class="docutils literal"><span class="pre">&lt;string.h&gt;</span></code> 库中的函数。</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+
+
+
+            <div class="section" id="discuss">
+    <h2>
+        讨论
+        <a class="headerlink" href="#discuss" title="永久链接至标题">¶</a>
+    </h2>
+    <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'redisbookv1'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li><a href="../../index.html">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, 黄健宏（huangz）.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+    </div>
+  </body>
+</html>

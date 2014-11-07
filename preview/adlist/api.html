@@ -1,0 +1,215 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>链表和链表节点的 API &mdash; Redis 设计与实现</title>
+    
+    <link rel="stylesheet" href="../../_static/pyramid.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="Redis 设计与实现" href="../../index.html" /> 
+
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+
+  </head>
+  <body>
+
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li><a href="../../index.html">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="api">
+<h1>链表和链表节点的 API<a class="headerlink" href="#api" title="Permalink to this headline">¶</a></h1>
+<p>表 3-1 列出了所有用于操作链表和链表节点的 API 。</p>
+<hr class="docutils" />
+<p>表 3-1    链表和链表节点 API</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="20%" />
+<col width="44%" />
+<col width="35%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">函数</th>
+<th class="head">作用</th>
+<th class="head">时间复杂度</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">listSetDupMethod</span></code></td>
+<td>将给定的函数设置为链表的节点值复制函数。</td>
+<td>复制函数可以通过链表的 <code class="docutils literal"><span class="pre">dup</span></code> 属性直接获得，
+<img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">listGetDupMethod</span></code></td>
+<td>返回链表当前正在使用的节点值复制函数。</td>
+<td><img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/></td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">listSetFreeMethod</span></code></td>
+<td>将给定的函数设置为链表的节点值释放函数。</td>
+<td>释放函数可以通过链表的 <code class="docutils literal"><span class="pre">free</span></code> 属性直接获得，
+<img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">listGetFree</span></code></td>
+<td>返回链表当前正在使用的节点值释放函数。</td>
+<td><img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/></td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">listSetMatchMethod</span></code></td>
+<td>将给定的函数设置为链表的节点值对比函数。</td>
+<td>对比函数可以通过链表的 <code class="docutils literal"><span class="pre">match</span></code>
+属性直接获得， <img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">listGetMatchMethod</span></code></td>
+<td>返回链表当前正在使用的节点值对比函数。</td>
+<td><img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/></td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">listLength</span></code></td>
+<td>返回链表的长度（包含了多少个节点）。</td>
+<td>链表长度可以通过链表的  <code class="docutils literal"><span class="pre">len</span></code> 属性直接获得，
+<img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">listFirst</span></code></td>
+<td>返回链表的表头节点。</td>
+<td>表头节点可以通过链表的 <code class="docutils literal"><span class="pre">head</span></code> 属性直接获得，
+<img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">listLast</span></code></td>
+<td>返回链表的表尾节点。</td>
+<td>表尾节点可以通过链表的 <code class="docutils literal"><span class="pre">tail</span></code> 属性直接获得，
+<img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">listPrevNode</span></code></td>
+<td>返回给定节点的前置节点。</td>
+<td>前置节点可以通过节点的 <code class="docutils literal"><span class="pre">prev</span></code> 属性直接获得，
+<img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">listNextNode</span></code></td>
+<td>返回给定节点的后置节点。</td>
+<td>后置节点可以通过节点的 <code class="docutils literal"><span class="pre">next</span></code> 属性直接获得，
+<img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">listNodeValue</span></code></td>
+<td>返回给定节点目前正在保存的值。</td>
+<td>节点值可以通过节点的 <code class="docutils literal"><span class="pre">value</span></code> 属性直接获得，
+<img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">listCreate</span></code></td>
+<td>创建一个不包含任何节点的新链表。</td>
+<td><img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">listAddNodeHead</span></code></td>
+<td>将一个包含给定值的新节点添加到给定链表的表头。</td>
+<td><img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/></td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">listAddNodeTail</span></code></td>
+<td>将一个包含给定值的新节点添加到给定链表的表尾。</td>
+<td><img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">listInsertNode</span></code></td>
+<td>将一个包含给定值的新节点添加到给定节点的之前或者之后。</td>
+<td><img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/></td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">listSearchKey</span></code></td>
+<td>查找并返回链表中包含给定值的节点。</td>
+<td><img class="math" src="../../_images/math/4d51d3f476c76dc066b26271168bc3b67f49d2be.png" alt="O(N)"/> ， <code class="docutils literal"><span class="pre">N</span></code> 为链表长度。</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">listIndex</span></code></td>
+<td>返回链表在给定索引上的节点。</td>
+<td><img class="math" src="../../_images/math/4d51d3f476c76dc066b26271168bc3b67f49d2be.png" alt="O(N)"/> ， <code class="docutils literal"><span class="pre">N</span></code> 为链表长度。</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">listDelNode</span></code></td>
+<td>从链表中删除给定节点。</td>
+<td><img class="math" src="../../_images/math/4d51d3f476c76dc066b26271168bc3b67f49d2be.png" alt="O(N)"/> ， <code class="docutils literal"><span class="pre">N</span></code> 为链表长度。</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">listRotate</span></code></td>
+<td>将链表的表尾节点弹出，然后将被弹出的节点插入到链表的表头，
+成为新的表头节点。</td>
+<td><img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/></td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">listDup</span></code></td>
+<td>复制一个给定链表的副本。</td>
+<td><img class="math" src="../../_images/math/4d51d3f476c76dc066b26271168bc3b67f49d2be.png" alt="O(N)"/> ， <code class="docutils literal"><span class="pre">N</span></code> 为链表长度。</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">listRelease</span></code></td>
+<td>释放给定链表，以及链表中的所有节点。</td>
+<td><img class="math" src="../../_images/math/4d51d3f476c76dc066b26271168bc3b67f49d2be.png" alt="O(N)"/> ， <code class="docutils literal"><span class="pre">N</span></code> 为链表长度。</td>
+</tr>
+</tbody>
+</table>
+<hr class="docutils" />
+</div>
+
+
+
+            <div class="section" id="discuss">
+    <h2>
+        讨论
+        <a class="headerlink" href="#discuss" title="永久链接至标题">¶</a>
+    </h2>
+    <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'redisbookv1'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li><a href="../../index.html">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, 黄健宏（huangz）.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+    </div>
+  </body>
+</html>

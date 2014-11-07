@@ -1,0 +1,742 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>客户端属性 &mdash; Redis 设计与实现</title>
+    
+    <link rel="stylesheet" href="../../_static/pyramid.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="Redis 设计与实现" href="../../index.html" /> 
+
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+
+  </head>
+  <body>
+
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li><a href="../../index.html">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="id1">
+<h1>客户端属性<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
+<p>客户端状态包含的属性可以分为两类：</p>
+<ul class="simple">
+<li>一类是比较通用的属性，
+这些属性很少与特定功能相关，
+无论客户端执行的是什么工作，
+它们都要用到这些属性。</li>
+<li>另外一类是和特定功能相关的属性，
+比如操作数据库时需要用到的 <code class="docutils literal"><span class="pre">db</span></code> 属性和 <code class="docutils literal"><span class="pre">dictid</span></code> 属性，
+执行事务时需要用到的 <code class="docutils literal"><span class="pre">mstate</span></code> 属性，
+以及执行 <em class="xref std std-ref">WATCH</em> 命令时需要用到的 <code class="docutils literal"><span class="pre">watched_keys</span></code> 属性，
+等等。</li>
+</ul>
+<p>本章将对客户端状态中比较通用的那部分属性进行介绍，
+至于那些和特定功能相关的属性，
+则会在相应的章节进行介绍。</p>
+<div class="section" id="id2">
+<h2>套接字描述符<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<p>客户端状态的 <code class="docutils literal"><span class="pre">fd</span></code> 属性记录了客户端正在使用的套接字描述符：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="k">typedef</span> <span class="k">struct</span> <span class="n">redisClient</span> <span class="p">{</span>
+
+    <span class="c1">// ...</span>
+
+    <span class="kt">int</span> <span class="n">fd</span><span class="p">;</span>
+
+    <span class="c1">// ...</span>
+
+<span class="p">}</span> <span class="n">redisClient</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>根据客户端类型的不同，
+<code class="docutils literal"><span class="pre">fd</span></code> 属性的值可以是 <code class="docutils literal"><span class="pre">-1</span></code> 或者是大于 <code class="docutils literal"><span class="pre">-1</span></code> 的整数：</p>
+<ul class="simple">
+<li>伪客户端（fake client）的 <code class="docutils literal"><span class="pre">fd</span></code> 属性的值为 <code class="docutils literal"><span class="pre">-1</span></code> ：
+伪客户端处理的命令请求来源于 AOF 文件或者 Lua 脚本，
+而不是网络，
+所以这种客户端不需要套接字连接，
+自然也不需要记录套接字描述符。
+目前 Redis 服务器会在两个地方用到伪客户端，
+一个用于载入 AOF 文件并还原数据库状态，
+而另一个则用于执行 Lua 脚本中包含的 Redis 命令。</li>
+<li>普通客户端的 <code class="docutils literal"><span class="pre">fd</span></code> 属性的值为大于 <code class="docutils literal"><span class="pre">-1</span></code> 的整数：
+普通客户端使用套接字来与服务器进行通讯，
+所以服务器会用 <code class="docutils literal"><span class="pre">fd</span></code> 属性来记录客户端套接字的描述符。
+因为合法的套接字描述符不能是 <code class="docutils literal"><span class="pre">-1</span></code> ，
+所以普通客户端的套接字描述符的值必然是大于 <code class="docutils literal"><span class="pre">-1</span></code> 的整数。</li>
+</ul>
+<p>执行 <em class="xref std std-ref">CLIENT_LIST</em> 命令可以列出目前所有连接到服务器的普通客户端，
+命令输出中的 <code class="docutils literal"><span class="pre">fd</span></code> 域显示了服务器连接客户端所使用的套接字描述符：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">CLIENT</span> <span class="n">list</span>
+
+<span class="n">addr</span><span class="o">=</span><span class="mf">127.0.0.1</span><span class="o">:</span><span class="mi">53428</span> <span class="n">fd</span><span class="o">=</span><span class="mi">6</span> <span class="n">name</span><span class="o">=</span> <span class="n">age</span><span class="o">=</span><span class="mi">1242</span> <span class="n">idle</span><span class="o">=</span><span class="mi">0</span> <span class="p">...</span>
+<span class="n">addr</span><span class="o">=</span><span class="mf">127.0.0.1</span><span class="o">:</span><span class="mi">53469</span> <span class="n">fd</span><span class="o">=</span><span class="mi">7</span> <span class="n">name</span><span class="o">=</span> <span class="n">age</span><span class="o">=</span><span class="mi">4</span> <span class="n">idle</span><span class="o">=</span><span class="mi">4</span> <span class="p">...</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="id3">
+<h2>名字<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<p>在默认情况下，
+一个连接到服务器的客户端是没有名字的。</p>
+<p>比如在下面展示的 <em class="xref std std-ref">CLIENT_LIST</em> 命令示例中，
+两个客户端的 <code class="docutils literal"><span class="pre">name</span></code> 域都是空白的：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">CLIENT</span> <span class="n">list</span>
+
+<span class="n">addr</span><span class="o">=</span><span class="mf">127.0.0.1</span><span class="o">:</span><span class="mi">53428</span> <span class="n">fd</span><span class="o">=</span><span class="mi">6</span> <span class="n">name</span><span class="o">=</span> <span class="n">age</span><span class="o">=</span><span class="mi">1242</span> <span class="n">idle</span><span class="o">=</span><span class="mi">0</span> <span class="p">...</span>
+<span class="n">addr</span><span class="o">=</span><span class="mf">127.0.0.1</span><span class="o">:</span><span class="mi">53469</span> <span class="n">fd</span><span class="o">=</span><span class="mi">7</span> <span class="n">name</span><span class="o">=</span> <span class="n">age</span><span class="o">=</span><span class="mi">4</span> <span class="n">idle</span><span class="o">=</span><span class="mi">4</span> <span class="p">...</span>
+</pre></div>
+</div>
+<p>使用 <em class="xref std std-ref">CLIENT_SETNAME</em> 命令可以为客户端设置一个名字，
+让客户端的身份变得更清晰。</p>
+<p>以下展示的是客户端执行 <em class="xref std std-ref">CLIENT_SETNAME</em> 命令之后的客户端列表：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">CLIENT</span> <span class="n">list</span>
+
+<span class="n">addr</span><span class="o">=</span><span class="mf">127.0.0.1</span><span class="o">:</span><span class="mi">53428</span> <span class="n">fd</span><span class="o">=</span><span class="mi">6</span> <span class="n">name</span><span class="o">=</span><span class="n">message_queue</span> <span class="n">age</span><span class="o">=</span><span class="mi">2093</span> <span class="n">idle</span><span class="o">=</span><span class="mi">0</span> <span class="p">...</span>
+<span class="n">addr</span><span class="o">=</span><span class="mf">127.0.0.1</span><span class="o">:</span><span class="mi">53469</span> <span class="n">fd</span><span class="o">=</span><span class="mi">7</span> <span class="n">name</span><span class="o">=</span><span class="n">user_relationship</span> <span class="n">age</span><span class="o">=</span><span class="mi">855</span> <span class="n">idle</span><span class="o">=</span><span class="mi">2</span> <span class="p">...</span>
+</pre></div>
+</div>
+<p>其中，
+第一个客户端的名字是 <code class="docutils literal"><span class="pre">message_queue</span></code> ，
+我们可以猜测它是负责处理消息队列的客户端；
+第二个客户端的名字是 <code class="docutils literal"><span class="pre">user_relationship</span></code> ，
+我们可以猜测它为负责处理用户关系的客户端。</p>
+<p>客户端的名字记录在客户端状态的 <code class="docutils literal"><span class="pre">name</span></code> 属性里面：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="k">typedef</span> <span class="k">struct</span> <span class="n">redisClient</span> <span class="p">{</span>
+
+    <span class="c1">// ...</span>
+
+    <span class="n">robj</span> <span class="o">*</span><span class="n">name</span><span class="p">;</span>
+
+    <span class="c1">// ...</span>
+
+<span class="p">}</span> <span class="n">redisClient</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>如果客户端没有为自己设置名字，
+那么相应客户端状态的 <code class="docutils literal"><span class="pre">name</span></code> 属性指向 <code class="docutils literal"><span class="pre">NULL</span></code> 指针；
+相反地，
+如果客户端为自己设置了名字，
+那么 <code class="docutils literal"><span class="pre">name</span></code> 属性将指向一个字符串对象，
+而该对象就保存着客户端的名字。</p>
+<p>图 IMAGE_NAME 展示了一个客户端状态示例，
+根据 <code class="docutils literal"><span class="pre">name</span></code> 属性显示，
+客户端的名字为 <code class="docutils literal"><span class="pre">&quot;message_queue&quot;</span></code> 。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-112619ab71651c6cb8c4bfb2bda393125fc92afe.png" alt="digraph {
+
+    label = &quot;\n IMAGE_NAME    name 属性示例&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    client [label = &quot; redisClient | ... | &lt;name&gt; name | ... &quot;, width = 2];
+
+    name [label = &quot; &lt;head&gt; StringObject \n \&quot;message_queue\&quot; &quot;];
+
+    //
+
+    client:name -&gt; name:head;
+
+}" />
+</p>
+</div>
+<div class="section" id="id4">
+<h2>标志<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h2>
+<p>客户端的标志属性 <code class="docutils literal"><span class="pre">flags</span></code> 记录了客户端的角色（role），
+以及客户端目前所处的状态：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="k">typedef</span> <span class="k">struct</span> <span class="n">redisClient</span> <span class="p">{</span>
+
+    <span class="c1">// ...</span>
+
+    <span class="kt">int</span> <span class="n">flags</span><span class="p">;</span>
+
+    <span class="c1">// ...</span>
+
+<span class="p">}</span> <span class="n">redisClient</span><span class="p">;</span>
+</pre></div>
+</div>
+<p><code class="docutils literal"><span class="pre">flags</span></code> 属性的值可以是单个标志：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">flags</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">flag</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>也可以是多个标志的二进制或，
+比如：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">flags</span> <span class="o">=</span> <span class="o">&lt;</span><span class="n">flag1</span><span class="o">&gt;</span> <span class="o">|</span> <span class="o">&lt;</span><span class="n">flag2</span><span class="o">&gt;</span> <span class="o">|</span> <span class="p">...</span>
+</pre></div>
+</div>
+<p>每个标志使用一个常量表示，
+一部分标志记录了客户端的角色：</p>
+<ul class="simple">
+<li>在主从服务器进行复制操作时，
+主服务器会成为从服务器的客户端，
+而从服务器也会成为主服务器的客户端。
+<code class="docutils literal"><span class="pre">REDIS_MASTER</span></code> 标志表示客户端代表的是一个主服务器，
+<code class="docutils literal"><span class="pre">REDIS_SLAVE</span></code> 标志表示客户端代表的是一个从服务器。</li>
+<li><code class="docutils literal"><span class="pre">REDIS_PRE_PSYNC</span></code> 标志表示客户端代表的是一个版本低于 Redis 2.8 的从服务器，
+主服务器不能使用 <em class="xref std std-ref">PSYNC</em> 命令与这个从服务器进行同步。
+这个标志只能在 <code class="docutils literal"><span class="pre">REDIS_SLAVE</span></code> 标志处于打开状态时使用。</li>
+<li><code class="docutils literal"><span class="pre">REDIS_LUA_CLIENT</span></code> 标识表示客户端是专门用于处理 Lua 脚本里面包含的 Redis 命令的伪客户端。</li>
+</ul>
+<p>而另外一部分标志则记录了客户端目前所处的状态：</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">REDIS_MONITOR</span></code> 标志表示客户端正在执行 <em class="xref std std-ref">MONITOR</em> 命令。</li>
+<li><code class="docutils literal"><span class="pre">REDIS_UNIX_SOCKET</span></code> 标志表示服务器使用 UNIX 套接字来连接客户端。</li>
+<li><code class="docutils literal"><span class="pre">REDIS_BLOCKED</span></code> 标志表示客户端正在被 <em class="xref std std-ref">BRPOP</em> 、 <em class="xref std std-ref">BLPOP</em> 等命令阻塞。</li>
+<li><code class="docutils literal"><span class="pre">REDIS_UNBLOCKED</span></code> 标志表示客户端已经从 <code class="docutils literal"><span class="pre">REDIS_BLOCKED</span></code> 标志所表示的阻塞状态中脱离出来，
+不再阻塞。
+<code class="docutils literal"><span class="pre">REDIS_UNBLOCKED</span></code> 标志只能在 <code class="docutils literal"><span class="pre">REDIS_BLOCKED</span></code> 标志已经打开的情况下使用。</li>
+<li><code class="docutils literal"><span class="pre">REDIS_MULTI</span></code> 标志表示客户端正在执行事务。</li>
+<li><code class="docutils literal"><span class="pre">REDIS_DIRTY_CAS</span></code> 标志表示事务使用 <em class="xref std std-ref">WATCH</em> 命令监视的数据库键已经被修改，
+<code class="docutils literal"><span class="pre">REDIS_DIRTY_EXEC</span></code> 标志表示事务在命令入队时出现了错误，
+以上两个标志都表示事务的安全性已经被破坏，
+只要这两个标记中的任意一个被打开，
+<em class="xref std std-ref">EXEC</em> 命令必然会执行失败。
+这两个标志只能在客户端打开了 <code class="docutils literal"><span class="pre">REDIS_MULTI</span></code> 标志的情况下使用。</li>
+<li><code class="docutils literal"><span class="pre">REDIS_CLOSE_ASAP</span></code> 标志表示客户端的输出缓冲区大小超出了服务器允许的范围，
+服务器会在下一次执行 <code class="docutils literal"><span class="pre">serverCron</span></code> 函数时关闭这个客户端，
+以免服务器的稳定性受到这个客户端影响。
+积存在输出缓冲区中的所有内容会直接被释放，
+不会返回给客户端。</li>
+<li><code class="docutils literal"><span class="pre">REDIS_CLOSE_AFTER_REPLY</span></code> 标志表示有用户对这个客户端执行了 <em class="xref std std-ref">CLIENT_KILL</em> 命令，
+或者客户端发送给服务器的命令请求中包含了错误的协议内容。
+服务器会将客户端积存在输出缓冲区中的所有内容发送给客户端，
+然后关闭客户端。</li>
+<li><code class="docutils literal"><span class="pre">REDIS_ASKING</span></code> 标志表示客户端向集群节点（运行在集群模式下的服务器）发送了 <em class="xref std std-ref">ASKING</em> 命令。</li>
+<li><code class="docutils literal"><span class="pre">REDIS_FORCE_AOF</span></code> 标志强制服务器将当前执行的命令写入到 AOF 文件里面，
+<code class="docutils literal"><span class="pre">REDIS_FORCE_REPL</span></code> 标志强制主服务器将当前执行的命令复制给所有从服务器。
+执行 <em class="xref std std-ref">PUBSUB</em> 命令会使客户端打开 <code class="docutils literal"><span class="pre">REDIS_FORCE_AOF</span></code> 标志，
+执行 <em class="xref std std-ref">SCRIPT_LOAD</em> 命令会使客户端打开 <code class="docutils literal"><span class="pre">REDIS_FORCE_AOF</span></code> 标志和 <code class="docutils literal"><span class="pre">REDIS_FORCE_REPL</span></code> 标志。</li>
+<li>在主从服务器进行命令传播期间，
+从服务器需要向主服务器发送 <em class="xref std std-ref">REPLICATION ACK</em> 命令，
+在发送这个命令之前，
+从服务器必须打开主服务器对应的客户端的 <code class="docutils literal"><span class="pre">REDIS_MASTER_FORCE_REPLY</span></code> 标志，
+否则发送操作会被拒绝执行。</li>
+</ul>
+<p>以上提到的所有标志都定义在 <code class="docutils literal"><span class="pre">redis.h</span></code> 文件里面。</p>
+<div class="topic">
+<p class="topic-title first"><code class="docutils literal"><span class="pre">PUBSUB</span></code> 命令和 <code class="docutils literal"><span class="pre">SCRIPT</span> <span class="pre">LOAD</span></code> 命令的特殊性</p>
+<p>通常情况下，
+Redis 只会将那些对数据库进行了修改的命令写入到 AOF 文件，
+并复制到各个从服务器：
+如果一个命令没有对数据库进行任何修改，
+那么它就会被认为是只读命令，
+这个命令不会被写入到 AOF 文件，
+也不会被复制到从服务器。</p>
+<p>以上规则适用于绝大部分 Redis 命令，
+但 <em class="xref std std-ref">PUBSUB</em> 命令和 <em class="xref std std-ref">SCRIPT_LOAD</em> 命令是其中的例外。</p>
+<p><em class="xref std std-ref">PUBSUB</em> 命令虽然没有修改数据库，
+但 <em class="xref std std-ref">PUBSUB</em> 命令向频道的所有订阅者发送消息这一行为带有副作用，
+接收到消息的所有客户端的状态都会因为这个命令而改变。
+因此，
+服务器需要使用 <code class="docutils literal"><span class="pre">REDIS_FORCE_AOF</span></code> 标志，
+强制将这个命令写入 AOF 文件，
+这样在将来载入 AOF 文件时，
+服务器就可以再次执行相同的 <em class="xref std std-ref">PUBSUB</em> 命令，
+并产生相同的副作用。</p>
+<p><em class="xref std std-ref">SCRIPT_LOAD</em> 命令的情况与 <em class="xref std std-ref">PUBSUB</em> 命令类似：
+虽然 <em class="xref std std-ref">SCRIPT_LOAD</em> 命令没有修改数据库，
+但它修改了服务器状态，
+所以它是一个带有副作用的命令，
+服务器需要使用 <code class="docutils literal"><span class="pre">REDIS_FORCE_AOF</span></code> 标志，
+强制将这个命令写入 AOF 文件，
+使得将来在载入 AOF 文件时，
+服务器可以产生相同的副作用。</p>
+<p>另外，
+为了让主服务器和从服务器都可以正确地载入 <em class="xref std std-ref">SCRIPT_LOAD</em> 命令指定的脚本，
+服务器需要使用 <code class="docutils literal"><span class="pre">REDIS_FORCE_REPL</span></code> 标志，
+强制将 <em class="xref std std-ref">SCRIPT_LOAD</em> 命令复制给所有从服务器。</p>
+</div>
+<p>以下是一些 <code class="docutils literal"><span class="pre">flags</span></code> 属性的例子：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="cp"># 客户端是一个主服务器</span>
+<span class="n">REDIS_MASTER</span>
+
+<span class="cp"># 客户端正在被列表命令阻塞</span>
+<span class="n">REDIS_BLOCKED</span>
+
+<span class="cp"># 客户端正在执行事务，但事务的安全性已被破坏</span>
+<span class="n">REDIS_MULTI</span> <span class="o">|</span> <span class="n">REDIS_DIRTY_CAS</span>
+
+<span class="cp"># 客户端是一个从服务器，并且版本低于 Redis 2.8</span>
+<span class="n">REDIS_SLAVE</span> <span class="o">|</span> <span class="n">REDIS_PRE_PSYNC</span>
+
+<span class="cp"># 这是专门用于执行 Lua 脚本包含的 Redis 命令的伪客户端</span>
+<span class="cp"># 它强制服务器将当前执行的命令写入 AOF 文件，并复制给从服务器</span>
+<span class="n">REDIS_LUA_CLIENT</span> <span class="o">|</span> <span class="n">REDIS_FORCE_AOF</span> <span class="o">|</span> <span class="n">REDIS_FORCE_REPL</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="id5">
+<h2>输入缓冲区<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h2>
+<p>客户端状态的输入缓冲区用于保存客户端发送的命令请求：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="k">typedef</span> <span class="k">struct</span> <span class="n">redisClient</span> <span class="p">{</span>
+
+    <span class="c1">// ...</span>
+
+    <span class="n">sds</span> <span class="n">querybuf</span><span class="p">;</span>
+
+    <span class="c1">// ...</span>
+
+<span class="p">}</span> <span class="n">redisClient</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>举个例子，
+如果客户端向服务器发送了以下命令请求：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">SET</span> <span class="n">key</span> <span class="n">value</span>
+</pre></div>
+</div>
+<p>那么客户端状态的 <code class="docutils literal"><span class="pre">querybuf</span></code> 属性将是一个包含以下内容的 SDS 值：</p>
+<div class="highlight-c"><div class="highlight"><pre>*3\r\n$3\r\nSET\r\n$3\r\nkey\r\n$5\r\nvalue\r\n
+</pre></div>
+</div>
+<p>图 IMAGE_QUERYBUF 展示了这个 SDS 值以及 <code class="docutils literal"><span class="pre">querybuf</span></code> 属性的样子：</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-b81d1b60a9e0024f0a57a267563c6a9ed83dd843.png" alt="digraph {
+
+    label = &quot;\n 图 IMAGE_QUERYBUF    querybuf 属性示例&quot;;
+
+    rankdir = LR;
+
+    //
+
+    node [shape = record];
+
+    client [label = &quot; redisClient | ... | &lt;querybuf&gt; querybuf | ... &quot;, width = 2];
+
+    sdshdr [label = &quot; &lt;head&gt; sdshdr | free \n 0 | len \n 33 | &lt;buf&gt; buf &quot;];
+
+    buf [label = &quot; { '*' | '3' | '\\r' | '\\n' | ... | 'v' | 'a' | 'l' | 'u' | 'e' | '\\r' | '\\n' | '\\0' } &quot;];
+
+    //
+
+    client:querybuf -&gt; sdshdr:head;
+
+    sdshdr:buf -&gt; buf;
+
+}" />
+</p>
+<p>输入缓冲区的大小会根据输入内容动态地缩小或者扩大，
+但它的最大大小不能超过 1 GB ，
+否则服务器将关闭这个客户端。</p>
+</div>
+<div class="section" id="id6">
+<h2>命令与命令参数<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h2>
+<p>在服务器将客户端发送的命令请求保存到客户端状态的 <code class="docutils literal"><span class="pre">querybuf</span></code> 属性之后，
+服务器将对命令请求的内容进行分析，
+并将得出的命令参数以及命令参数的个数分别保存到客户端状态的 <code class="docutils literal"><span class="pre">argv</span></code> 属性和 <code class="docutils literal"><span class="pre">argc</span></code> 属性：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="k">typedef</span> <span class="k">struct</span> <span class="n">redisClient</span> <span class="p">{</span>
+
+    <span class="c1">// ...</span>
+
+    <span class="n">robj</span> <span class="o">**</span><span class="n">argv</span><span class="p">;</span>
+
+    <span class="kt">int</span> <span class="n">argc</span><span class="p">;</span>
+
+    <span class="c1">// ...</span>
+
+<span class="p">}</span> <span class="n">redisClient</span><span class="p">;</span>
+</pre></div>
+</div>
+<p><code class="docutils literal"><span class="pre">argv</span></code> 属性是一个数组，
+数组中的每个项都是一个字符串对象：
+其中 <code class="docutils literal"><span class="pre">argv[0]</span></code> 是要执行的命令，
+而之后的其他项则是传给命令的参数。</p>
+<p><code class="docutils literal"><span class="pre">argc</span></code> 属性则负责记录 <code class="docutils literal"><span class="pre">argv</span></code> 数组的长度。</p>
+<p>举个例子，
+对于图 IMAGE_QUERYBUF 所示的 <code class="docutils literal"><span class="pre">querybuf</span></code> 属性来说，
+服务器将分析并创建图 IMAGE_ARGV_AND_ARGC 所示的 <code class="docutils literal"><span class="pre">argv</span></code> 属性和 <code class="docutils literal"><span class="pre">argc</span></code> 属性。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-5cb317d348efd1e363ce9f751ffc42de03fffce3.png" alt="digraph {
+
+    label = &quot;\n 图 IMAGE_ARGV_AND_ARGC    argv 属性和 argc 属性示例&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    redisClient [label = &quot; redisClient | ... | &lt;argv&gt; argv | argc \n 3 | ... &quot;, width = 2];
+
+    argv [label = &quot; { { &lt;head&gt; argv[0] | StringObject \n \&quot;SET\&quot; } | { argv[1] | StringObject \n \&quot;key\&quot; } | { argv[1] | StringObject \n \&quot;value\&quot; } } &quot;];
+
+    redisClient:argv -&gt; argv:head;
+
+}" />
+</p>
+<p>注意，
+在图 IMAGE_ARGV_AND_ARGC 展示的客户端状态中，
+<code class="docutils literal"><span class="pre">argc</span></code> 属性的值为 <code class="docutils literal"><span class="pre">3</span></code> ，
+而不是 <code class="docutils literal"><span class="pre">2</span></code> ，
+因为命令的名字 <code class="docutils literal"><span class="pre">&quot;SET&quot;</span></code> 本身也是一个参数。</p>
+</div>
+<div class="section" id="id7">
+<h2>命令的实现函数<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h2>
+<p>当服务器从协议内容中分析并得出 <code class="docutils literal"><span class="pre">argv</span></code> 属性和 <code class="docutils literal"><span class="pre">argc</span></code> 属性的值之后，
+服务器将根据项 <code class="docutils literal"><span class="pre">argv[0]</span></code> 的值，
+在命令表中查找命令所对应的命令实现函数。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-98ded99420cce35a29c01294bf118871fdea1cb4.png" alt="digraph {
+
+    label = &quot;\n 图 IMAGE_COMMAND_TABLE    命令表&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    command_table [label = &quot; dict | ... | &lt;set&gt; \&quot;set\&quot; | ... | &lt;get&gt; \&quot;get\&quot; | ... | &lt;rpush&gt; \&quot;rpush\&quot; | ... &quot;, width = 1.5 ];
+
+    node [label = &quot; &lt;head&gt; redisCommand | ... &quot;];
+
+    command_table:set -&gt; set:head;
+    command_table:get -&gt; get:head;
+    command_table:rpush -&gt; rpush:head;
+
+}" />
+</p>
+<p>图 IMAGE_COMMAND_TABLE 展示了一个命令表示例，
+该表是一个字典，
+字典的键是一个 SDS 结构，
+保存了命令的名字，
+字典的值是命令所对应的 <code class="docutils literal"><span class="pre">redisCommand</span></code> 结构，
+这个结构保存了命令的实现函数、
+命令的标志、
+命令应该给定的参数个数、
+命令的总执行次数和总消耗时长等统计信息。</p>
+<p>当程序在命令表中成功找到 <code class="docutils literal"><span class="pre">argv[0]</span></code> 所对应的 <code class="docutils literal"><span class="pre">redisCommand</span></code> 结构时，
+它会将客户端状态的 <code class="docutils literal"><span class="pre">cmd</span></code> 指针指向这个结构：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="k">typedef</span> <span class="k">struct</span> <span class="n">redisClient</span> <span class="p">{</span>
+
+    <span class="c1">// ...</span>
+
+    <span class="k">struct</span> <span class="n">redisCommand</span> <span class="o">*</span><span class="n">cmd</span><span class="p">;</span>
+
+    <span class="c1">// ...</span>
+
+<span class="p">}</span> <span class="n">redisClient</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>之后，
+服务器就可以使用 <code class="docutils literal"><span class="pre">cmd</span></code> 属性所指向的 <code class="docutils literal"><span class="pre">redisCommand</span></code> 结构，
+以及 <code class="docutils literal"><span class="pre">argv</span></code> 、 <code class="docutils literal"><span class="pre">argc</span></code> 属性中保存的命令参数信息，
+调用命令实现函数，
+执行客户端指定的命令。</p>
+<p>图 IMAGE_FETCH_IN_COMMAND_TABLE 演示了服务器在 <code class="docutils literal"><span class="pre">argv[0]</span></code> 为 <code class="docutils literal"><span class="pre">&quot;SET&quot;</span></code> 时，
+查找命令表并将客户端状态的 <code class="docutils literal"><span class="pre">cmd</span></code> 指针指向目标 <code class="docutils literal"><span class="pre">redisCommand</span></code> 结构的整个过程。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-7ea6517cd7058fc421535e48338472728ff0ce3f.png" alt="digraph {
+
+    label = &quot;\n 图 IMAGE_FETCH_IN_COMMAND_TABLE    查找命令并设置 cmd 属性&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    command_table [label = &quot; dict | ... | &lt;set&gt; \&quot;set\&quot; | ... | &lt;get&gt; \&quot;get\&quot; | ... | &lt;rpush&gt; \&quot;rpush\&quot; | ... &quot;, width = 1.5 ];
+
+    node [label = &quot; &lt;head&gt; redisCommand | ... &quot;];
+
+    command_table:set -&gt; set:head [style = dashed];
+    command_table:get -&gt; get:head;
+    command_table:rpush -&gt; rpush:head;
+
+    redisClient [label = &quot; redisClient | ... | &lt;cmd&gt; cmd | ... &quot;];
+
+    set:head -&gt; redisClient:cmd [dir = back, label = &quot;2) \n 设置 \n cmd \n 属性&quot;];
+
+    find [label = &quot;1) \n 查找 \n \&quot;SET\&quot; \n 对应的\n redisCommand \n 结构&quot;, shape = plaintext];
+
+    find -&gt; command_table:set [style = dashed];
+
+}" />
+</p>
+<p>针对命令表的查找操作不区分输入字母的大小写，
+所以无论 <code class="docutils literal"><span class="pre">argv[0]</span></code> 是 <code class="docutils literal"><span class="pre">&quot;SET&quot;</span></code> 、 <code class="docutils literal"><span class="pre">&quot;set&quot;</span></code> 、或者 <code class="docutils literal"><span class="pre">&quot;SeT</span></code> ，
+等等，
+查找的结果都是相同的。</p>
+</div>
+<div class="section" id="id8">
+<h2>输出缓冲区<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h2>
+<p>执行命令所得的命令回复会被保存在客户端状态的输出缓冲区里面，
+每个客户端都有两个输出缓冲区可用，
+一个缓冲区的大小是固定的，
+另一个缓冲区的大小是可变的：</p>
+<ul class="simple">
+<li>固定大小的缓冲区用于保存那些长度比较小的回复，
+比如 <code class="docutils literal"><span class="pre">OK</span></code> 、简短的字符串值、整数值、错误回复，等等。</li>
+<li>可变大小的缓冲区用于保存那些长度比较大的回复，
+比如一个非常长的字符串值，
+一个由很多项组成的列表，
+一个包含了很多元素的集合，
+等等。</li>
+</ul>
+<p>客户端的固定大小缓冲区由 <code class="docutils literal"><span class="pre">buf</span></code> 和 <code class="docutils literal"><span class="pre">bufpos</span></code> 两个属性组成：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="k">typedef</span> <span class="k">struct</span> <span class="n">redisClient</span> <span class="p">{</span>
+
+    <span class="c1">// ...</span>
+
+    <span class="kt">char</span> <span class="n">buf</span><span class="p">[</span><span class="n">REDIS_REPLY_CHUNK_BYTES</span><span class="p">];</span>
+
+    <span class="kt">int</span> <span class="n">bufpos</span><span class="p">;</span>
+
+    <span class="c1">// ...</span>
+
+<span class="p">}</span> <span class="n">redisClient</span><span class="p">;</span>
+</pre></div>
+</div>
+<p><code class="docutils literal"><span class="pre">buf</span></code> 是一个大小为 <code class="docutils literal"><span class="pre">REDIS_REPLY_CHUNK_BYTES</span></code> 字节的字节数组，
+而 <code class="docutils literal"><span class="pre">bufpos</span></code> 属性则记录了 <code class="docutils literal"><span class="pre">buf</span></code> 数组目前已使用的字节数量。</p>
+<p><code class="docutils literal"><span class="pre">REDIS_REPLY_CHUNK_BYTES</span></code> 常量目前的默认值为 <code class="docutils literal"><span class="pre">16*1024</span></code> ，
+也即是说，
+<code class="docutils literal"><span class="pre">buf</span></code> 数组的默认大小为 16 KB 。</p>
+<p>图 IMAGE_BUF 展示了一个使用固定大小缓冲区来保存返回值 <code class="docutils literal"><span class="pre">+OK\r\n</span></code> 的例子。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-a19886438c02aa4bc61587c91e10a166f6d416f3.png" alt="digraph {
+
+    label = &quot;\n 图 IMAGE_BUF    固定大小缓冲区示例&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    redisClient [label = &quot; redisClient | ... | &lt;buf&gt; buf | bufpos \n 5 | ... &quot;];
+
+    buf [label = &quot; { '+' | 'O' | 'K' | '\\r' | '\\n' | '\\0' | ... } &quot;];
+
+    redisClient:buf -&gt; buf;
+
+}" />
+</p>
+<p>当 <code class="docutils literal"><span class="pre">buf</span></code> 数组的空间已经用完，
+或者回复因为太大而没办法放进 <code class="docutils literal"><span class="pre">buf</span></code> 数组里面时，
+服务器就会开始使用可变大小缓冲区。</p>
+<p>可变大小缓冲区由 <code class="docutils literal"><span class="pre">reply</span></code> 链表和一个或多个字符串对象组成：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="k">typedef</span> <span class="k">struct</span> <span class="n">redisClient</span> <span class="p">{</span>
+
+    <span class="c1">// ...</span>
+
+    <span class="n">list</span> <span class="o">*</span><span class="n">reply</span><span class="p">;</span>
+
+    <span class="c1">// ...</span>
+
+<span class="p">}</span> <span class="n">redisClient</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>通过使用链表来连接多个字符串对象，
+服务器可以为客户端保存一个非常长的命令回复，
+而不必受到固定大小缓冲区 16 KB 大小的限制。</p>
+<p>图 IMAGE_REPLY 展示了一个包含三个字符串对象的 <code class="docutils literal"><span class="pre">reply</span></code> 链表。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-af7a9daf82aeeef6223a0c83c1fa025d61ada9b7.png" alt="digraph {
+
+    label = &quot;\n 图 IMAGE_REPLY    可变大小缓冲区示例&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    redisClient [label = &quot; redisClient | ... | &lt;reply&gt; reply | ... &quot;, width = 2];
+
+    node [label = &quot; &lt;head&gt; StringObject \n ... &quot;];
+
+    redisClient:reply -&gt; s1:head -&gt; s2:head -&gt; s3:head;
+
+}" />
+</p>
+</div>
+<div class="section" id="id9">
+<h2>身份验证<a class="headerlink" href="#id9" title="Permalink to this headline">¶</a></h2>
+<p>客户端状态的 <code class="docutils literal"><span class="pre">authenticated</span></code> 属性用于记录客户端是否通过了身份验证：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="k">typedef</span> <span class="k">struct</span> <span class="n">redisClient</span> <span class="p">{</span>
+
+    <span class="c1">// ...</span>
+
+    <span class="kt">int</span> <span class="n">authenticated</span><span class="p">;</span>
+
+    <span class="c1">// ...</span>
+
+<span class="p">}</span> <span class="n">redisClient</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>如果 <code class="docutils literal"><span class="pre">authenticated</span></code> 的值为 <code class="docutils literal"><span class="pre">0</span></code> ，
+那么表示客户端未通过身份验证；
+如果 <code class="docutils literal"><span class="pre">authenticated</span></code> 的值为 <code class="docutils literal"><span class="pre">1</span></code> ，
+那么表示客户端已经通过了身份验证。</p>
+<p>举个例子，
+对于一个尚未进行身份验证的客户端来说，
+客户端状态的 <code class="docutils literal"><span class="pre">authenticated</span></code> 属性将如图 IMAGE_UNAUTH 所示。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-23e0f0c0c489f74870bc89ecc9ef02897da965c5.png" alt="digraph {
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    redisClient [label = &quot; redisClient | ... | authenticated \n 0 | ... &quot;];
+
+    label = &quot;\n 图 IMAGE_UNAUTH    未验证身份时的客户端状态&quot;;
+
+}" />
+</p>
+<p>当客户端 <code class="docutils literal"><span class="pre">authenticated</span></code> 属性的值为 <code class="docutils literal"><span class="pre">0</span></code> 时，
+除了 <em class="xref std std-ref">AUTH</em> 命令之外，
+客户端发送的所有其他命令都会被服务器拒绝执行：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">PING</span>
+<span class="p">(</span><span class="n">error</span><span class="p">)</span> <span class="n">NOAUTH</span> <span class="n">Authentication</span> <span class="n">required</span><span class="p">.</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">SET</span> <span class="n">msg</span> <span class="s">&quot;hello world&quot;</span>
+<span class="p">(</span><span class="n">error</span><span class="p">)</span> <span class="n">NOAUTH</span> <span class="n">Authentication</span> <span class="n">required</span><span class="p">.</span>
+</pre></div>
+</div>
+<p class="graphviz">
+<img src="../../_images/graphviz-44a50d9e56e088ddb5a6ead1f36f0f26717580ec.png" alt="digraph {
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    redisClient [label = &quot; redisClient | ... | authenticated \n 1 | ... &quot;];
+
+    label = &quot;\n 图 IMAGE_AUTHED    已经通过身份验证的客户端状态&quot;;
+
+}" />
+</p>
+<p>当客户端通过 <em class="xref std std-ref">AUTH</em> 命令成功进行身份验证之后，
+客户端状态 <code class="docutils literal"><span class="pre">authenticated</span></code> 属性的值就会从 <code class="docutils literal"><span class="pre">0</span></code> 变为 <code class="docutils literal"><span class="pre">1</span></code> ，
+如图 IMAGE_AUTHED 所示，
+这时客户端就可以像往常一样向服务器发送命令请求了：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="cp"># authenticated 属性的值从 0 变为 1</span>
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">AUTH</span> <span class="mi">123321</span>
+<span class="n">OK</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">PING</span>
+<span class="n">PONG</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">SET</span> <span class="n">msg</span> <span class="s">&quot;hello world&quot;</span>
+<span class="n">OK</span>
+</pre></div>
+</div>
+<p><code class="docutils literal"><span class="pre">authenticated</span></code> 属性仅在服务器启用了身份验证功能时使用：
+如果服务器没有启用身份验证功能的话，
+那么即使 <code class="docutils literal"><span class="pre">authenticated</span></code> 属性的值为 <code class="docutils literal"><span class="pre">0</span></code> （这是默认值），
+服务器也不会拒绝执行客户端发送的命令请求。</p>
+<p>关于服务器身份验证的更多信息可以参考示例配置文件对 <code class="docutils literal"><span class="pre">requirepass</span></code> 选项的相关说明。</p>
+</div>
+<div class="section" id="id10">
+<h2>时间<a class="headerlink" href="#id10" title="Permalink to this headline">¶</a></h2>
+<p>最后，
+客户端还有几个和时间有关的属性：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="k">typedef</span> <span class="k">struct</span> <span class="n">redisClient</span> <span class="p">{</span>
+
+    <span class="c1">// ...</span>
+
+    <span class="kt">time_t</span> <span class="n">ctime</span><span class="p">;</span>
+
+    <span class="kt">time_t</span> <span class="n">lastinteraction</span><span class="p">;</span>
+
+    <span class="kt">time_t</span> <span class="n">obuf_soft_limit_reached_time</span><span class="p">;</span>
+
+    <span class="c1">// ...</span>
+
+<span class="p">}</span> <span class="n">redisClient</span><span class="p">;</span>
+</pre></div>
+</div>
+<p><code class="docutils literal"><span class="pre">ctime</span></code> 属性记录了创建客户端的时间，
+这个时间可以用来计算客户端与服务器已经连接了多少秒 ——
+<em class="xref std std-ref">CLIENT_LIST</em> 命令的 <code class="docutils literal"><span class="pre">age</span></code> 域记录了这个秒数：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">CLIENT</span> <span class="n">list</span>
+
+<span class="n">addr</span><span class="o">=</span><span class="mf">127.0.0.1</span><span class="o">:</span><span class="mi">53428</span> <span class="p">...</span> <span class="n">age</span><span class="o">=</span><span class="mi">1242</span> <span class="p">...</span>
+</pre></div>
+</div>
+<p><code class="docutils literal"><span class="pre">lastinteraction</span></code> 属性记录了客户端与服务器最后一次进行互动（interaction）的时间，
+这里的互动可以是客户端向服务器发送命令请求，
+也可以是服务器向客户端发送命令回复。</p>
+<p><code class="docutils literal"><span class="pre">lastinteraction</span></code> 属性可以用来计算客户端的空转（idle）时间，
+也即是，
+距离客户端与服务器最后一次进行互动以来，
+已经过去了多少秒 ——
+<em class="xref std std-ref">CLIENT_LIST</em> 命令的 <code class="docutils literal"><span class="pre">idle</span></code> 域记录了这个秒数：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">CLIENT</span> <span class="n">list</span>
+
+<span class="n">addr</span><span class="o">=</span><span class="mf">127.0.0.1</span><span class="o">:</span><span class="mi">53428</span> <span class="p">...</span> <span class="n">idle</span><span class="o">=</span><span class="mi">12</span> <span class="p">...</span>
+</pre></div>
+</div>
+<p><code class="docutils literal"><span class="pre">obuf_soft_limit_reached_time</span></code> 属性记录了输出缓冲区第一次到达软性限制（soft limit）的时间，
+稍后介绍输出缓冲区大小限制的时候会详细说明这个属性的作用。</p>
+</div>
+</div>
+
+
+
+            <div class="section" id="discuss">
+    <h2>
+        讨论
+        <a class="headerlink" href="#discuss" title="永久链接至标题">¶</a>
+    </h2>
+    <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'redisbookv1'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li><a href="../../index.html">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2014, 黄健宏（huangz）.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+    </div>
+  </body>
+</html>
