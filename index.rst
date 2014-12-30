@@ -6,7 +6,7 @@
 Redis 设计与实现
 =======================================
 
-.. image:: image/cover.jpg
+.. image:: image/cover.png
    :align: left
    :scale: 45%
 
