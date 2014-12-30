@@ -157,6 +157,15 @@
 <p>跳跃表节点的实现由 <code class="docutils literal"><span class="pre">redis.h/zskiplistNode</span></code> 结构定义：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="k">typedef</span> <span class="k">struct</span> <span class="n">zskiplistNode</span> <span class="p">{</span>
 
+    <span class="c1">// 后退指针</span>
+    <span class="k">struct</span> <span class="n">zskiplistNode</span> <span class="o">*</span><span class="n">backward</span><span class="p">;</span>
+
+    <span class="c1">// 分值</span>
+    <span class="kt">double</span> <span class="n">score</span><span class="p">;</span>
+
+    <span class="c1">// 成员对象</span>
+    <span class="n">robj</span> <span class="o">*</span><span class="n">obj</span><span class="p">;</span>
+
     <span class="c1">// 层</span>
     <span class="k">struct</span> <span class="n">zskiplistLevel</span> <span class="p">{</span>
 
@@ -167,15 +176,6 @@
         <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">span</span><span class="p">;</span>
 
     <span class="p">}</span> <span class="n">level</span><span class="p">[];</span>
-
-    <span class="c1">// 后退指针</span>
-    <span class="k">struct</span> <span class="n">zskiplistNode</span> <span class="o">*</span><span class="n">backward</span><span class="p">;</span>
-
-    <span class="c1">// 分值</span>
-    <span class="kt">double</span> <span class="n">score</span><span class="p">;</span>
-
-    <span class="c1">// 成员对象</span>
-    <span class="n">robj</span> <span class="o">*</span><span class="n">obj</span><span class="p">;</span>
 
 <span class="p">}</span> <span class="n">zskiplistNode</span><span class="p">;</span>
 </pre></div>

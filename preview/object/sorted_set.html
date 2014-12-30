@@ -52,7 +52,7 @@
   <div class="section" id="id1">
 <h1>有序集合对象<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
 <p>有序集合的编码可以是 <code class="docutils literal"><span class="pre">ziplist</span></code> 或者 <code class="docutils literal"><span class="pre">skiplist</span></code> 。</p>
-<p><code class="docutils literal"><span class="pre">ziplist</span></code> 编码的压缩列表对象使用压缩列表作为底层实现，
+<p><code class="docutils literal"><span class="pre">ziplist</span></code> 编码的有序集合对象使用压缩列表作为底层实现，
 每个集合元素使用两个紧挨在一起的压缩列表节点来保存，
 第一个节点保存元素的成员（member），
 而第二个元素则保存元素的分值（score）。</p>
@@ -87,7 +87,7 @@
 }" />
 </p>
 <p class="graphviz">
-<img src="../../_images/graphviz-243db42f3ae9ad5bb64108c999f7ce7144f166a6.png" alt="digraph {
+<img src="../../_images/graphviz-8d7b7d0e78ad9d445ff14834e9e9618234395d46.png" alt="digraph {
 
     label = &quot;\n 图 8-15    有序集合元素在压缩列表中按分值从小到大排列&quot;;
 
@@ -104,6 +104,8 @@
     apple [label = &quot;分值最大的元素&quot;];
 
     //
+
+    edge [style = dashed]
 
     banana -&gt; ziplist:banana [label = &quot;成员&quot;];
     banana -&gt; ziplist:banana_price [label = &quot;分值&quot;];
@@ -337,9 +339,9 @@ Redis 选择了同时使用字典和跳跃表两种数据结构来实现有序�
 </div>
 <p>对于使用 <code class="docutils literal"><span class="pre">ziplist</span></code> 编码的有序集合对象来说，
 当使用 <code class="docutils literal"><span class="pre">ziplist</span></code> 编码所需的两个条件中的任意一个不能被满足时，
-对象的编码转换操作就会被执行：
-原本保存在压缩列表里的所有集合元素都会被转移并保存到 <code class="docutils literal"><span class="pre">zset</span></code> 结构里面，
-对象的编码也会从 <code class="docutils literal"><span class="pre">ziplist</span></code> 变为 <code class="docutils literal"><span class="pre">skiplist</span></code> 。</p>
+程序就会执行编码转换操作，
+将原本储存在压缩列表里面的所有集合元素转移到 <code class="docutils literal"><span class="pre">zset</span></code> 结构里面，
+并将对象的编码从 <code class="docutils literal"><span class="pre">ziplist</span></code> 改为 <code class="docutils literal"><span class="pre">skiplist</span></code> 。</p>
 <p>以下代码展示了有序集合对象因为包含了过多元素而引发编码转换的情况：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="cp"># 对象包含了 128 个元素</span>
 <span class="n">redis</span><span class="o">&gt;</span> <span class="n">EVAL</span> <span class="s">&quot;for i=1, 128 do redis.call(&#39;ZADD&#39;, KEYS[1], i, i) end&quot;</span> <span class="mi">1</span> <span class="n">numbers</span>
@@ -384,10 +386,10 @@ Redis 选择了同时使用字典和跳跃表两种数据结构来实现有序�
 </div>
 <div class="section" id="id3">
 <h2>有序集合命令的实现<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
-<p>因为有序集合键的值为哈希对象，
-所以用于有序集合键的所有命令都是针对哈希对象来构建的，
+<p>因为有序集合键的值为有序集合对象，
+所以用于有序集合键的所有命令都是针对有序集合对象来构建的，
 表 8-11 列出了其中一部分有序集合键命令，
-以及这些命令在不同编码的哈希对象下的实现方法。</p>
+以及这些命令在不同编码的有序集合对象下的实现方法。</p>
 <hr class="docutils" />
 <p>表 8-11    有序集合命令的实现方法</p>
 <table border="1" class="docutils">

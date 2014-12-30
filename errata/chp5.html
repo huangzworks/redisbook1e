@@ -52,12 +52,47 @@
   <div class="section" id="id1">
 <h1>第 5 章《跳跃表》勘误<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="id2">
-<h2>43 页<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<h2>40 页<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<p>这一页的 5.1.1 节展示 <code class="docutils literal"><span class="pre">zskiplistNode</span></code> 结构的定义时，
+作者错误地将 <code class="docutils literal"><span class="pre">level[]</span></code> 属性放到了 <code class="docutils literal"><span class="pre">zskiplistNode</span></code> 定义的最前面，
+但是因为 <code class="docutils literal"><span class="pre">level[]</span></code> 属性是动态数组，
+所以它不能被放在 <code class="docutils literal"><span class="pre">backward</span></code> 、 <code class="docutils literal"><span class="pre">score</span></code> 等属性的前面，
+原文是错误的。</p>
+<p>以下是修正之后的 <code class="docutils literal"><span class="pre">zskiplistNode</span></code> 结构的定义：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="k">typedef</span> <span class="k">struct</span> <span class="n">zskiplistNode</span> <span class="p">{</span>
+
+    <span class="c1">// 后退指针</span>
+    <span class="k">struct</span> <span class="n">zskiplistNode</span> <span class="o">*</span><span class="n">backward</span><span class="p">;</span>
+
+    <span class="c1">// 分值</span>
+    <span class="kt">double</span> <span class="n">score</span><span class="p">;</span>
+
+    <span class="c1">// 成员对象</span>
+    <span class="n">robj</span> <span class="o">*</span><span class="n">obj</span><span class="p">;</span>
+
+    <span class="c1">// 层</span>
+    <span class="k">struct</span> <span class="n">zskiplistLevel</span> <span class="p">{</span>
+
+        <span class="c1">// 前进指针</span>
+        <span class="k">struct</span> <span class="n">zskiplistNode</span> <span class="o">*</span><span class="n">forward</span><span class="p">;</span>
+
+        <span class="c1">// 跨度</span>
+        <span class="kt">unsigned</span> <span class="kt">int</span> <span class="n">span</span><span class="p">;</span>
+
+    <span class="p">}</span> <span class="n">level</span><span class="p">[];</span>
+
+<span class="p">}</span> <span class="n">zskiplistNode</span><span class="p">;</span>
+</pre></div>
+</div>
+<p>感谢 <a class="reference external" href="http://weibo.com/u/2432959237">程辙</a>  反馈这个错误。</p>
+</div>
+<div class="section" id="id4">
+<h2>43 页<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h2>
 <p>图 5-6 中， <code class="docutils literal"><span class="pre">header</span></code> 属性连接表头节点的连线应该是实线而不是虚线，
 以下是修正后的图片：</p>
 <img src="../_images/5-6.svg" /></div>
-<div class="section" id="id3">
-<h2>45 页<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<div class="section" id="id5">
+<h2>45 页<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h2>
 <p>表 5-1 中对 <code class="docutils literal"><span class="pre">zslIsInRange</span></code> 函数的描述有误，
 以下是修正后的描述：</p>
 <table border="1" class="docutils">

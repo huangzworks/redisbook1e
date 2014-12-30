@@ -122,6 +122,15 @@ Redis 的跳跃表由 ``redis.h/zskiplistNode`` 和 ``redis.h/zskiplist`` 两个
 
     typedef struct zskiplistNode {
         
+        // 后退指针
+        struct zskiplistNode *backward;
+
+        // 分值
+        double score;
+
+        // 成员对象
+        robj *obj;
+
         // 层
         struct zskiplistLevel {
 
@@ -132,15 +141,6 @@ Redis 的跳跃表由 ``redis.h/zskiplistNode`` 和 ``redis.h/zskiplist`` 两个
             unsigned int span;
 
         } level[];
-
-        // 后退指针
-        struct zskiplistNode *backward;
-
-        // 分值
-        double score;
-
-        // 成员对象
-        robj *obj;
 
     } zskiplistNode;
 

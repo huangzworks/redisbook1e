@@ -69,30 +69,31 @@
 <tbody valign="top">
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">listSetDupMethod</span></code></td>
 <td>将给定的函数设置为链表的节点值复制函数。</td>
-<td>复制函数可以通过链表的 <code class="docutils literal"><span class="pre">dup</span></code> 属性直接获得，
-<img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</td>
+<td><img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">listGetDupMethod</span></code></td>
 <td>返回链表当前正在使用的节点值复制函数。</td>
-<td><img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/></td>
+<td>复制函数可以通过链表的 <code class="docutils literal"><span class="pre">dup</span></code> 属性直接获得，
+<img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/></td>
 </tr>
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">listSetFreeMethod</span></code></td>
 <td>将给定的函数设置为链表的节点值释放函数。</td>
-<td>释放函数可以通过链表的 <code class="docutils literal"><span class="pre">free</span></code> 属性直接获得，
-<img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</td>
+<td><img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">listGetFree</span></code></td>
 <td>返回链表当前正在使用的节点值释放函数。</td>
-<td><img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/></td>
+<td>释放函数可以通过链表的 <code class="docutils literal"><span class="pre">free</span></code> 属性直接获得，
+<img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/></td>
 </tr>
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">listSetMatchMethod</span></code></td>
 <td>将给定的函数设置为链表的节点值对比函数。</td>
-<td>对比函数可以通过链表的 <code class="docutils literal"><span class="pre">match</span></code>
-属性直接获得， <img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</td>
+<td><img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/></td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">listGetMatchMethod</span></code></td>
 <td>返回链表当前正在使用的节点值对比函数。</td>
-<td><img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/></td>
+<td>对比函数可以通过链表的 <code class="docutils literal"><span class="pre">match</span></code>
+属性直接获得，
+<img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/></td>
 </tr>
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">listLength</span></code></td>
 <td>返回链表的长度（包含了多少个节点）。</td>
@@ -150,7 +151,7 @@
 </tr>
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">listDelNode</span></code></td>
 <td>从链表中删除给定节点。</td>
-<td><img class="math" src="../../_images/math/4d51d3f476c76dc066b26271168bc3b67f49d2be.png" alt="O(N)"/> ， <code class="docutils literal"><span class="pre">N</span></code> 为链表长度。</td>
+<td><img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">listRotate</span></code></td>
 <td>将链表的表尾节点弹出，然后将被弹出的节点插入到链表的表头，

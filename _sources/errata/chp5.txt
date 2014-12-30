@@ -2,6 +2,46 @@
 ==========================
 
 
+40 页
+-----------
+
+这一页的 5.1.1 节展示 ``zskiplistNode`` 结构的定义时，
+作者错误地将 ``level[]`` 属性放到了 ``zskiplistNode`` 定义的最前面，
+但是因为 ``level[]`` 属性是动态数组，
+所以它不能被放在 ``backward`` 、 ``score`` 等属性的前面，
+原文是错误的。
+
+以下是修正之后的 ``zskiplistNode`` 结构的定义：
+
+::
+
+    typedef struct zskiplistNode {
+        
+        // 后退指针
+        struct zskiplistNode *backward;
+
+        // 分值
+        double score;
+
+        // 成员对象
+        robj *obj;
+
+        // 层
+        struct zskiplistLevel {
+
+            // 前进指针
+            struct zskiplistNode *forward;
+
+            // 跨度
+            unsigned int span;
+
+        } level[];
+
+    } zskiplistNode;
+
+感谢 `程辙  <http://weibo.com/u/2432959237>`_  反馈这个错误。
+
+
 43 页
 -----------
 

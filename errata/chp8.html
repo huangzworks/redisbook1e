@@ -138,6 +138,35 @@ Redis 将这个值从 <code class="docutils literal"><span class="pre">32</span>
 </div>
 <p>感谢 <a class="reference external" href="http://www.douban.com/people/zhkzyth/">zhkzyth</a> 反馈这个错误。</p>
 </div>
+<div class="section" id="id6">
+<h2>77 页<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h2>
+<p>8.6 节开头的第二段：</p>
+<blockquote>
+<div><code class="docutils literal"><span class="pre">ziplist</span></code> 编码的压缩列表对象使用压缩列表作为底层实现，
+……</div></blockquote>
+<p>中的“压缩列表对象”有误，应该改为“有序集合对象”才对，
+以下是修正之后的内容：</p>
+<blockquote>
+<div><code class="docutils literal"><span class="pre">ziplist</span></code> 编码的有序集合对象使用压缩列表作为底层实现，
+……</div></blockquote>
+</div>
+<div class="section" id="id7">
+<h2>80 页<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h2>
+<p>本页的最后一句：</p>
+<blockquote>
+<div>因为有序集合键的值为哈希对象，
+所以用于有序集合键的所有命令都是针对哈希对象来构建的，
+表 8-1 列出了其中一部分有序集合键命令，
+以及这些命令在不同编码的哈希对象下的实现方法。</div></blockquote>
+<p>这里的“哈希对象”应该全部改为“有序集合对象”才对，
+以下是修正后的正文：</p>
+<blockquote>
+<div>因为有序集合键的值为有序集合对象，
+所以用于有序集合键的所有命令都是针对有序集合对象来构建的，
+表 8-1 列出了其中一部分有序集合键命令，
+以及这些命令在不同编码的有序集合对象下的实现方法。</div></blockquote>
+<p>感谢 Andy 反馈这个问题。</p>
+</div>
 </div>
 
 
