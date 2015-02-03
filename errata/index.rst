@@ -21,10 +21,10 @@
 而购买了本书第三次印刷的读者，
 只需要修改以下几个错误即可：
 
-- http://redisbook.com/errata/chp5.html#id2 （第 40 页）
+- `第 40 页 <http://redisbook.com/errata/chp5.html#id2>`_
 
-- http://redisbook.com/errata/chp5.html#id5 （第 45 页）
+- `第 45 页 <http://redisbook.com/errata/chp5.html#id5>`_
 
-- http://redisbook.com/errata/chp8.html#id6 （第 77 页）
+- `第 77 页 <http://redisbook.com/errata/chp8.html#id6>`_
 
-- http://redisbook.com/errata/chp8.html#id7 （第 80 页）
+- `第 80 页 <http://redisbook.com/errata/chp8.html#id7>`_
