@@ -1,6 +1,35 @@
 第 13 章《客户端》勘误
 ==============================
 
+168 页
+----------
+
+图 13-5 中错误地包含了两个 ``argv[1]`` ，
+第二个 ``argv[1]`` 应为 ``argv[2]`` ，
+以下是修正后的图片：
+
+.. graphviz::
+
+    digraph {
+
+        label = "\n 图 13-5    argv 属性和 argc 属性示例";
+
+        rankdir = LR;
+
+        node [shape = record];
+
+        redisClient [label = " redisClient | ... | <argv> argv | argc \n 3 | ... ", width = 2];
+
+        argv [label = " { { <head> argv[0] | StringObject \n \"SET\" } | { argv[1] | StringObject \n \"key\" } | { argv[2] | StringObject \n \"value\" } } "];
+
+        redisClient:argv -> argv:head;
+
+    }
+
+感谢 凯旋冲锋 反馈这个错误。
+
+
+
 173 页
 -----------
 

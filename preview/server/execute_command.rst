@@ -152,7 +152,7 @@ Redis 服务器的命令请求来自 Redis 客户端，
 
         redisClient [label = " redisClient | ... | <argv> argv | argc \n 3 | ... ", width = 2];
 
-        argv [label = " { { <head> argv[0] | StringObject \n \"SET\" } | { argv[1] | StringObject \n \"KEY\" } | { argv[1] | StringObject \n \"VALUE\" } } "];
+        argv [label = " { { <head> argv[0] | StringObject \n \"SET\" } | { argv[1] | StringObject \n \"KEY\" } | { argv[2] | StringObject \n \"VALUE\" } } "];
 
         redisClient:argv -> argv:head;
 
@@ -523,7 +523,7 @@ Redis 服务器的命令请求来自 Redis 客户端，
 
         redisClient:cmd -> set:head; set:proc -> setCommand;
 
-        argv [label = " { { <head> argv[0] | StringObject \n \"SET\" } | { argv[1] | StringObject \n \"KEY\" } | { argv[1] | StringObject \n \"VALUE\" } } "];
+        argv [label = " { { <head> argv[0] | StringObject \n \"SET\" } | { argv[1] | StringObject \n \"KEY\" } | { argv[2] | StringObject \n \"VALUE\" } } "];
 
         redisClient:argv -> argv:head;
 
