@@ -28,3 +28,5 @@
 - `第 77 页 <http://redisbook.com/errata/chp8.html#id6>`_
 
 - `第 80 页 <http://redisbook.com/errata/chp8.html#id7>`_
+
+- `第 182 页 <http://redisbook.com/errata/chp14.html#id2>`_

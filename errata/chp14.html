@@ -52,7 +52,17 @@
   <div class="section" id="id1">
 <h1>第 14 章《服务器》勘误<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="id2">
-<h2>185 页<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<h2>182 页<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<p>14.1.5 节第一句中的：</p>
+<blockquote>
+<div>并将命令的参数和参数个数分别保存到了客户端状态的 <code class="docutils literal"><span class="pre">argv</span></code> 属性和 <code class="docutils literal"><span class="pre">argv</span></code> 属性里面</div></blockquote>
+<p>这一句中的第二个 <code class="docutils literal"><span class="pre">argv</span></code> 应为 <code class="docutils literal"><span class="pre">argc</span></code> ，修正后的句子为：</p>
+<blockquote>
+<div>并将命令的参数和参数个数分别保存到了客户端状态的 <code class="docutils literal"><span class="pre">argv</span></code> 属性和 <code class="docutils literal"><span class="pre">argc</span></code> 属性里面</div></blockquote>
+<p>感谢 kevin 反馈这个错误。</p>
+</div>
+<div class="section" id="id3">
+<h2>185 页<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
 <p>14.2.1 末尾对 <code class="docutils literal"><span class="pre">unixtime</span></code> 属性以及 <code class="docutils literal"><span class="pre">mstime</span></code> 属性的精度进行描述的句子：</p>
 <blockquote>
 <div>服务器只会在打印日志、 更新服务器的 LRU 时钟、 决定是否执行持久化任务、 计算服务器上线时间（uptime）这类对时间精确度要求不高的功能上。</div></blockquote>

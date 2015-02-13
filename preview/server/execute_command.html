@@ -79,11 +79,11 @@
 客户端会将这个命令请求转换成协议格式，
 然后通过连接到服务器的套接字，
 将协议格式的命令请求发送给服务器，
-如图 IMAGE_CLIENT_SEND_REQUEST 所示。</p>
+如图 14-1 所示。</p>
 <p class="graphviz">
-<img src="../../_images/graphviz-5d7f2ad48facc8520853acccbe41f9daff67ad54.png" alt="digraph {
+<img src="../../_images/graphviz-b4eb69529c920f353912414e6a7c6acb97084a58.png" alt="digraph {
 
-    label = &quot;\n\n 图 IMAGE_CLIENT_SEND_REQUEST    客户端接收并发送命令请求的过程&quot;;
+    label = &quot;\n\n 图 14-1    客户端接收并发送命令请求的过程&quot;;
 
     rankdir = LR;
 
@@ -129,12 +129,12 @@
 执行客户端指定的命令。</li>
 </ol>
 <p>继续用上一个小节的 <em class="xref std std-ref">SET</em> 命令为例子，
-图 IMAGE_SAVE_REQ_IN_BUF 展示了程序将命令请求保存到客户端状态的输入缓冲区之后，
+图 14-2 展示了程序将命令请求保存到客户端状态的输入缓冲区之后，
 客户端状态的样子。</p>
 <p class="graphviz">
-<img src="../../_images/graphviz-1f4ea8fa0367e32a08031b61c5067b7e27d02e2a.png" alt="digraph {
+<img src="../../_images/graphviz-1e9c256cc14099243cc08aed64fd770cba17e43d.png" alt="digraph {
 
-    label = &quot;\n 图 IMAGE_SAVE_REQ_IN_BUF    客户端状态中的命令请求&quot;;
+    label = &quot;\n 图 14-2    客户端状态中的命令请求&quot;;
 
     rankdir = LR;
 
@@ -163,11 +163,11 @@
 </div>
 <p>进行分析，
 并将得出的分析结果保存到客户端状态的 <code class="docutils literal"><span class="pre">argv</span></code> 属性和 <code class="docutils literal"><span class="pre">argc</span></code> 属性里面，
-如图 IMAGE_ARGV_AND_ARGC 所示。</p>
+如图 14-3 所示。</p>
 <p class="graphviz">
-<img src="../../_images/graphviz-289c07d4386a3b0d02c01296ce24f48fc96a1fc5.png" alt="digraph {
+<img src="../../_images/graphviz-6c270b556f2fa1464fcee8d131e809e6fb987dbb.png" alt="digraph {
 
-    label = &quot;\n 图 IMAGE_ARGV_AND_ARGC    客户端状态的 argv 属性和 argc 属性&quot;;
+    label = &quot;\n 图 14-3    客户端状态的 argv 属性和 argc 属性&quot;;
 
     rankdir = LR;
 
@@ -194,9 +194,9 @@
 字典的键是一个个命令名字，比如 <code class="docutils literal"><span class="pre">&quot;set&quot;</span></code> 、 <code class="docutils literal"><span class="pre">&quot;get&quot;</span></code> 、 <code class="docutils literal"><span class="pre">&quot;del&quot;</span></code> ，等等；
 而字典的值则是一个个 <code class="docutils literal"><span class="pre">redisCommand</span></code> 结构，
 每个 <code class="docutils literal"><span class="pre">redisCommand</span></code> 结构记录了一个 Redis 命令的实现信息，
-表 TABLE_REDIS_COMMAND 记录了这个结构的各个主要属性的类型和作用。</p>
+表 14-1 记录了这个结构的各个主要属性的类型和作用。</p>
 <hr class="docutils" />
-<p>表 TABLE_REDIS_COMMAND    <code class="docutils literal"><span class="pre">redisCommand</span></code> 结构的主要属性</p>
+<p>表 14-1    <code class="docutils literal"><span class="pre">redisCommand</span></code> 结构的主要属性</p>
 <table border="1" class="docutils">
 <colgroup>
 <col width="15%" />
@@ -259,10 +259,10 @@
 </tbody>
 </table>
 <hr class="docutils" />
-<p>表 TABLE_COMMAND_FLAG 列出了 <code class="docutils literal"><span class="pre">sflags</span></code> 属性可以使用的标识值，
+<p>表 14-2 列出了 <code class="docutils literal"><span class="pre">sflags</span></code> 属性可以使用的标识值，
 以及这些标识的意义。</p>
 <hr class="docutils" />
-<p>表 TABLE_COMMAND_FLAG    <code class="docutils literal"><span class="pre">sflags</span></code> 属性的标识</p>
+<p>表 14-2    <code class="docutils literal"><span class="pre">sflags</span></code> 属性的标识</p>
 <table border="1" class="docutils">
 <colgroup>
 <col width="6%" />
@@ -342,7 +342,7 @@
 </tbody>
 </table>
 <hr class="docutils" />
-<p>图 IMAGE_COMMANDS 展示了命令表的样子，
+<p>图 14-4 展示了命令表的样子，
 并且以 <em class="xref std std-ref">SET</em> 命令和 <em class="xref std std-ref">GET</em> 命令作为例子，
 展示了 <code class="docutils literal"><span class="pre">redisCommand</span></code> 结构：</p>
 <ul class="simple">
@@ -363,9 +363,9 @@
 表示这是一个只读命令。</li>
 </ul>
 <p class="graphviz">
-<img src="../../_images/graphviz-17b1e0132ae2766c035188302651ad12c6202a6e.png" alt="digraph {
+<img src="../../_images/graphviz-38d1a443b5626e8fd50f5981d0f2abd010efe0d7.png" alt="digraph {
 
-    label = &quot;\n 图 IMAGE_COMMANDS    命令表&quot;;
+    label = &quot;\n 图 14-4    命令表&quot;;
 
     rankdir = LR;
 
@@ -400,15 +400,15 @@
 }" />
 </p>
 <p>继续之前 <em class="xref std std-ref">SET</em> 命令的例子，
-当程序以图 IMAGE_ARGV_AND_ARGC 中的 <code class="docutils literal"><span class="pre">argv[0]</span></code> 作为输入，
+当程序以图 14-3 中的 <code class="docutils literal"><span class="pre">argv[0]</span></code> 作为输入，
 在命令表中进行查找时，
 命令表将返回 <code class="docutils literal"><span class="pre">&quot;set&quot;</span></code> 键所对应的 <code class="docutils literal"><span class="pre">redisCommand</span></code> 结构，
 客户端状态的 <code class="docutils literal"><span class="pre">cmd</span></code> 指针会指向这个 <code class="docutils literal"><span class="pre">redisCommand</span></code> 结构，
-如图 IMAGE_GET_CMD_FROM_TABLE 所示。</p>
+如图 14-5 所示。</p>
 <p class="graphviz">
-<img src="../../_images/graphviz-ba12f419defc3e7e6ae8f7d01d4f4b4cd231745b.png" alt="digraph {
+<img src="../../_images/graphviz-16cc0e0f245ff83569469984fa38e0acedf9f740.png" alt="digraph {
 
-    label = &quot;\n 图 IMAGE_GET_CMD_FROM_TABLE    设置客户端状态的 cmd 指针&quot;;
+    label = &quot;\n 图 14-5    设置客户端状态的 cmd 指针&quot;;
 
     rankdir = LR;
 
@@ -529,7 +529,7 @@
 <h2>命令执行器（3）：调用命令的实现函数<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h2>
 <p>在前面的操作中，
 服务器已经将要执行命令的实现保存到了客户端状态的 <code class="docutils literal"><span class="pre">cmd</span></code> 属性里面，
-并将命令的参数和参数个数分别保存到了客户端状态的 <code class="docutils literal"><span class="pre">argv</span></code> 属性和 <code class="docutils literal"><span class="pre">argv</span></code> 属性里面，
+并将命令的参数和参数个数分别保存到了客户端状态的 <code class="docutils literal"><span class="pre">argv</span></code> 属性和 <code class="docutils literal"><span class="pre">argc</span></code> 属性里面，
 当服务器决定要执行命令时，
 它只要执行以下语句就可以了：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="c1">// client 是指向客户端状态的指针</span>
@@ -540,11 +540,11 @@
 <p>因为执行命令所需的实际参数都已经保存到客户端状态的 <code class="docutils literal"><span class="pre">argv</span></code> 属性里面了，
 所以命令的实现函数只需要一个指向客户端状态的指针作为参数即可。</p>
 <p>继续以之前的 <em class="xref std std-ref">SET</em> 命令为例子，
-图 IMAGE_CMD_ARGV_ARGC 展示了客户端包含了命令实现、参数和参数个数的样子。</p>
+图 14-6 展示了客户端包含了命令实现、参数和参数个数的样子。</p>
 <p class="graphviz">
-<img src="../../_images/graphviz-9909fa9d562a3c9d30b9c243e28d19a752754166.png" alt="digraph {
+<img src="../../_images/graphviz-7d30aec6365a0d00d718eb6b21fd9a7385a998fb.png" alt="digraph {
 
-    label = &quot;\n 图 IMAGE_CMD_ARGV_ARGC    客户端状态&quot;;
+    label = &quot;\n 图 14-6    客户端状态&quot;;
 
     //
 
@@ -584,11 +584,11 @@
 <p>对于前面 <em class="xref std std-ref">SET</em> 命令的例子来说，
 函数调用 <code class="docutils literal"><span class="pre">setCommand(client);</span></code> 将产生一个 <code class="docutils literal"><span class="pre">&quot;+OK\r\n&quot;</span></code> 回复，
 这个回复会被保存到客户端状态的 <code class="docutils literal"><span class="pre">buf</span></code> 属性里面，
-如图 IMAGE_REPLY_IN_BUF 所示。</p>
+如图 14-7 所示。</p>
 <p class="graphviz">
-<img src="../../_images/graphviz-8dd382f7f003d65d467139a400241bad753dce5a.png" alt="digraph {
+<img src="../../_images/graphviz-e10e86579b103ac01cd526246f60bf16cb7f2133.png" alt="digraph {
 
-    label = &quot;\n 图 IMAGE_REPLY_IN_BUF    保存了命令回复的客户端状态&quot;;
+    label = &quot;\n 图 14-7    保存了命令回复的客户端状态&quot;;
 
     rankdir = LR;
 
@@ -633,7 +633,7 @@
 <p>当命令回复发送完毕之后，
 回复处理器会清空客户端状态的输出缓冲区，
 为处理下一个命令请求做好准备。</p>
-<p>以图 IMAGE_REPLY_IN_BUF 所示的客户端状态为例子，
+<p>以图 14-7 所示的客户端状态为例子，
 当客户端的套接字变为可写状态时，
 命令回复处理器会将协议格式的命令回复 <code class="docutils literal"><span class="pre">&quot;+OK\r\n&quot;</span></code> 发送给客户端。</p>
 </div>
@@ -642,11 +642,11 @@
 <p>当客户端接收到协议格式的命令回复之后，
 它会将这些回复转换成人类可读的格式，
 并打印给用户观看（假设我们使用的是 Redis 自带的 <code class="docutils literal"><span class="pre">redis-cli</span></code> 客户端），
-如图 IMAGE_CLIENT_RECEIVE_REPLY 所示。</p>
+如图 14-8 所示。</p>
 <p class="graphviz">
-<img src="../../_images/graphviz-199253f64f859bb629b0be9075f2daece7bcf92b.png" alt="digraph {
+<img src="../../_images/graphviz-d5c3b1b146228297a7057d1d8fdf11e80badb1de.png" alt="digraph {
 
-    label = &quot;\n\n 图 IMAGE_CLIENT_RECEIVE_REPLY    客户端接收并打印命令回复的过程&quot;;
+    label = &quot;\n\n 图 14-8    客户端接收并打印命令回复的过程&quot;;
 
     rankdir = LR;
 
