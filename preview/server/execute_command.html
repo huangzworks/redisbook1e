@@ -165,7 +165,7 @@
 并将得出的分析结果保存到客户端状态的 <code class="docutils literal"><span class="pre">argv</span></code> 属性和 <code class="docutils literal"><span class="pre">argc</span></code> 属性里面，
 如图 14-3 所示。</p>
 <p class="graphviz">
-<img src="../../_images/graphviz-6c270b556f2fa1464fcee8d131e809e6fb987dbb.png" alt="digraph {
+<img src="../../_images/graphviz-e64f53fc3da3d23648add0887ef481850a461e35.png" alt="digraph {
 
     label = &quot;\n 图 14-3    客户端状态的 argv 属性和 argc 属性&quot;;
 
@@ -175,7 +175,7 @@
 
     redisClient [label = &quot; redisClient | ... | &lt;argv&gt; argv | argc \n 3 | ... &quot;, width = 2];
 
-    argv [label = &quot; { { &lt;head&gt; argv[0] | StringObject \n \&quot;SET\&quot; } | { argv[1] | StringObject \n \&quot;KEY\&quot; } | { argv[1] | StringObject \n \&quot;VALUE\&quot; } } &quot;];
+    argv [label = &quot; { { &lt;head&gt; argv[0] | StringObject \n \&quot;SET\&quot; } | { argv[1] | StringObject \n \&quot;KEY\&quot; } | { argv[2] | StringObject \n \&quot;VALUE\&quot; } } &quot;];
 
     redisClient:argv -&gt; argv:head;
 
@@ -542,7 +542,7 @@
 <p>继续以之前的 <em class="xref std std-ref">SET</em> 命令为例子，
 图 14-6 展示了客户端包含了命令实现、参数和参数个数的样子。</p>
 <p class="graphviz">
-<img src="../../_images/graphviz-7d30aec6365a0d00d718eb6b21fd9a7385a998fb.png" alt="digraph {
+<img src="../../_images/graphviz-434161d675049e28c3944279dface7d66d462425.png" alt="digraph {
 
     label = &quot;\n 图 14-6    客户端状态&quot;;
 
@@ -561,7 +561,7 @@
 
     redisClient:cmd -&gt; set:head; set:proc -&gt; setCommand;
 
-    argv [label = &quot; { { &lt;head&gt; argv[0] | StringObject \n \&quot;SET\&quot; } | { argv[1] | StringObject \n \&quot;KEY\&quot; } | { argv[1] | StringObject \n \&quot;VALUE\&quot; } } &quot;];
+    argv [label = &quot; { { &lt;head&gt; argv[0] | StringObject \n \&quot;SET\&quot; } | { argv[1] | StringObject \n \&quot;KEY\&quot; } | { argv[2] | StringObject \n \&quot;VALUE\&quot; } } &quot;];
 
     redisClient:argv -&gt; argv:head;
 

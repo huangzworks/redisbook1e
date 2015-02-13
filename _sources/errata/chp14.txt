@@ -1,6 +1,34 @@
 第 14 章《服务器》勘误
 ==============================
 
+178 页
+-----------
+
+图 14-3 中错误地包含了两个 ``argv[1]`` ，
+其中第二个 ``argv[1]`` 应为 ``argv[2]`` ，
+以下是修正后的图片：
+
+.. graphviz::
+
+    digraph {
+
+        label = "\n 图 14-3    客户端状态的 argv 属性和 argc 属性";
+
+        rankdir = LR;
+
+        node [shape = record];
+
+        redisClient [label = " redisClient | ... | <argv> argv | argc \n 3 | ... ", width = 2];
+
+        argv [label = " { { <head> argv[0] | StringObject \n \"SET\" } | { argv[1] | StringObject \n \"KEY\" } | { argv[2] | StringObject \n \"VALUE\" } } "];
+
+        redisClient:argv -> argv:head;
+
+    }
+
+感谢 凯旋冲锋 反馈这个错误。
+
+
 182 页
 -----------
 
@@ -13,6 +41,44 @@
     并将命令的参数和参数个数分别保存到了客户端状态的 ``argv`` 属性和 ``argc`` 属性里面
 
 感谢 kevin 反馈这个错误。
+
+
+183 页
+-----------
+
+图 14-6 中错误地包含了两个 ``argv[1]`` ，
+其中第二个 ``argv[1]`` 应为 ``argv[2]`` ，
+以下是修正后的图片：
+
+.. graphviz::
+
+    digraph {
+
+        label = "\n 图 14-6    客户端状态";
+
+        //
+
+        rankdir = LR;
+
+        node [shape = record];
+
+        redisClient [label = " redisClient | ... | <cmd> cmd | <argv> argv | argc \n 3 | ... ", width = 2];
+
+        set [label = " <head> redisCommand | name \n \"set\" | <proc> proc | arity \n -3 | sflags \n \"wm\" | ... "];
+
+        setCommand [label = "void setCommand(redisClient *c);", shape = plaintext];
+        //* fix editor highlight
+
+        redisClient:cmd -> set:head; set:proc -> setCommand;
+
+        argv [label = " { { <head> argv[0] | StringObject \n \"SET\" } | { argv[1] | StringObject \n \"KEY\" } | { argv[2] | StringObject \n \"VALUE\" } } "];
+
+        redisClient:argv -> argv:head;
+
+    }
+
+
+感谢 凯旋冲锋 反馈这个错误。
 
 
 185 页

@@ -120,7 +120,7 @@
 那么 ``name`` 属性将指向一个字符串对象，
 而该对象就保存着客户端的名字。
 
-图 IMAGE_NAME 展示了一个客户端状态示例，
+图 13-3 展示了一个客户端状态示例，
 根据 ``name`` 属性显示，
 客户端的名字为 ``"message_queue"`` 。
 
@@ -128,7 +128,7 @@
 
     digraph {
 
-        label = "\n IMAGE_NAME    name 属性示例";
+        label = "\n 13-3    name 属性示例";
 
         rankdir = LR;
 
@@ -329,13 +329,13 @@
 
     *3\r\n$3\r\nSET\r\n$3\r\nkey\r\n$5\r\nvalue\r\n
 
-图 IMAGE_QUERYBUF 展示了这个 SDS 值以及 ``querybuf`` 属性的样子：
+图 13-4 展示了这个 SDS 值以及 ``querybuf`` 属性的样子：
 
 .. graphviz::
 
     digraph {
 
-        label = "\n 图 IMAGE_QUERYBUF    querybuf 属性示例";
+        label = "\n 图 13-4    querybuf 属性示例";
 
         rankdir = LR;
 
@@ -391,14 +391,14 @@
 ``argc`` 属性则负责记录 ``argv`` 数组的长度。
 
 举个例子，
-对于图 IMAGE_QUERYBUF 所示的 ``querybuf`` 属性来说，
-服务器将分析并创建图 IMAGE_ARGV_AND_ARGC 所示的 ``argv`` 属性和 ``argc`` 属性。
+对于图 13-4 所示的 ``querybuf`` 属性来说，
+服务器将分析并创建图 13-5 所示的 ``argv`` 属性和 ``argc`` 属性。
 
 .. graphviz::
 
     digraph {
 
-        label = "\n 图 IMAGE_ARGV_AND_ARGC    argv 属性和 argc 属性示例";
+        label = "\n 图 13-5    argv 属性和 argc 属性示例";
 
         rankdir = LR;
 
@@ -406,14 +406,14 @@
 
         redisClient [label = " redisClient | ... | <argv> argv | argc \n 3 | ... ", width = 2];
 
-        argv [label = " { { <head> argv[0] | StringObject \n \"SET\" } | { argv[1] | StringObject \n \"key\" } | { argv[1] | StringObject \n \"value\" } } "];
+        argv [label = " { { <head> argv[0] | StringObject \n \"SET\" } | { argv[1] | StringObject \n \"key\" } | { argv[2] | StringObject \n \"value\" } } "];
 
         redisClient:argv -> argv:head;
 
     }
 
 注意，
-在图 IMAGE_ARGV_AND_ARGC 展示的客户端状态中，
+在图 13-5 展示的客户端状态中，
 ``argc`` 属性的值为 ``3`` ，
 而不是 ``2`` ，
 因为命令的名字 ``"SET"`` 本身也是一个参数。
@@ -430,7 +430,7 @@
 
     digraph {
 
-        label = "\n 图 IMAGE_COMMAND_TABLE    命令表";
+        label = "\n 图 13-6    命令表";
 
         rankdir = LR;
 
@@ -446,7 +446,7 @@
 
     }
 
-图 IMAGE_COMMAND_TABLE 展示了一个命令表示例，
+图 13-6 展示了一个命令表示例，
 该表是一个字典，
 字典的键是一个 SDS 结构，
 保存了命令的名字，
@@ -477,14 +477,14 @@
 调用命令实现函数，
 执行客户端指定的命令。
 
-图 IMAGE_FETCH_IN_COMMAND_TABLE 演示了服务器在 ``argv[0]`` 为 ``"SET"`` 时，
+图 13-7 演示了服务器在 ``argv[0]`` 为 ``"SET"`` 时，
 查找命令表并将客户端状态的 ``cmd`` 指针指向目标 ``redisCommand`` 结构的整个过程。
 
 .. graphviz::
 
     digraph {
 
-        label = "\n 图 IMAGE_FETCH_IN_COMMAND_TABLE    查找命令并设置 cmd 属性";
+        label = "\n 图 13-7    查找命令并设置 cmd 属性";
 
         rankdir = LR;
 
@@ -554,13 +554,13 @@
 也即是说，
 ``buf`` 数组的默认大小为 16 KB 。
 
-图 IMAGE_BUF 展示了一个使用固定大小缓冲区来保存返回值 ``+OK\r\n`` 的例子。
+图 13-8 展示了一个使用固定大小缓冲区来保存返回值 ``+OK\r\n`` 的例子。
 
 .. graphviz::
 
     digraph {
 
-        label = "\n 图 IMAGE_BUF    固定大小缓冲区示例";
+        label = "\n 图 13-8    固定大小缓冲区示例";
 
         rankdir = LR;
 
@@ -596,13 +596,13 @@
 服务器可以为客户端保存一个非常长的命令回复，
 而不必受到固定大小缓冲区 16 KB 大小的限制。
 
-图 IMAGE_REPLY 展示了一个包含三个字符串对象的 ``reply`` 链表。
+图 13-9 展示了一个包含三个字符串对象的 ``reply`` 链表。
 
 .. graphviz::
 
     digraph {
 
-        label = "\n 图 IMAGE_REPLY    可变大小缓冲区示例";
+        label = "\n 图 13-9    可变大小缓冲区示例";
 
         rankdir = LR;
 
@@ -641,7 +641,7 @@
 
 举个例子，
 对于一个尚未进行身份验证的客户端来说，
-客户端状态的 ``authenticated`` 属性将如图 IMAGE_UNAUTH 所示。
+客户端状态的 ``authenticated`` 属性将如图 13-10 所示。
 
 .. graphviz::
 
@@ -653,7 +653,7 @@
 
         redisClient [label = " redisClient | ... | authenticated \n 0 | ... "];
 
-        label = "\n 图 IMAGE_UNAUTH    未验证身份时的客户端状态";
+        label = "\n 图 13-10    未验证身份时的客户端状态";
 
     }
 
@@ -679,13 +679,13 @@
 
         redisClient [label = " redisClient | ... | authenticated \n 1 | ... "];
 
-        label = "\n 图 IMAGE_AUTHED    已经通过身份验证的客户端状态";
+        label = "\n 图 13-11    已经通过身份验证的客户端状态";
 
     }
 
 当客户端通过 :ref:`AUTH` 命令成功进行身份验证之后，
 客户端状态 ``authenticated`` 属性的值就会从 ``0`` 变为 ``1`` ，
-如图 IMAGE_AUTHED 所示，
+如图 13-11 所示，
 这时客户端就可以像往常一样向服务器发送命令请求了：
 
 ::

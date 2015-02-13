@@ -150,13 +150,13 @@
 如果客户端为自己设置了名字，
 那么 <code class="docutils literal"><span class="pre">name</span></code> 属性将指向一个字符串对象，
 而该对象就保存着客户端的名字。</p>
-<p>图 IMAGE_NAME 展示了一个客户端状态示例，
+<p>图 13-3 展示了一个客户端状态示例，
 根据 <code class="docutils literal"><span class="pre">name</span></code> 属性显示，
 客户端的名字为 <code class="docutils literal"><span class="pre">&quot;message_queue&quot;</span></code> 。</p>
 <p class="graphviz">
-<img src="../../_images/graphviz-112619ab71651c6cb8c4bfb2bda393125fc92afe.png" alt="digraph {
+<img src="../../_images/graphviz-29e30f4f7b988559ac01ee529ce230431a1b5088.png" alt="digraph {
 
-    label = &quot;\n IMAGE_NAME    name 属性示例&quot;;
+    label = &quot;\n 13-3    name 属性示例&quot;;
 
     rankdir = LR;
 
@@ -321,11 +321,11 @@ Redis 只会将那些对数据库进行了修改的命令写入到 AOF 文件，
 <div class="highlight-c"><div class="highlight"><pre>*3\r\n$3\r\nSET\r\n$3\r\nkey\r\n$5\r\nvalue\r\n
 </pre></div>
 </div>
-<p>图 IMAGE_QUERYBUF 展示了这个 SDS 值以及 <code class="docutils literal"><span class="pre">querybuf</span></code> 属性的样子：</p>
+<p>图 13-4 展示了这个 SDS 值以及 <code class="docutils literal"><span class="pre">querybuf</span></code> 属性的样子：</p>
 <p class="graphviz">
-<img src="../../_images/graphviz-b81d1b60a9e0024f0a57a267563c6a9ed83dd843.png" alt="digraph {
+<img src="../../_images/graphviz-a31c14fe0328c4dbfcc11664c52869dfa9542060.png" alt="digraph {
 
-    label = &quot;\n 图 IMAGE_QUERYBUF    querybuf 属性示例&quot;;
+    label = &quot;\n 图 13-4    querybuf 属性示例&quot;;
 
     rankdir = LR;
 
@@ -375,12 +375,12 @@ Redis 只会将那些对数据库进行了修改的命令写入到 AOF 文件，
 而之后的其他项则是传给命令的参数。</p>
 <p><code class="docutils literal"><span class="pre">argc</span></code> 属性则负责记录 <code class="docutils literal"><span class="pre">argv</span></code> 数组的长度。</p>
 <p>举个例子，
-对于图 IMAGE_QUERYBUF 所示的 <code class="docutils literal"><span class="pre">querybuf</span></code> 属性来说，
-服务器将分析并创建图 IMAGE_ARGV_AND_ARGC 所示的 <code class="docutils literal"><span class="pre">argv</span></code> 属性和 <code class="docutils literal"><span class="pre">argc</span></code> 属性。</p>
+对于图 13-4 所示的 <code class="docutils literal"><span class="pre">querybuf</span></code> 属性来说，
+服务器将分析并创建图 13-5 所示的 <code class="docutils literal"><span class="pre">argv</span></code> 属性和 <code class="docutils literal"><span class="pre">argc</span></code> 属性。</p>
 <p class="graphviz">
-<img src="../../_images/graphviz-5cb317d348efd1e363ce9f751ffc42de03fffce3.png" alt="digraph {
+<img src="../../_images/graphviz-a608db31c1bd68b816b1c24b3776ce114f308407.png" alt="digraph {
 
-    label = &quot;\n 图 IMAGE_ARGV_AND_ARGC    argv 属性和 argc 属性示例&quot;;
+    label = &quot;\n 图 13-5    argv 属性和 argc 属性示例&quot;;
 
     rankdir = LR;
 
@@ -388,14 +388,14 @@ Redis 只会将那些对数据库进行了修改的命令写入到 AOF 文件，
 
     redisClient [label = &quot; redisClient | ... | &lt;argv&gt; argv | argc \n 3 | ... &quot;, width = 2];
 
-    argv [label = &quot; { { &lt;head&gt; argv[0] | StringObject \n \&quot;SET\&quot; } | { argv[1] | StringObject \n \&quot;key\&quot; } | { argv[1] | StringObject \n \&quot;value\&quot; } } &quot;];
+    argv [label = &quot; { { &lt;head&gt; argv[0] | StringObject \n \&quot;SET\&quot; } | { argv[1] | StringObject \n \&quot;key\&quot; } | { argv[2] | StringObject \n \&quot;value\&quot; } } &quot;];
 
     redisClient:argv -&gt; argv:head;
 
 }" />
 </p>
 <p>注意，
-在图 IMAGE_ARGV_AND_ARGC 展示的客户端状态中，
+在图 13-5 展示的客户端状态中，
 <code class="docutils literal"><span class="pre">argc</span></code> 属性的值为 <code class="docutils literal"><span class="pre">3</span></code> ，
 而不是 <code class="docutils literal"><span class="pre">2</span></code> ，
 因为命令的名字 <code class="docutils literal"><span class="pre">&quot;SET&quot;</span></code> 本身也是一个参数。</p>
@@ -406,9 +406,9 @@ Redis 只会将那些对数据库进行了修改的命令写入到 AOF 文件，
 服务器将根据项 <code class="docutils literal"><span class="pre">argv[0]</span></code> 的值，
 在命令表中查找命令所对应的命令实现函数。</p>
 <p class="graphviz">
-<img src="../../_images/graphviz-98ded99420cce35a29c01294bf118871fdea1cb4.png" alt="digraph {
+<img src="../../_images/graphviz-1a05d1674210bc07301a718578f1b635894279be.png" alt="digraph {
 
-    label = &quot;\n 图 IMAGE_COMMAND_TABLE    命令表&quot;;
+    label = &quot;\n 图 13-6    命令表&quot;;
 
     rankdir = LR;
 
@@ -424,7 +424,7 @@ Redis 只会将那些对数据库进行了修改的命令写入到 AOF 文件，
 
 }" />
 </p>
-<p>图 IMAGE_COMMAND_TABLE 展示了一个命令表示例，
+<p>图 13-6 展示了一个命令表示例，
 该表是一个字典，
 字典的键是一个 SDS 结构，
 保存了命令的名字，
@@ -451,12 +451,12 @@ Redis 只会将那些对数据库进行了修改的命令写入到 AOF 文件，
 以及 <code class="docutils literal"><span class="pre">argv</span></code> 、 <code class="docutils literal"><span class="pre">argc</span></code> 属性中保存的命令参数信息，
 调用命令实现函数，
 执行客户端指定的命令。</p>
-<p>图 IMAGE_FETCH_IN_COMMAND_TABLE 演示了服务器在 <code class="docutils literal"><span class="pre">argv[0]</span></code> 为 <code class="docutils literal"><span class="pre">&quot;SET&quot;</span></code> 时，
+<p>图 13-7 演示了服务器在 <code class="docutils literal"><span class="pre">argv[0]</span></code> 为 <code class="docutils literal"><span class="pre">&quot;SET&quot;</span></code> 时，
 查找命令表并将客户端状态的 <code class="docutils literal"><span class="pre">cmd</span></code> 指针指向目标 <code class="docutils literal"><span class="pre">redisCommand</span></code> 结构的整个过程。</p>
 <p class="graphviz">
-<img src="../../_images/graphviz-7ea6517cd7058fc421535e48338472728ff0ce3f.png" alt="digraph {
+<img src="../../_images/graphviz-7d83e6d5a2bb40b0745da48331cb59602b017afa.png" alt="digraph {
 
-    label = &quot;\n 图 IMAGE_FETCH_IN_COMMAND_TABLE    查找命令并设置 cmd 属性&quot;;
+    label = &quot;\n 图 13-7    查找命令并设置 cmd 属性&quot;;
 
     rankdir = LR;
 
@@ -519,11 +519,11 @@ Redis 只会将那些对数据库进行了修改的命令写入到 AOF 文件，
 <p><code class="docutils literal"><span class="pre">REDIS_REPLY_CHUNK_BYTES</span></code> 常量目前的默认值为 <code class="docutils literal"><span class="pre">16*1024</span></code> ，
 也即是说，
 <code class="docutils literal"><span class="pre">buf</span></code> 数组的默认大小为 16 KB 。</p>
-<p>图 IMAGE_BUF 展示了一个使用固定大小缓冲区来保存返回值 <code class="docutils literal"><span class="pre">+OK\r\n</span></code> 的例子。</p>
+<p>图 13-8 展示了一个使用固定大小缓冲区来保存返回值 <code class="docutils literal"><span class="pre">+OK\r\n</span></code> 的例子。</p>
 <p class="graphviz">
-<img src="../../_images/graphviz-a19886438c02aa4bc61587c91e10a166f6d416f3.png" alt="digraph {
+<img src="../../_images/graphviz-7eb96276ca8fab58de1bdd3362c4f3548b2d07d7.png" alt="digraph {
 
-    label = &quot;\n 图 IMAGE_BUF    固定大小缓冲区示例&quot;;
+    label = &quot;\n 图 13-8    固定大小缓冲区示例&quot;;
 
     rankdir = LR;
 
@@ -555,11 +555,11 @@ Redis 只会将那些对数据库进行了修改的命令写入到 AOF 文件，
 <p>通过使用链表来连接多个字符串对象，
 服务器可以为客户端保存一个非常长的命令回复，
 而不必受到固定大小缓冲区 16 KB 大小的限制。</p>
-<p>图 IMAGE_REPLY 展示了一个包含三个字符串对象的 <code class="docutils literal"><span class="pre">reply</span></code> 链表。</p>
+<p>图 13-9 展示了一个包含三个字符串对象的 <code class="docutils literal"><span class="pre">reply</span></code> 链表。</p>
 <p class="graphviz">
-<img src="../../_images/graphviz-af7a9daf82aeeef6223a0c83c1fa025d61ada9b7.png" alt="digraph {
+<img src="../../_images/graphviz-c2d90890b81bd0ff6dbabd6f00a75bb4609645d4.png" alt="digraph {
 
-    label = &quot;\n 图 IMAGE_REPLY    可变大小缓冲区示例&quot;;
+    label = &quot;\n 图 13-9    可变大小缓冲区示例&quot;;
 
     rankdir = LR;
 
@@ -594,9 +594,9 @@ Redis 只会将那些对数据库进行了修改的命令写入到 AOF 文件，
 那么表示客户端已经通过了身份验证。</p>
 <p>举个例子，
 对于一个尚未进行身份验证的客户端来说，
-客户端状态的 <code class="docutils literal"><span class="pre">authenticated</span></code> 属性将如图 IMAGE_UNAUTH 所示。</p>
+客户端状态的 <code class="docutils literal"><span class="pre">authenticated</span></code> 属性将如图 13-10 所示。</p>
 <p class="graphviz">
-<img src="../../_images/graphviz-23e0f0c0c489f74870bc89ecc9ef02897da965c5.png" alt="digraph {
+<img src="../../_images/graphviz-c6f852db94fe1fed01e21d15301be58fcf681892.png" alt="digraph {
 
     rankdir = LR;
 
@@ -604,7 +604,7 @@ Redis 只会将那些对数据库进行了修改的命令写入到 AOF 文件，
 
     redisClient [label = &quot; redisClient | ... | authenticated \n 0 | ... &quot;];
 
-    label = &quot;\n 图 IMAGE_UNAUTH    未验证身份时的客户端状态&quot;;
+    label = &quot;\n 图 13-10    未验证身份时的客户端状态&quot;;
 
 }" />
 </p>
@@ -619,7 +619,7 @@ Redis 只会将那些对数据库进行了修改的命令写入到 AOF 文件，
 </pre></div>
 </div>
 <p class="graphviz">
-<img src="../../_images/graphviz-44a50d9e56e088ddb5a6ead1f36f0f26717580ec.png" alt="digraph {
+<img src="../../_images/graphviz-95ac89989549b6280da5413c5b5064fc5a27d627.png" alt="digraph {
 
     rankdir = LR;
 
@@ -627,13 +627,13 @@ Redis 只会将那些对数据库进行了修改的命令写入到 AOF 文件，
 
     redisClient [label = &quot; redisClient | ... | authenticated \n 1 | ... &quot;];
 
-    label = &quot;\n 图 IMAGE_AUTHED    已经通过身份验证的客户端状态&quot;;
+    label = &quot;\n 图 13-11    已经通过身份验证的客户端状态&quot;;
 
 }" />
 </p>
 <p>当客户端通过 <em class="xref std std-ref">AUTH</em> 命令成功进行身份验证之后，
 客户端状态 <code class="docutils literal"><span class="pre">authenticated</span></code> 属性的值就会从 <code class="docutils literal"><span class="pre">0</span></code> 变为 <code class="docutils literal"><span class="pre">1</span></code> ，
-如图 IMAGE_AUTHED 所示，
+如图 13-11 所示，
 这时客户端就可以像往常一样向服务器发送命令请求了：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="cp"># authenticated 属性的值从 0 变为 1</span>
 <span class="n">redis</span><span class="o">&gt;</span> <span class="n">AUTH</span> <span class="mi">123321</span>

@@ -52,7 +52,31 @@
   <div class="section" id="id1">
 <h1>第 13 章《客户端》勘误<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
 <div class="section" id="id2">
-<h2>173 页<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<h2>168 页<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<p>图 13-5 中错误地包含了两个 <code class="docutils literal"><span class="pre">argv[1]</span></code> ，
+第二个 <code class="docutils literal"><span class="pre">argv[1]</span></code> 应为 <code class="docutils literal"><span class="pre">argv[2]</span></code> ，
+以下是修正后的图片：</p>
+<p class="graphviz">
+<img src="../_images/graphviz-a608db31c1bd68b816b1c24b3776ce114f308407.png" alt="digraph {
+
+    label = &quot;\n 图 13-5    argv 属性和 argc 属性示例&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    redisClient [label = &quot; redisClient | ... | &lt;argv&gt; argv | argc \n 3 | ... &quot;, width = 2];
+
+    argv [label = &quot; { { &lt;head&gt; argv[0] | StringObject \n \&quot;SET\&quot; } | { argv[1] | StringObject \n \&quot;key\&quot; } | { argv[2] | StringObject \n \&quot;value\&quot; } } &quot;];
+
+    redisClient:argv -&gt; argv:head;
+
+}" />
+</p>
+<p>感谢 凯旋冲锋 反馈这个错误。</p>
+</div>
+<div class="section" id="id3">
+<h2>173 页<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
 <p>在 13.2.2 节，
 客户端被关闭的原因中的第 4 点：</p>
 <blockquote>
