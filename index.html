@@ -1,0 +1,501 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Redis 设计与实现 &mdash; Redis 设计与实现</title>
+    
+    <link rel="stylesheet" href="_static/pyramid.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="top" title="Redis 设计与实现" href="#" /> 
+
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+
+  </head>
+  <body>
+
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li><a href="#">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="redis">
+<h1>Redis 设计与实现<a class="headerlink" href="#redis" title="Permalink to this headline">¶</a></h1>
+<img alt="_images/cover.png" class="align-left" src="_images/cover.png" />
+<p>欢迎来到《Redis 设计与实现》的支持网站！</p>
+<p>《Redis 设计与实现》一书全面而完整地讲解了 Redis 的内部运行机制，
+对 Redis 的大多数单机功能以及所有多机功能的实现原理进行了介绍，
+展示了这些功能的核心数据结构以及关键的算法思想。
+通过阅读本书，
+读者可以快速、有效地了解 Redis 的内部构造以及运作机制，
+从而学会如何更高效地使用 Redis 。</p>
+<p>你可以通过访问本站，
+或者关注本书作者的<a class="reference external" href="http://weibo.com/huangz1990">微博</a>、<a class="reference external" href="https://twitter.com/huangz1990">twitter</a>和<a class="reference external" href="http://www.douban.com/people/i_m_huangz/">豆瓣</a>来获知本书的最新消息。</p>
+<p>购买本书请访问：
+<a class="reference external" href="http://item.jd.com/11486101.html">京东商城</a> 、
+<a class="reference external" href="http://product.china-pub.com/3770218">互动出版网（china-pub）</a> 、
+<a class="reference external" href="http://www.amazon.cn/%E6%95%B0%E6%8D%AE%E5%BA%93%E6%8A%80%E6%9C%AF%E4%B8%9B%E4%B9%A6-Redis%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0-%E9%BB%84%E5%81%A5%E5%AE%8F/dp/B00L4XHH0S">亚马逊</a> 、
+<a class="reference external" href="http://product.dangdang.com/23501734.html">当当网</a> ，
+另外本书的 <a class="reference external" href="http://www.amazon.cn/Redis/dp/B00LZNV5B4">Kindle 版本</a> 、 <a class="reference external" href="http://www.duokan.com/book/53962">多看阅读版本</a> 和 <a class="reference external" href="http://read.douban.com/ebook/7519526/">豆瓣阅读版本</a> 也已有售。</p>
+<div class="section" id="id8">
+<h2>内容与特色介绍<a class="headerlink" href="#id8" title="Permalink to this headline">¶</a></h2>
+<p>本书介绍了以下内容：</p>
+<ul class="simple">
+<li>字符串（string）、散列（hash）、列表（list）、集合（set）和有序集合（sorted set）这五种类型的键的底层实现数据结构。</li>
+<li>Redis 的对象处理机制以及数据库的实现原理。</li>
+<li>事务实现原理。</li>
+<li>订阅与发布实现原理。</li>
+<li>Lua 脚本功能的实现原理。</li>
+<li><code class="docutils literal"><span class="pre">SORT</span></code> 命令的实现原理。</li>
+<li><code class="docutils literal"><span class="pre">BITOP</span></code> 、 <code class="docutils literal"><span class="pre">BITCOUNT</span></code> 等二进制位处理命令的实现原理。</li>
+<li>慢查询日志的实现原理。</li>
+<li>RDB 持久化和 AOF 持久化的实现原理。</li>
+<li>Redis 事件处理器的实现原理。</li>
+<li>Redis 服务器和客户端的实现原理。</li>
+<li>复制（replication）、Sentinel 和集群（cluster）这三个多机功能的实现原理。</li>
+</ul>
+<p>本书的特色是：</p>
+<ul class="simple">
+<li>带有丰富的图示和表格，
+帮助读者更好地理解书中的知识点。</li>
+<li>关注功能的高层设计思路而不是底层的实现代码，
+让读者无须花时间研读代码就可以了解到 Redis 的内部实现。</li>
+<li>提供带有中文注释的 Redis 源码，
+帮助有需要的读者做进一步的学习。</li>
+</ul>
+</div>
+<div class="section" id="id9">
+<h2>查看目录并试读<a class="headerlink" href="#id9" title="Permalink to this headline">¶</a></h2>
+<p>《Redis 设计与实现》全书共有 388 页，分为 4 个部分，共 24 章。</p>
+<p><strong>以下目录中可点击的为试读内容。</strong></p>
+<ul class="simple">
+<li><a class="reference internal" href="preview/preface.html"><em>前言</em></a></li>
+<li><a class="reference internal" href="preview/ack.html"><em>致谢</em></a></li>
+</ul>
+<ol class="arabic simple">
+<li><a class="reference internal" href="preview/introduction/content.html"><em>简介</em></a></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference internal" href="preview/introduction/content.html#intro-version"><em>版本说明</em></a></li>
+<li><a class="reference internal" href="preview/introduction/content.html#intro-chapters"><em>章节编排</em></a></li>
+<li><a class="reference internal" href="preview/introduction/content.html#intro-how-to-read"><em>推荐的阅读方法</em></a></li>
+<li><a class="reference internal" href="preview/introduction/content.html#intro-rules"><em>行文规则</em></a></li>
+<li><a class="reference internal" href="preview/introduction/content.html#intro-site"><em>配套网站</em></a></li>
+</ul>
+</div></blockquote>
+<p><strong>第一部分：数据结构与对象</strong></p>
+<ol class="arabic simple" start="2">
+<li><a class="reference internal" href="preview/sds/content.html"><em>简单动态字符串</em></a></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference internal" href="preview/sds/implementation.html"><em>SDS 的定义</em></a></li>
+<li><a class="reference internal" href="preview/sds/different_between_sds_and_c_string.html"><em>SDS 与 C 字符串的区别</em></a></li>
+<li><a class="reference internal" href="preview/sds/api.html"><em>SDS API</em></a></li>
+<li><a class="reference internal" href="preview/sds/review.html"><em>重点回顾</em></a></li>
+<li><a class="reference internal" href="preview/sds/reference.html"><em>参考资料</em></a></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="3">
+<li><a class="reference internal" href="preview/adlist/content.html"><em>链表</em></a></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference internal" href="preview/adlist/implementation.html"><em>链表和链表节点的实现</em></a></li>
+<li><a class="reference internal" href="preview/adlist/api.html"><em>链表和链表节点的 API</em></a></li>
+<li><a class="reference internal" href="preview/adlist/review.html"><em>重点回顾</em></a></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="4">
+<li><a class="reference internal" href="preview/dict/content.html"><em>字典</em></a></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference internal" href="preview/dict/datastruct.html"><em>字典的实现</em></a></li>
+<li><a class="reference internal" href="preview/dict/hash_algorithm.html"><em>哈希算法</em></a></li>
+<li><a class="reference internal" href="preview/dict/collision_resolution.html"><em>解决键冲突</em></a></li>
+<li><a class="reference internal" href="preview/dict/rehashing.html"><em>rehash</em></a></li>
+<li><a class="reference internal" href="preview/dict/incremental_rehashing.html"><em>渐进式 rehash</em></a></li>
+<li><a class="reference internal" href="preview/dict/api.html"><em>字典 API</em></a></li>
+<li><a class="reference internal" href="preview/dict/review.html"><em>重点回顾</em></a></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="5">
+<li><a class="reference internal" href="preview/skiplist/content.html"><em>跳跃表</em></a></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference internal" href="preview/skiplist/datastruct.html"><em>跳跃表的实现</em></a></li>
+<li><a class="reference internal" href="preview/skiplist/api.html"><em>跳跃表 API</em></a></li>
+<li><a class="reference internal" href="preview/skiplist/review.html"><em>重点回顾</em></a></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="6">
+<li><a class="reference internal" href="preview/intset/content.html"><em>整数集合</em></a></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference internal" href="preview/intset/datastruct.html"><em>整数集合的实现</em></a></li>
+<li><a class="reference internal" href="preview/intset/upgrade.html"><em>升级</em></a></li>
+<li><a class="reference internal" href="preview/intset/why_upgrade.html"><em>升级的好处</em></a></li>
+<li><a class="reference internal" href="preview/intset/downgrade.html"><em>降级</em></a></li>
+<li><a class="reference internal" href="preview/intset/api.html"><em>整数集合 API</em></a></li>
+<li><a class="reference internal" href="preview/intset/review.html"><em>重点回顾</em></a></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="7">
+<li><a class="reference internal" href="preview/ziplist/content.html"><em>压缩列表</em></a></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference internal" href="preview/ziplist/list.html"><em>压缩列表的构成</em></a></li>
+<li><a class="reference internal" href="preview/ziplist/node.html"><em>压缩列表节点的构成</em></a></li>
+<li><a class="reference internal" href="preview/ziplist/cascade_update.html"><em>连锁更新</em></a></li>
+<li><a class="reference internal" href="preview/ziplist/api.html"><em>压缩列表 API</em></a></li>
+<li><a class="reference internal" href="preview/ziplist/review.html"><em>重点回顾</em></a></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="8">
+<li><a class="reference internal" href="preview/object/content.html"><em>对象</em></a></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference internal" href="preview/object/object.html"><em>对象的类型与编码</em></a></li>
+<li><a class="reference internal" href="preview/object/string.html"><em>字符串对象</em></a></li>
+<li><a class="reference internal" href="preview/object/list.html"><em>列表对象</em></a></li>
+<li><a class="reference internal" href="preview/object/hash.html"><em>哈希对象</em></a></li>
+<li><a class="reference internal" href="preview/object/set.html"><em>集合对象</em></a></li>
+<li><a class="reference internal" href="preview/object/sorted_set.html"><em>有序集合对象</em></a></li>
+<li><a class="reference internal" href="preview/object/type_check.html"><em>类型检查与命令多态</em></a></li>
+<li><a class="reference internal" href="preview/object/refcount.html"><em>内存回收</em></a></li>
+<li><a class="reference internal" href="preview/object/share_object.html"><em>对象共享</em></a></li>
+<li><a class="reference internal" href="preview/object/lru.html"><em>对象的空转时长</em></a></li>
+<li><a class="reference internal" href="preview/object/review.html"><em>重点回顾</em></a></li>
+</ul>
+</div></blockquote>
+<p><strong>第二部分：单机数据库的实现</strong></p>
+<ol class="arabic simple" start="9">
+<li>数据库</li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li>服务器中的数据库</li>
+<li>切换数据库</li>
+<li><a class="reference internal" href="preview/database/key_space.html"><em>数据库键空间</em></a></li>
+<li>设置键的生存时间或过期时间</li>
+<li>过期键删除策略</li>
+<li>Redis 的过期键删除策略</li>
+<li>AOF 、RDB 和复制功能对过期键的处理</li>
+<li>数据库通知</li>
+<li><a class="reference internal" href="preview/database/review.html"><em>重点回顾</em></a></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="10">
+<li>RDB 持久化</li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li>RDB 文件的创建与载入</li>
+<li>自动间隔性保存</li>
+<li><a class="reference internal" href="preview/rdb/rdb_struct.html"><em>RDB 文件结构</em></a></li>
+<li>分析 RDB 文件</li>
+<li><a class="reference internal" href="preview/rdb/review.html"><em>重点回顾</em></a></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="11">
+<li>AOF 持久化</li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference internal" href="preview/aof/aof_implement.html"><em>AOF 持久化的实现</em></a></li>
+<li>AOF 文件的载入与数据还原</li>
+<li>AOF 重写</li>
+<li><a class="reference internal" href="preview/aof/review.html"><em>重点回顾</em></a></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="12">
+<li>事件</li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference internal" href="preview/event/file_event.html"><em>文件事件</em></a></li>
+<li>时间事件</li>
+<li>事件的调度与执行</li>
+<li>重点回顾</li>
+<li><a class="reference internal" href="preview/event/review.html"><em>重点回顾</em></a></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="13">
+<li>客户端</li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference internal" href="preview/client/redis_client_property.html"><em>客户端属性</em></a></li>
+<li>客户端的创建与关闭</li>
+<li><a class="reference internal" href="preview/client/review.html"><em>重点回顾</em></a></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="14">
+<li>服务器</li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference internal" href="preview/server/execute_command.html"><em>命令请求的执行过程</em></a></li>
+<li>serverCron 函数</li>
+<li>初始化服务器</li>
+<li><a class="reference internal" href="preview/server/review.html"><em>重点回顾</em></a></li>
+</ul>
+</div></blockquote>
+<p><strong>第三部分：多机数据库的实现</strong></p>
+<ol class="arabic simple" start="15">
+<li>复制</li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference internal" href="preview/replication/replicate-before-2-8.html"><em>旧版复制功能的实现</em></a></li>
+<li>旧版复制功能的缺陷</li>
+<li>新版复制功能的实现</li>
+<li>部分重同步的实现</li>
+<li>PSYNC 命令的实现</li>
+<li>复制的实现</li>
+<li>心跳检测</li>
+<li><a class="reference internal" href="preview/replication/review.html"><em>重点回顾</em></a></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="16">
+<li>Sentinel</li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference internal" href="preview/sentinel/init_sentinel.html"><em>启动并初始化 Sentinel</em></a></li>
+<li>获取主服务器信息</li>
+<li>获取从服务器信息</li>
+<li>向主服务器和从服务器发送信息</li>
+<li>接收来自主服务器和从服务器的频道信息</li>
+<li>检测主观下线状态</li>
+<li>检查客观下线状态</li>
+<li>选举领头 Sentinel</li>
+<li>故障转移</li>
+<li><a class="reference internal" href="preview/sentinel/review.html"><em>重点回顾</em></a></li>
+<li><a class="reference internal" href="preview/sentinel/reference.html"><em>参考资料</em></a></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="17">
+<li>集群</li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference internal" href="preview/cluster/node.html"><em>节点</em></a></li>
+<li>槽指派</li>
+<li>在集群中执行命令</li>
+<li>重新分片</li>
+<li>ASK 错误</li>
+<li>复制与故障转移</li>
+<li>消息</li>
+<li><a class="reference internal" href="preview/cluster/review.html"><em>重点回顾</em></a></li>
+</ul>
+</div></blockquote>
+<p><strong>第四部分：独立功能的实现</strong></p>
+<ol class="arabic simple" start="18">
+<li>发布与订阅</li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference internal" href="preview/pubsub/channel.html"><em>频道的订阅与退订</em></a></li>
+<li>模式的订阅与退订</li>
+<li>发送消息</li>
+<li>查看订阅信息</li>
+<li><a class="reference internal" href="preview/pubsub/review.html"><em>重点回顾</em></a></li>
+<li><a class="reference internal" href="preview/pubsub/reference.html"><em>参考资料</em></a></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="19">
+<li>事务</li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference internal" href="preview/transaction/transaction_implement.html"><em>事务的实现</em></a></li>
+<li>WATCH 命令的实现</li>
+<li>事务的 ACID 性质</li>
+<li><a class="reference internal" href="preview/transaction/review.html"><em>重点回顾</em></a></li>
+<li><a class="reference internal" href="preview/transaction/reference.html"><em>参考资料</em></a></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="20">
+<li>Lua 脚本</li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference internal" href="preview/script/init_lua_env.html"><em>创建并修改 Lua 环境</em></a></li>
+<li>Lua 环境协作组件</li>
+<li>EVAL 命令的实现</li>
+<li>EVALSHA 命令的实现</li>
+<li>脚本管理命令的实现</li>
+<li>脚本复制</li>
+<li><a class="reference internal" href="preview/script/review.html"><em>重点回顾</em></a></li>
+<li><a class="reference internal" href="preview/script/reference.html"><em>参考资料</em></a></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="21">
+<li>排序</li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference internal" href="preview/sort/sort_key.html"><em>SORT &lt;key&gt; 命令的实现</em></a></li>
+<li>ALPHA 选项的实现</li>
+<li>ASC 选项和 DESC 选项的实现</li>
+<li>BY 选项的实现</li>
+<li>带有 ALPHA 选项的 BY 选项的实现</li>
+<li>LIMIT 选项的实现</li>
+<li>GET 选项的实现</li>
+<li>STORE 选项的实现</li>
+<li>多个选项的执行顺序</li>
+<li><a class="reference internal" href="preview/sort/review.html"><em>重点回顾</em></a></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="22">
+<li>二进制位数组</li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li>位数组的表示</li>
+<li><a class="reference internal" href="preview/bit/getbit.html"><em>GETBIT 命令的实现</em></a></li>
+<li>SETBIT 命令的实现</li>
+<li>BITCOUNT 命令的实现</li>
+<li>BITOP 命令的实现</li>
+<li><a class="reference internal" href="preview/bit/review.html"><em>重点回顾</em></a></li>
+<li><a class="reference internal" href="preview/bit/reference.html"><em>参考资料</em></a></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="23">
+<li><a class="reference internal" href="preview/slowlog/content.html"><em>慢查询日志</em></a></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference internal" href="preview/slowlog/content.html#slowlog-save"><em>慢查询记录的保存</em></a></li>
+<li><a class="reference internal" href="preview/slowlog/content.html#slowlog-view-and-delete"><em>慢查询日志的阅览和删除</em></a></li>
+<li><a class="reference internal" href="preview/slowlog/content.html#slowlog-add"><em>添加新日志</em></a></li>
+<li><a class="reference internal" href="preview/slowlog/content.html#slowlog-review"><em>重点回顾</em></a></li>
+</ul>
+</div></blockquote>
+<ol class="arabic simple" start="24">
+<li><a class="reference internal" href="preview/monitor/content.html"><em>监视器</em></a></li>
+</ol>
+<blockquote>
+<div><ul class="simple">
+<li><a class="reference internal" href="preview/monitor/become_monitor.html"><em>成为监视器</em></a></li>
+<li><a class="reference internal" href="preview/monitor/propagate_command.html"><em>向监视器发送命令信息</em></a></li>
+<li><a class="reference internal" href="preview/monitor/review.html"><em>重点回顾</em></a></li>
+</ul>
+</div></blockquote>
+</div>
+<div class="section" id="id10">
+<h2>相关资源<a class="headerlink" href="#id10" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference external" href="https://github.com/huangz1990/redis-3.0-annotated">Redis 3.0 源码注释</a> ——
+包含中文注释的 Redis 3.0 源码，
+帮助有兴趣的读者深入了解 Redis 的实现细节。</p>
+<p><a class="reference external" href="http://blog.huangz.me/diary/2014/how-to-read-redis-source-code.html">《如何阅读 Redis 源码》</a> ——
+文章给出了一个推荐的 Redis 源码阅读顺序以供参考，
+读者可以在阅读完本书之后，
+根据文章描述的顺序来尝试阅读源码，
+从而进一步提高对 Redis 的了解。</p>
+<p><a class="reference external" href="http://1e-gallery.redisbook.com">《Redis 设计与实现》图片集</a> ——
+展示了本书包含的绝大多数图片以及图片的源码，
+方便读者在写博客、记笔记或者做演讲稿时引用本书的图片，
+或者通过阅读图片的源码来学习 dot 语言和 Graphviz 图片生成工具。</p>
+<p><a class="reference external" href="http://www.chinahadoop.cn/course/31">《Redis 多机特性工作原理简介》</a> ——
+这个课程对 Redis 的复制、Sentinel 和集群三个特性的工作原理进行了基本的介绍。
+因为课程的内容都提取自本书的《复制》、《Sentinel》和《集群》三个章节，
+所以可以把这个课程看作是这三个章节的简介版本。</p>
+<p><a class="reference external" href="http://origin.redisbook.com">旧版《Redis 设计与实现》</a> ——
+本书的上一版，
+介绍了 Redis 2.6 的内部运作机制和单机功能。
+要了解本书和旧版之间的区别，
+请阅读 <a class="reference internal" href="different.html"><em>《Redis 设计与实现》新旧版本详细对比</em></a> 页面。</p>
+</div>
+<div class="section" id="id15">
+<h2>勘误<a class="headerlink" href="#id15" title="Permalink to this headline">¶</a></h2>
+<p><a class="reference internal" href="errata/index.html"><em>勘误信息</em></a> 页面列出了本书已确认的勘误信息，
+请读者在阅读本书之前，
+根据这些信息对书本进行校正，
+由此带来的不便作者深感抱歉。</p>
+<p>如果读者发现了勘误页面目前尚未记录的新错误，
+可以在本页面的 disqus 论坛进行反馈，
+又或者通过 <a class="reference external" href="http://huangz.me">huangz.me</a> 页面展示的任意一种联系方式来联系作者。</p>
+</div>
+</div>
+
+
+
+            <div class="section" id="discuss">
+    <h2>
+        讨论
+        <a class="headerlink" href="#discuss" title="永久链接至标题">¶</a>
+    </h2>
+    <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'redisbookv1'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li><a href="#">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, 黄健宏（huangz）.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+    </div>
+  </body>
+</html>

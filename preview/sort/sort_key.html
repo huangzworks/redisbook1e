@@ -1,0 +1,288 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>SORT &lt;key&gt; 命令的实现 &mdash; Redis 设计与实现</title>
+    
+    <link rel="stylesheet" href="../../_static/pyramid.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="Redis 设计与实现" href="../../index.html" /> 
+
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+
+  </head>
+  <body>
+
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li><a href="../../index.html">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="sort-key">
+<h1>SORT &lt;key&gt; 命令的实现<a class="headerlink" href="#sort-key" title="Permalink to this headline">¶</a></h1>
+<p><em class="xref std std-ref">SORT</em> 命令的最简单执行形式为：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">SORT</span> <span class="o">&lt;</span><span class="n">key</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>这个命令可以对一个包含数字值的键 <code class="docutils literal"><span class="pre">key</span></code> 进行排序。</p>
+<p>以下示例展示了如何使用 <em class="xref std std-ref">SORT</em> 命令对一个包含三个数字值的列表键进行排序：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">RPUSH</span> <span class="n">numbers</span> <span class="mi">3</span> <span class="mi">1</span> <span class="mi">2</span>
+<span class="p">(</span><span class="n">integer</span><span class="p">)</span> <span class="mi">3</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">SORT</span> <span class="n">numbers</span>
+<span class="mi">1</span><span class="p">)</span> <span class="s">&quot;1&quot;</span>
+<span class="mi">2</span><span class="p">)</span> <span class="s">&quot;2&quot;</span>
+<span class="mi">3</span><span class="p">)</span> <span class="s">&quot;3&quot;</span>
+</pre></div>
+</div>
+<p>服务器执行 <code class="docutils literal"><span class="pre">SORT</span> <span class="pre">numbers</span></code> 命令的详细步骤如下：</p>
+<ol class="arabic simple">
+<li>创建一个和 <code class="docutils literal"><span class="pre">numbers</span></code> 列表长度相同的数组，
+该数组的每个项都是一个 <code class="docutils literal"><span class="pre">redis.h/redisSortObject</span></code> 结构，
+如图 IMAGE_CREATE_ARRAY 所示。</li>
+<li>遍历数组，
+将各个数组项的 <code class="docutils literal"><span class="pre">obj</span></code> 指针分别指向 <code class="docutils literal"><span class="pre">numbers</span></code> 列表的各个项，
+构成 <code class="docutils literal"><span class="pre">obj</span></code> 指针和列表项之间的一对一关系，
+如图 IMAGE_POINT_OBJ 所示。</li>
+<li>遍历数组，
+将各个 <code class="docutils literal"><span class="pre">obj</span></code> 指针所指向的列表项转换成一个 <code class="docutils literal"><span class="pre">double</span></code> 类型的浮点数，
+并将这个浮点数保存在相应数组项的 <code class="docutils literal"><span class="pre">u.score</span></code> 属性里面，
+如图 IMAGE_SET_SCORE 所示。</li>
+<li>根据数组项 <code class="docutils literal"><span class="pre">u.score</span></code> 属性的值，
+对数组进行数字值排序，
+排序后的数组项按 <code class="docutils literal"><span class="pre">u.score</span></code> 属性的值从小到大排列，
+如图 IMAGE_SORTED 所示。</li>
+<li>遍历数组，
+将各个数组项的 <code class="docutils literal"><span class="pre">obj</span></code> 指针所指向的列表项作为排序结果返回给客户端：
+程序首先访问数组的索引 <code class="docutils literal"><span class="pre">0</span></code> ，
+返回 <code class="docutils literal"><span class="pre">u.score</span></code> 值为 <code class="docutils literal"><span class="pre">1.0</span></code> 的列表项 <code class="docutils literal"><span class="pre">&quot;1&quot;</span></code> ；
+然后访问数组的索引 <code class="docutils literal"><span class="pre">1</span></code> ，
+返回 <code class="docutils literal"><span class="pre">u.score</span></code> 值为 <code class="docutils literal"><span class="pre">2.0</span></code> 的列表项 <code class="docutils literal"><span class="pre">&quot;2&quot;</span></code> ；
+最后访问数组的索引 <code class="docutils literal"><span class="pre">2</span></code> ，
+返回 <code class="docutils literal"><span class="pre">u.score</span></code> 值为 <code class="docutils literal"><span class="pre">3.0</span></code> 的列表项 <code class="docutils literal"><span class="pre">&quot;3&quot;</span></code> 。</li>
+</ol>
+<p>其他 <code class="docutils literal"><span class="pre">SORT</span> <span class="pre">&lt;key&gt;</span></code> 命令的执行步骤也和这里给出的 <code class="docutils literal"><span class="pre">SORT</span> <span class="pre">numbers</span></code> 命令的执行步骤类似。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-50134101a2411c66a68e9089fefda31e01e649d9.png" alt="digraph {
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    subgraph cluster_array {
+
+        style = invis;
+
+        array [label = &quot; array | { &lt;array0&gt; array[0] \n redisSortObject | { &lt;obj0&gt; obj | u } } | { &lt;array1&gt; array[1] \n redisSortObject | { &lt;obj1&gt; obj | u } } | { &lt;array2&gt; array[2] \n redisSortObject | { &lt;obj2&gt; obj | u } } &quot;];
+    }
+
+   label = &quot;\n 图 IMAGE_CREATE_ARRAY    命令为排序 numbers 列表而创建的数组&quot;;
+
+}" />
+</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-fa054d26e13d181296780a491b4fb559fb1ec8d7.png" alt="digraph {
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    subgraph cluster_numbers {
+
+        label = &quot;numbers 链表&quot;
+
+        style = dashed;
+
+        one [label = &quot;StringObject \n \&quot;1\&quot;&quot;];
+        two [label = &quot;StringObject \n \&quot;2\&quot;&quot;];
+        three [label = &quot;StringObject \n \&quot;3\&quot;&quot;];
+
+        three -&gt; one -&gt; two;
+
+    }
+
+    subgraph cluster_array {
+
+        style = invis;
+
+        array [label = &quot; array | { &lt;array0&gt; array[0] \n redisSortObject | { &lt;obj0&gt; obj | u } } | { &lt;array1&gt; array[1] \n redisSortObject | { &lt;obj1&gt; obj | u } } | { &lt;array2&gt; array[2] \n redisSortObject | { &lt;obj2&gt; obj | u } } &quot;];
+    }
+   array:obj0 -&gt; three;
+   array:obj1 -&gt; one;
+   array:obj2 -&gt; two;
+
+   label = &quot;\n 图 IMAGE_POINT_OBJ    将 obj 指针指向列表的各个项&quot;;
+
+}" />
+</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-173ac0782ff3b828f9335886f6b097c1c649f165.png" alt="digraph {
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    subgraph cluster_numbers {
+
+        label = &quot;numbers 链表&quot;
+
+        style = dashed;
+
+        one [label = &quot;StringObject \n \&quot;1\&quot;&quot;];
+        two [label = &quot;StringObject \n \&quot;2\&quot;&quot;];
+        three [label = &quot;StringObject \n \&quot;3\&quot;&quot;];
+
+        three -&gt; one -&gt; two;
+
+    }
+
+    subgraph cluster_array {
+
+        style = invis;
+
+        array [label = &quot; array | { &lt;array0&gt; array[0] \n redisSortObject | { &lt;obj0&gt; obj | u.score \n 3.0 } } | { &lt;array1&gt; array[1] \n redisSortObject | { &lt;obj1&gt; obj | u.score \n 1.0 } } | { &lt;array2&gt; array[2] \n redisSortObject | { &lt;obj2&gt; obj | u.score \n 2.0 } } &quot;];
+    }
+   array:obj0 -&gt; three;
+   array:obj1 -&gt; one;
+   array:obj2 -&gt; two;
+
+   label = &quot;\n 图 IMAGE_SET_SCORE    设置数组项的 u.score 属性&quot;;
+
+}" />
+</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-304b960a90fd953c18cfdd27c4fd0974823b7783.png" alt="digraph {
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    subgraph cluster_numbers {
+
+        label = &quot;numbers 链表&quot;
+
+        style = dashed;
+
+        one [label = &quot;StringObject \n \&quot;1\&quot;&quot;];
+        two [label = &quot;StringObject \n \&quot;2\&quot;&quot;];
+        three [label = &quot;StringObject \n \&quot;3\&quot;&quot;];
+
+        three -&gt; one -&gt; two;
+
+    }
+
+    subgraph cluster_array {
+
+        style = invis;
+
+        array [label = &quot; array | { &lt;array0&gt; array[0] \n redisSortObject | { &lt;obj0&gt; obj | u.score \n 1.0 } } | { &lt;array1&gt; array[1] \n redisSortObject | { &lt;obj1&gt; obj | u.score \n 2.0 } } | { &lt;array2&gt; array[2] \n redisSortObject | { &lt;obj2&gt; obj | u.score \n 3.0 } } &quot;];
+    }
+   array:obj0 -&gt; one;
+   array:obj1 -&gt; two;
+   array:obj2 -&gt; three;
+
+   label = &quot;\n 图 IMAGE_SORTED    排序后的数组&quot;;
+
+}" />
+</p>
+<p>以下是 <code class="docutils literal"><span class="pre">redisSortObject</span></code> 结构的完整定义：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="k">typedef</span> <span class="k">struct</span> <span class="n">_redisSortObject</span> <span class="p">{</span>
+
+    <span class="c1">// 被排序键的值</span>
+    <span class="n">robj</span> <span class="o">*</span><span class="n">obj</span><span class="p">;</span>
+
+    <span class="c1">// 权重</span>
+    <span class="k">union</span> <span class="p">{</span>
+
+        <span class="c1">// 排序数字值时使用</span>
+        <span class="kt">double</span> <span class="n">score</span><span class="p">;</span>
+
+        <span class="c1">// 排序带有 BY 选项的字符串值时使用</span>
+        <span class="n">robj</span> <span class="o">*</span><span class="n">cmpobj</span><span class="p">;</span>
+
+    <span class="p">}</span> <span class="n">u</span><span class="p">;</span>
+
+<span class="p">}</span> <span class="n">redisSortObject</span><span class="p">;</span>
+</pre></div>
+</div>
+<p><em class="xref std std-ref">SORT</em> 命令为每个被排序的键都创建一个与键长度相同的数组，
+数组的每个项都是一个 <code class="docutils literal"><span class="pre">redisSortObject</span></code> 结构，
+根据 <em class="xref std std-ref">SORT</em> 命令使用的选项不同，
+程序使用 <code class="docutils literal"><span class="pre">redisSortObject</span></code> 结构的方式也不同，
+稍后介绍 <em class="xref std std-ref">SORT</em> 命令的各种选项时我们会看到这一点。</p>
+</div>
+
+
+
+            <div class="section" id="discuss">
+    <h2>
+        讨论
+        <a class="headerlink" href="#discuss" title="永久链接至标题">¶</a>
+    </h2>
+    <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'redisbookv1'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li><a href="../../index.html">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, 黄健宏（huangz）.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+    </div>
+  </body>
+</html>

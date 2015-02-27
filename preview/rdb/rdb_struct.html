@@ -1,0 +1,769 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>RDB 文件结构 &mdash; Redis 设计与实现</title>
+    
+    <link rel="stylesheet" href="../../_static/pyramid.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="Redis 设计与实现" href="../../index.html" /> 
+
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+
+  </head>
+  <body>
+
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li><a href="../../index.html">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="rdb">
+<h1>RDB 文件结构<a class="headerlink" href="#rdb" title="Permalink to this headline">¶</a></h1>
+<p>在本章之前的内容中，
+我们介绍了 Redis 服务器保存和载入 RDB 文件的方法，
+在这一节，
+我们将对 RDB 文件本身进行介绍，
+并详细说明文件各个部分的结构和意义。</p>
+<p>图 IMAGE_RDB_STRUCT_OVERVIEW 展示了一个完整 RDB 文件所包含的各个部分。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-b1672d2bcb1fae10e01942bf792a01afe984336e.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_RDB_STRUCT_OVERVIEW    RDB 文件结构&quot;;
+
+    node [shape = record];
+
+    rdb [label = &quot; REDIS | db_version | databases | EOF | check_sum &quot;];
+
+}" />
+</p>
+<div class="topic">
+<p class="topic-title first">注意</p>
+<p>为了方便区分变量、数据、常量，
+图 IMAGE_RDB_STRUCT_OVERVIEW 中用全大写单词标示常量，
+用全小写单词标示变量和数据。</p>
+<p>本章展示的所有 RDB 文件结构图都遵循这一规则。</p>
+</div>
+<p>RDB 文件的最开头是 <code class="docutils literal"><span class="pre">REDIS</span></code> 部分，
+这个部分的长度为 <code class="docutils literal"><span class="pre">5</span></code> 字节，
+保存着 <code class="docutils literal"><span class="pre">&quot;REDIS&quot;</span></code> 五个字符。
+通过这五个字符，
+程序可以在载入文件时，
+快速检查所载入的文件是否 RDB 文件。</p>
+<div class="topic">
+<p class="topic-title first">注意</p>
+<p>因为 RDB 文件保存的是二进制数据，
+而不是 C 字符串，
+为了简便起见，
+我们用 <code class="docutils literal"><span class="pre">&quot;REDIS&quot;</span></code> 符号代表 <code class="docutils literal"><span class="pre">'R'</span></code> 、 <code class="docutils literal"><span class="pre">'E'</span></code> 、 <code class="docutils literal"><span class="pre">'D'</span></code> 、 <code class="docutils literal"><span class="pre">'I'</span></code> 、 <code class="docutils literal"><span class="pre">'S'</span></code> 五个字符，
+而不是带 <code class="docutils literal"><span class="pre">'\0'</span></code> 结尾符号的 C 字符串 <code class="docutils literal"><span class="pre">'R'</span></code> 、 <code class="docutils literal"><span class="pre">'E'</span></code> 、 <code class="docutils literal"><span class="pre">'D'</span></code> 、 <code class="docutils literal"><span class="pre">'I'</span></code> 、 <code class="docutils literal"><span class="pre">'S'</span></code> 、 <code class="docutils literal"><span class="pre">'\0'</span></code> 。</p>
+<p>本章介绍的所有内容，以及展示的所有 RDB 文件结构图都遵循这一规则。</p>
+</div>
+<p><code class="docutils literal"><span class="pre">db_version</span></code> 长度为 <code class="docutils literal"><span class="pre">4</span></code> 字节，
+它的值是一个字符串表示的整数，
+这个整数记录了 RDB 文件的版本号，
+比如 <code class="docutils literal"><span class="pre">&quot;0006&quot;</span></code> 就代表 RDB 文件的版本为第六版。
+本章只介绍第六版 RDB 文件的结构。</p>
+<p><code class="docutils literal"><span class="pre">databases</span></code> 部分包含着零个或任意多个数据库，
+以及各个数据库中的键值对数据：</p>
+<ul class="simple">
+<li>如果服务器的数据库状态为空（所有数据库都是空的），
+那么这个部分也为空，
+长度为 <code class="docutils literal"><span class="pre">0</span></code> 字节。</li>
+<li>如果服务器的数据库状态为非空（有至少一个数据库非空），
+那么这个部分也为非空，
+根据数据库所保存键值对的数量、类型和内容不同，
+这个部分的长度也会有所不同。</li>
+</ul>
+<p><code class="docutils literal"><span class="pre">EOF</span></code> 常量的长度为 <code class="docutils literal"><span class="pre">1</span></code> 字节，
+这个常量标志着 RDB 文件正文内容的结束，
+当读入程序遇到这个值的时候，
+它知道所有数据库的所有键值对都已经载入完毕了。</p>
+<p><code class="docutils literal"><span class="pre">check_sum</span></code> 是一个 <code class="docutils literal"><span class="pre">8</span></code> 字节长的无符号整数，
+保存着一个校验和，
+这个校验和是程序通过对 <code class="docutils literal"><span class="pre">REDIS</span></code> 、 <code class="docutils literal"><span class="pre">db_version</span></code> 、 <code class="docutils literal"><span class="pre">databases</span></code> 、 <code class="docutils literal"><span class="pre">EOF</span></code> 四个部分的内容进行计算得出的。
+服务器在载入 RDB 文件时，
+会将载入数据所计算出的校验和与 <code class="docutils literal"><span class="pre">check_sum</span></code> 所记录的校验和进行对比，
+以此来检查 RDB 文件是否有出错或者损坏的情况出现。</p>
+<p>作为例子，
+图 IMAGE_RDB_WITH_EMPTY_DATABASE 展示了一个 <code class="docutils literal"><span class="pre">databases</span></code> 部分为空的 RDB 文件：
+文件开头的 <code class="docutils literal"><span class="pre">&quot;REDIS&quot;</span></code> 表示这是一个 RDB 文件，
+之后的 <code class="docutils literal"><span class="pre">&quot;0006&quot;</span></code> 表示这是第六版的 RDB 文件，
+因为 <code class="docutils literal"><span class="pre">databases</span></code> 为空，
+所以版本号之后直接跟着 <code class="docutils literal"><span class="pre">EOF</span></code> 常量，
+最后的 <code class="docutils literal"><span class="pre">6265312314761917404</span></code> 是文件的校验和。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-8c8c19f0cf214a4fb9b9c6fd073e2654f291bdec.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_RDB_WITH_EMPTY_DATABASE    databases 部分为空的 RDB 文件&quot;;
+
+    node [shape = record];
+
+    rdb [label = &quot; \&quot;REDIS\&quot; | \&quot;0006\&quot; | EOF | 6265312314761917404 &quot;];
+
+}" />
+</p>
+<div class="section" id="databases">
+<h2>databases 部分<a class="headerlink" href="#databases" title="Permalink to this headline">¶</a></h2>
+<p>一个 RDB 文件的 <code class="docutils literal"><span class="pre">databases</span></code> 部分可以保存任意多个非空数据库。</p>
+<p>比如说，
+如果服务器的 <code class="docutils literal"><span class="pre">0</span></code> 号数据库和 <code class="docutils literal"><span class="pre">3</span></code> 号数据库非空，
+那么服务器将创建一个如图 IMAGE_RDB_WITH_TWO_DB 所示的 RDB 文件，
+图中的 <code class="docutils literal"><span class="pre">database</span> <span class="pre">0</span></code> 代表 <code class="docutils literal"><span class="pre">0</span></code> 号数据库中的所有键值对数据，
+而 <code class="docutils literal"><span class="pre">database</span> <span class="pre">3</span></code> 则代表 <code class="docutils literal"><span class="pre">3</span></code> 号数据库中的所有键值对数据。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-b037f486258a8d86aee5d45b9b27ac7c43e6c580.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_RDB_WITH_TWO_DB    带有两个非空数据库的 RDB 文件示例&quot;;
+
+    node [shape = record];
+
+    rdb [label = &quot; REDIS | db_version | database 0 | database 3 | EOF | check_sum &quot;];
+
+}" />
+</p>
+<p>每个非空数据库在 RDB 文件中都可以保存为 <code class="docutils literal"><span class="pre">SELECTDB</span></code> 、 <code class="docutils literal"><span class="pre">db_number</span></code> 、 <code class="docutils literal"><span class="pre">key_value_pairs</span></code> 三个部分，
+如图 IMAGE_DATABASE_STRUCT_OF_RDB 所示。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-89eef2f46bf4bd0f4387806ccc616716284037bb.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_DATABASE_STRUCT_OF_RDB    RDB 文件中的数据库结构&quot;;
+
+    node [shape = record];
+
+    database [label = &quot; SELECTDB | db_number | key_value_pairs &quot;];
+
+}" />
+</p>
+<p><code class="docutils literal"><span class="pre">SELECTDB</span></code> 常量的长度为 <code class="docutils literal"><span class="pre">1</span></code> 字节，
+当读入程序遇到这个值的时候，
+它知道接下来要读入的将是一个数据库号码。</p>
+<p><code class="docutils literal"><span class="pre">db_number</span></code> 保存着一个数据库号码，
+根据号码的大小不同，
+这个部分的长度可以是 <code class="docutils literal"><span class="pre">1</span></code> 字节、 <code class="docutils literal"><span class="pre">2</span></code> 字节或者 <code class="docutils literal"><span class="pre">5</span></code> 字节。
+当程序读入 <code class="docutils literal"><span class="pre">db_number</span></code> 部分之后，
+服务器会调用 <em class="xref std std-ref">SELECT</em> 命令，
+根据读入的数据库号码进行数据库切换，
+使得之后读入的键值对可以载入到正确的数据库中。</p>
+<p><code class="docutils literal"><span class="pre">key_value_pairs</span></code> 部分保存了数据库中的所有键值对数据，
+如果键值对带有过期时间，
+那么过期时间也会和键值对保存在一起。
+根据键值对的数量、类型、内容、以及是否有过期时间等条件的不同，
+<code class="docutils literal"><span class="pre">key_value_pairs</span></code> 部分的长度也会有所不同。</p>
+<p>作为例子，
+图 IMAGE_EXAMPLE_OF_DB 展示了 RDB 文件中，
+<code class="docutils literal"><span class="pre">0</span></code> 号数据库的结构。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-383c4eb3d751d5032becce8b2260d1c9e0d8bc31.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_EXAMPLE_OF_DB    数据库结构示例&quot;;
+
+    node [shape = record];
+
+    value [label = &quot; SELECTDB | 0 | key_value_pairs &quot;];
+
+}" />
+</p>
+<p>另外，
+图 IMAGE_RDB_WITH_DB_0_AND_DB_3 则展示了一个完整的 RDB 文件，
+文件中包含了 <code class="docutils literal"><span class="pre">0</span></code> 号数据库和 <code class="docutils literal"><span class="pre">3</span></code> 号数据库。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-7ec754c8fc3aa6458409f6465c476c9e8dc6c667.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_RDB_WITH_DB_0_AND_DB_3    RDB 文件中的数据库结构示例&quot;;
+
+    node [shape = record];
+
+    v [label = &quot; REDIS | db_version | SELECTDB | 0 | pairs | SELECTDB | 3 | pairs | EOF | check_sum&quot;];
+
+}" />
+</p>
+</div>
+<div class="section" id="key-value-pairs">
+<h2>key_value_pairs 部分<a class="headerlink" href="#key-value-pairs" title="Permalink to this headline">¶</a></h2>
+<p>RDB 文件中的每个 <code class="docutils literal"><span class="pre">key_value_pairs</span></code> 部分都保存了一个或以上数量的键值对，
+如果键值对带有过期时间的话，
+那么键值对的过期时间也会被保存在内。</p>
+<p>不带过期时间的键值对在 RDB 文件中对由 <code class="docutils literal"><span class="pre">TYPE</span></code> 、 <code class="docutils literal"><span class="pre">key</span></code> 、 <code class="docutils literal"><span class="pre">value</span></code> 三部分组成，
+如图 IMAGE_KEY_WITHOUT_EXPIRE_TIME 所示。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-67478c425c9b9357cda4766aab294f32f7069e3c.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_KEY_WITHOUT_EXPIRE_TIME    不带过期时间的键值对&quot;;
+
+    node [shape = record];
+
+    kvp [label = &quot; TYPE | key | value &quot;];
+
+}" />
+</p>
+<p><code class="docutils literal"><span class="pre">TYPE</span></code> 记录了 <code class="docutils literal"><span class="pre">value</span></code> 的类型，
+长度为 <code class="docutils literal"><span class="pre">1</span></code> 字节，
+值可以是以下常量的其中一个：</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">REDIS_RDB_TYPE_STRING</span></code></li>
+<li><code class="docutils literal"><span class="pre">REDIS_RDB_TYPE_LIST</span></code></li>
+<li><code class="docutils literal"><span class="pre">REDIS_RDB_TYPE_SET</span></code></li>
+<li><code class="docutils literal"><span class="pre">REDIS_RDB_TYPE_ZSET</span></code></li>
+<li><code class="docutils literal"><span class="pre">REDIS_RDB_TYPE_HASH</span></code></li>
+<li><code class="docutils literal"><span class="pre">REDIS_RDB_TYPE_LIST_ZIPLIST</span></code></li>
+<li><code class="docutils literal"><span class="pre">REDIS_RDB_TYPE_SET_INTSET</span></code></li>
+<li><code class="docutils literal"><span class="pre">REDIS_RDB_TYPE_ZSET_ZIPLIST</span></code></li>
+<li><code class="docutils literal"><span class="pre">REDIS_RDB_TYPE_HASH_ZIPLIST</span></code></li>
+</ul>
+<p>以上列出的每个 <code class="docutils literal"><span class="pre">TYPE</span></code> 常量都代表了一种对象类型或者底层编码，
+当服务器读入 RDB 文件中的键值对数据时，
+程序会根据 <code class="docutils literal"><span class="pre">TYPE</span></code> 的值来决定如何读入和解释 <code class="docutils literal"><span class="pre">value</span></code> 的数据。</p>
+<p><code class="docutils literal"><span class="pre">key</span></code> 和 <code class="docutils literal"><span class="pre">value</span></code> 分别保存了键值对的键对象和值对象：</p>
+<ul class="simple">
+<li>其中 <code class="docutils literal"><span class="pre">key</span></code> 总是一个字符串对象，
+它的编码方式和 <code class="docutils literal"><span class="pre">REDIS_RDB_TYPE_STRING</span></code> 类型的 <code class="docutils literal"><span class="pre">value</span></code> 一样。
+根据内容长度的不同，
+<code class="docutils literal"><span class="pre">key</span></code> 的长度也会有所不同。</li>
+<li>根据 <code class="docutils literal"><span class="pre">TYPE</span></code> 类型的不同，
+以及保存内容长度的不同，
+保存 <code class="docutils literal"><span class="pre">value</span></code> 的结构和长度也会有所不同，
+本节稍后会详细说明每种 <code class="docutils literal"><span class="pre">TYPE</span></code> 类型的 <code class="docutils literal"><span class="pre">value</span></code> 结构保存方式。</li>
+</ul>
+<p>带有过期时间的键值对在 RDB 文件中的结构如图 <code class="docutils literal"><span class="pre">IMAGE_KEY_WITH_EXPIRE_TIME</span></code> 所示。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-b785a19ce845cb2ad28eead16aa356bbe3abcb77.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_KEY_WITH_EXPIRE_TIME    带有过期时间的键值对&quot;;
+
+    node [shape = record];
+
+    kvp [label = &quot; EXPIRETIME_MS | ms | TYPE | key | value &quot;];
+
+}" />
+</p>
+<p>带有过期时间的键值对中的 <code class="docutils literal"><span class="pre">TYPE</span></code> 、 <code class="docutils literal"><span class="pre">key</span></code> 、 <code class="docutils literal"><span class="pre">value</span></code> 三个部分的意义，
+和前面介绍的不带过期时间的键值对的 <code class="docutils literal"><span class="pre">TYPE</span></code> 、 <code class="docutils literal"><span class="pre">key</span></code> 、 <code class="docutils literal"><span class="pre">value</span></code> 三个部分的意义完全相同，
+至于新增的 <code class="docutils literal"><span class="pre">EXPIRETIME_MS</span></code> 和 <code class="docutils literal"><span class="pre">ms</span></code> ，
+它们的意义如下：</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">EXPIRETIME_MS</span></code> 常量的长度为 <code class="docutils literal"><span class="pre">1</span></code> 字节，
+它告知读入程序，
+接下来要读入的将是一个以毫秒为单位的过期时间。</li>
+<li><code class="docutils literal"><span class="pre">ms</span></code> 是一个 <code class="docutils literal"><span class="pre">8</span></code> 字节长的带符号整数，
+记录着一个以毫秒为单位的 UNIX 时间戳，
+这个时间戳就是键值对的过期时间。</li>
+</ul>
+<p>作为例子，
+图 IMAGE_EXAMPLE_OF_KEY_WITHOUT_EXPIRE_TIME 展示了一个没有过期时间的字符串键值对。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-bdf3d89f9a2c807149c4833a7631ba73ff9cedba.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_EXAMPLE_OF_KEY_WITHOUT_EXPIRE_TIME    无过期时间的字符串键值对示例&quot;;
+
+    node [shape = record];
+
+    string [label = &quot; REDIS_RDB_TYPE_STRING | key | value &quot;];
+
+}" />
+</p>
+<p>图 IMAGE_EXAMPLE_OF_KEY_WITH_EXPIRE_TIME 展示了一个带有过期时间的集合键值对，
+其中键的过期时间为 <code class="docutils literal"><span class="pre">1388556000000</span></code> （2014 年 1 月 1 日零时）。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-88036bcf65c51d6fb3445e24a817de0c3d330c8d.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_EXAMPLE_OF_KEY_WITH_EXPIRE_TIME    带有过期时间的集合键值对示例&quot;;
+
+    node [shape = record];
+
+    set [label = &quot; EXPIRETIME_MS | 1388556000000 | REDIS_RDB_TYPE_SET | key | value &quot;];
+
+}" />
+</p>
+</div>
+<div class="section" id="value">
+<h2>value 的编码<a class="headerlink" href="#value" title="Permalink to this headline">¶</a></h2>
+<p>RDB 文件中的每个 <code class="docutils literal"><span class="pre">value</span></code> 部分都保存了一个值对象，
+每个值对象的类型都由与之对应的 <code class="docutils literal"><span class="pre">TYPE</span></code> 记录，
+根据类型的不同，
+<code class="docutils literal"><span class="pre">value</span></code> 部分的结构、长度也会有所不同。</p>
+<p>在接下来的各个小节中，
+我们将分别介绍各种不同类型的值对象在 RDB 文件中的保存结构。</p>
+<div class="topic">
+<p class="topic-title first">注意</p>
+<p>本节接下来说到的各种 <code class="docutils literal"><span class="pre">REDIS_ENCODING_*</span></code> 编码曾经在《对象》一章中介绍过，
+如果忘记了可以去回顾一下。</p>
+</div>
+<div class="section" id="id1">
+<h3>字符串对象<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h3>
+<p>如果 <code class="docutils literal"><span class="pre">TYPE</span></code> 的值为 <code class="docutils literal"><span class="pre">REDIS_RDB_TYPE_STRING</span></code> ，
+那么 <code class="docutils literal"><span class="pre">value</span></code> 保存的就是一个字符串对象，
+字符串对象的编码可以是 <code class="docutils literal"><span class="pre">REDIS_ENCODING_INT</span></code> 或者 <code class="docutils literal"><span class="pre">REDIS_ENCODING_RAW</span></code> 。</p>
+<p>如果字符串对象的编码为 <code class="docutils literal"><span class="pre">REDIS_ENCODING_INT</span></code> ，
+那么说明对象中保存的是长度不超过 <code class="docutils literal"><span class="pre">32</span></code> 位的整数，
+这种编码的对象将以图 IMAGE_INT_ENCODING_STRING 所示的结构保存。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-d41bdfec5b8c70ead94e5a66a6cbc1f7e7e71193.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_INT_ENCODING_STRING    INT 编码字符串对象的保存结构&quot;;
+
+    node [shape = record];
+
+    v [label = &quot; ENCODING | integer &quot;];
+
+}" />
+</p>
+<p>其中，
+<code class="docutils literal"><span class="pre">ENCODING</span></code> 的值可以是 <code class="docutils literal"><span class="pre">REDIS_RDB_ENC_INT8</span></code> 、  <code class="docutils literal"><span class="pre">REDIS_RDB_ENC_INT16</span></code> 或者 <code class="docutils literal"><span class="pre">REDIS_RDB_ENC_INT32</span></code> 三个常量的其中一个，
+它们分别代表 RDB 文件使用 <code class="docutils literal"><span class="pre">8</span></code> 位（bit）、 <code class="docutils literal"><span class="pre">16</span></code> 位或者 <code class="docutils literal"><span class="pre">32</span></code> 位来保存整数值 <code class="docutils literal"><span class="pre">integer</span></code> 。</p>
+<p>举个例子，
+如果字符串对象中保存的是可以用 <code class="docutils literal"><span class="pre">8</span></code> 位来保存的整数 <code class="docutils literal"><span class="pre">123</span></code> ，
+那么这个对象在 RDB 文件中保存的结构将如图 IMAGE_EXAMPLE_OF_INT_ENCODING_STRING 所示。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-9d54ef734fbcc14eba7598fe721ef6e2f29011e4.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_EXAMPLE_OF_INT_ENCODING_STRING    用 8 位来保存整数的例子&quot;;
+
+    node [shape = record];
+
+    v [label = &quot; REDIS_RDB_ENC_INT8 | 123 &quot;];
+
+}" />
+</p>
+<p>如果字符串对象的编码为 <code class="docutils literal"><span class="pre">REDIS_ENCODING_RAW</span></code> ，
+那么说明对象所保存的是一个字符串值，
+根据字符串长度的不同，
+有压缩和不压缩两种方法来保存这个字符串：</p>
+<ul class="simple">
+<li>如果字符串的长度小于等于 <code class="docutils literal"><span class="pre">20</span></code> 字节，
+那么这个字符串会直接被原样保存。</li>
+<li>如果字符串的长度大于 <code class="docutils literal"><span class="pre">20</span></code> 字节，
+那么这个字符串会被压缩之后再保存。</li>
+</ul>
+<div class="topic">
+<p class="topic-title first">注意</p>
+<p>以上两个条件是在假设服务器打开了 RDB 文件压缩功能的情况下进行的，
+如果服务器关闭了 RDB 文件压缩功能，
+那么 RDB 程序总以无压缩的方式保存字符串值。</p>
+<p>具体信息可以参考 <code class="docutils literal"><span class="pre">redis.conf</span></code> 文件中关于 <code class="docutils literal"><span class="pre">rdbcompression</span></code> 选项的说明。</p>
+</div>
+<p>对于没有被压缩的字符串，
+RDB 程序会以图 IMAGE_NON_COMPRESS_STRING 所示的结构来保存该字符串。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-133edd8bd66ce578e11e5bc4f0772472c566fc04.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_NON_COMPRESS_STRING    无压缩字符串的保存结构&quot;;
+
+    node [shape = record];
+
+    value [ label = &quot; len | string &quot;];
+
+}" />
+</p>
+<p>其中， <code class="docutils literal"><span class="pre">string</span></code> 部分保存了字符串值本身，而 <code class="docutils literal"><span class="pre">len</span></code> 保存了字符串值的长度。</p>
+<p>对于压缩后的字符串，
+RDB 程序会以图 IMAGE_COMPRESSED_STRING 所示的结构来保存该字符串。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-e1effd6b5375e25008c2d4db04aa8af1ba83da9f.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_COMPRESSED_STRING    压缩后字符串的保存结构&quot;;
+
+    node [shape = record];
+
+    value [ label = &quot; REDIS_RDB_ENC_LZF | compressed_len | origin_len | compressed_string &quot;];
+
+}" />
+</p>
+<p>其中，
+<code class="docutils literal"><span class="pre">REDIS_RDB_ENC_LZF</span></code> 常量标志着字符串已经被 LZF 算法（<a class="reference external" href="http://liblzf.plan9.de">http://liblzf.plan9.de</a>）压缩过了，
+读入程序在碰到这个常量时，
+会根据之后的 <code class="docutils literal"><span class="pre">compressed_len</span></code> 、 <code class="docutils literal"><span class="pre">origin_len</span></code> 和 <code class="docutils literal"><span class="pre">compressed_string</span></code> 三部分，
+对字符串进行解压缩：
+其中 <code class="docutils literal"><span class="pre">compressed_len</span></code> 记录的是字符串被压缩之后的长度，
+而 <code class="docutils literal"><span class="pre">origin_len</span></code> 记录的是字符串原来的长度，
+<code class="docutils literal"><span class="pre">compressed_string</span></code> 记录的则是被压缩之后的字符串。</p>
+<p>图 IMAGE_EXAMPLE_OF_NON_COMPRESS_STRING 展示了一个保存无压缩字符串的例子，
+其中字符串的长度为 <code class="docutils literal"><span class="pre">5</span></code> ，
+字符串的值为 <code class="docutils literal"><span class="pre">&quot;hello&quot;</span></code> 。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-6c09555acca8b24e18134b8cbb3fc9444cf93803.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_EXAMPLE_OF_NON_COMPRESS_STRING    无压缩的字符串&quot;;
+
+    node [shape = record];
+
+    value [ label = &quot; 5 | \&quot;hello\&quot; &quot;];
+
+}" />
+</p>
+<p>图 IMAGE_EXAMPLE_OF_COMPRESS_STRING 展示了一个压缩后的字符串示例，
+从图中可以看出，
+字符串原本的长度为 <code class="docutils literal"><span class="pre">21</span></code> ，
+压缩之后的长度为 <code class="docutils literal"><span class="pre">6</span></code> ，
+压缩之后的字符串内容为 <code class="docutils literal"><span class="pre">&quot;?aa???&quot;</span></code> ，
+其中 <code class="docutils literal"><span class="pre">?</span></code> 代表的是无法用字符串形式打印出来的字节。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-3236222b95ef4279c8d37397e6d9909284e6a1ca.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_EXAMPLE_OF_COMPRESS_STRING    压缩后的字符串&quot;;
+
+    node [shape = record];
+
+    value [label = &quot; REDIS_RDB_ENC_LZF | 6 | 21 | \&quot;?aa???\&quot; &quot;];
+
+}" />
+</p>
+</div>
+<div class="section" id="id2">
+<h3>列表对象<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<p>如果 <code class="docutils literal"><span class="pre">TYPE</span></code> 的值为 <code class="docutils literal"><span class="pre">REDIS_RDB_TYPE_LIST</span></code> ，
+那么 <code class="docutils literal"><span class="pre">value</span></code> 保存的就是一个 <code class="docutils literal"><span class="pre">REDIS_ENCODING_LINKEDLIST</span></code> 编码的列表对象，
+RDB 文件保存这种对象的结构如图 IMAGE_LINKEDLIST_ENCODING_LIST 所示。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-44cc985ed5cc173916a623a8060b2944dfcf05a9.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_LINKEDLIST_ENCODING_LIST    LINKEDLIST 编码列表对象的保存结构&quot;;
+
+    node [shape = record];
+
+    value [label = &quot; list_length | item1 | item2 | ... | itemN &quot;];
+
+}" />
+</p>
+<p><code class="docutils literal"><span class="pre">list_length</span></code> 记录了列表的长度，
+它记录列表保存了多少个项（item），
+读入程序可以通过这个长度知道自己应该读入多少个列表项。</p>
+<p>图中以 <code class="docutils literal"><span class="pre">item</span></code> 开头的部分代表列表的项，
+因为每个列表项都是一个字符串对象，
+所以程序会以处理字符串对象的方式来保存和读入列表项。</p>
+<p>作为示例，
+图 IMAGE_EXAMPLE_OF_LINKEDLIST_ENCODING_LIST 展示了一个包含三个元素的列表。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-165f2b397141e601803d3ef7460f846724a1ddb9.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_EXAMPLE_OF_LINKEDLIST_ENCODING_LIST    保存 LINKEDLIST 编码列表的例子&quot;;
+
+    node [shape = record];
+
+    list [label = &quot; 3 | 5 | \&quot;hello\&quot; | 5 | \&quot;world\&quot;  |  1 | \&quot;!\&quot;  &quot;];
+
+}" />
+</p>
+<p>结构中的第一个数字 <code class="docutils literal"><span class="pre">3</span></code> 是列表的长度，
+之后跟着的分别是第一个列表项、第二个列表项和第三个列表项，
+其中：</p>
+<ul class="simple">
+<li>第一个列表项的长度为 <code class="docutils literal"><span class="pre">5</span></code> ，
+内容为字符串 <code class="docutils literal"><span class="pre">&quot;hello&quot;</span></code> 。</li>
+<li>第二个列表项的长度也为 <code class="docutils literal"><span class="pre">5</span></code> ，
+内容为字符串 <code class="docutils literal"><span class="pre">&quot;world&quot;</span></code> 。</li>
+<li>第三个列表项的长度为 <code class="docutils literal"><span class="pre">1</span></code> ，
+内容为字符串 <code class="docutils literal"><span class="pre">&quot;!&quot;</span></code> 。</li>
+</ul>
+</div>
+<div class="section" id="id3">
+<h3>集合对象<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<p>如果 <code class="docutils literal"><span class="pre">TYPE</span></code> 的值为 <code class="docutils literal"><span class="pre">REDIS_RDB_TYPE_SET</span></code> ，
+那么 <code class="docutils literal"><span class="pre">value</span></code> 保存的就是一个 <code class="docutils literal"><span class="pre">REDIS_ENCODING_HT</span></code> 编码的集合对象，
+RDB 文件保存这种对象的结构如图 IMAGE_HT_ENCODING_SET 所示。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-efbd179149566a3cb848df2402d55b51b1598014.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_HT_ENCODING_SET    HT 编码集合对象的保存结构&quot;;
+
+    node [shape = record];
+
+    value [ label = &quot; set_size | elem1 | elem2 | ... | elemN &quot;];
+
+}" />
+</p>
+<p>其中，
+<code class="docutils literal"><span class="pre">set_size</span></code> 是集合的大小，
+它记录集合保存了多少个元素，
+读入程序可以通过这个大小知道自己应该读入多少个集合元素。</p>
+<p>图中以 <code class="docutils literal"><span class="pre">elem</span></code> 开头的部分代表集合的元素，
+因为每个集合元素都是一个字符串对象，
+所以程序会以处理字符串对象的方式来保存和读入集合元素。</p>
+<p>作为示例，
+图 IMAGE_EXAMPLE_OF_HT_SET 展示了一个包含四个元素的集合。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-a6d9907449c62a30b28100c6cb4c9b8a32554ce1.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_EXAMPLE_OF_HT_SET    保存 HT 编码集合的例子&quot;;
+
+    node [shape = record];
+
+    set [label = &quot; 4 | 5 | \&quot;apple\&quot; | 6 | \&quot;banana\&quot; | 3 | \&quot;cat\&quot; | 3 | \&quot;dog\&quot; &quot;];
+
+}" />
+</p>
+<p>结构中的第一个数字 <code class="docutils literal"><span class="pre">4</span></code> 记录了集合的大小，
+之后跟着的是集合的四个元素：</p>
+<ul class="simple">
+<li>第一个元素的长度为 <code class="docutils literal"><span class="pre">5</span></code> ，值为 <code class="docutils literal"><span class="pre">&quot;apple&quot;</span></code> 。</li>
+<li>第二个元素的长度为 <code class="docutils literal"><span class="pre">6</span></code> ，值为 <code class="docutils literal"><span class="pre">&quot;banana&quot;</span></code> 。</li>
+<li>第三个元素的长度为 <code class="docutils literal"><span class="pre">3</span></code> ，值为 <code class="docutils literal"><span class="pre">&quot;cat&quot;</span></code> 。</li>
+<li>第四个元素的长度为 <code class="docutils literal"><span class="pre">3</span></code> ，值为 <code class="docutils literal"><span class="pre">&quot;dog&quot;</span></code> 。</li>
+</ul>
+</div>
+<div class="section" id="id4">
+<h3>哈希表对象<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h3>
+<p>如果 <code class="docutils literal"><span class="pre">TYPE</span></code> 的值为 <code class="docutils literal"><span class="pre">REDIS_RDB_TYPE_HASH</span></code> ，
+那么 <code class="docutils literal"><span class="pre">value</span></code> 保存的就是一个 <code class="docutils literal"><span class="pre">REDIS_ENCODING_HT</span></code> 编码的集合对象，
+RDB 文件保存这种对象的结构如图 IMAGE_HT_HASH 所示：</p>
+<ul class="simple">
+<li><code class="docutils literal"><span class="pre">hash_size</span></code> 记录了哈希表的大小，
+也即是这个哈希表保存了多少键值对，
+读入程序可以通过这个大小知道自己应该读入多少个键值对。</li>
+<li>以 <code class="docutils literal"><span class="pre">key_value_pair</span></code> 开头的部分代表哈希表中的键值对，
+键值对的键和值都是字符串对象，
+所以程序会以处理字符串对象的方式来保存和读入键值对。</li>
+</ul>
+<p class="graphviz">
+<img src="../../_images/graphviz-4b4a3cede57af5b1d4d5752a4392ab01f3eee3ad.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_HT_HASH    HT 编码哈希表对象的保存结构&quot;;
+
+    node [shape = record];
+
+    hash [label = &quot; hash_size | key_value_pair 1 | key_value_pair 2 | ... | key_value_pair N &quot;];
+
+}" />
+</p>
+<p>结构中的每个键值对都以键紧挨着值的方式排列在一起，
+如图 IMAGE_KEY_VALUE_PAIR_OF_HT_HASH 所示。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-8504059db5b4ebc17adc3bd47ab3a9c71189940d.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_KEY_VALUE_PAIR_OF_HT_HASH    键值对的保存结构&quot;;
+
+    node [shape = record];
+
+    pair [label = &quot; key1 | value1 | key2 | value2 | key3 | value3 | ... &quot;];
+
+}" />
+</p>
+<p>因此，
+从更详细的角度看，
+图 IMAGE_HT_HASH 所展示的结构可以进一步修改为图 IMAGE_DETIAL_HT_HASH 。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-dec7ea57add4f5510ee4c29f639ef1928f9f5b2b.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_DETIAL_HT_HASH    更详细的 HT 编码哈希表对象的保存结构&quot;;
+
+    node [shape = record];
+
+    hash [label = &quot; hash_size | key1 | value1 | key2 | value2 | ... | keyN | valueN &quot;];
+}" />
+</p>
+<p>作为示例，
+图 IMAGE_EXAMPLE_OF_HT_HASH 展示了一个包含两个键值对的哈希表。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-1c6e37a92271fc74191a92f1a25c9db6b0e56961.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_EXAMPLE_OF_HT_HASH    保存 HT 编码哈希表的例子&quot;;
+
+    node [shape = record];
+
+    hash [label = &quot; 2 | 1 | \&quot;a\&quot; | 5 | \&quot;apple\&quot; | 1 | \&quot;b\&quot; | 6 | \&quot;banana\&quot; &quot;];
+}" />
+</p>
+<p>在这个示例结构中，
+第一个数字 <code class="docutils literal"><span class="pre">2</span></code> 记录了哈希表的键值对数量，
+之后跟着的是两个键值对：</p>
+<ul class="simple">
+<li>第一个键值对的键是长度为 <code class="docutils literal"><span class="pre">1</span></code> 的字符串 <code class="docutils literal"><span class="pre">&quot;a&quot;</span></code> ，
+值是长度为 <code class="docutils literal"><span class="pre">5</span></code> 的字符串 <code class="docutils literal"><span class="pre">&quot;apple&quot;</span></code> 。</li>
+<li>第二个键值对的键是长度为 <code class="docutils literal"><span class="pre">1</span></code> 的字符串 <code class="docutils literal"><span class="pre">&quot;b&quot;</span></code> ，
+值是长度为 <code class="docutils literal"><span class="pre">6</span></code> 的字符串 <code class="docutils literal"><span class="pre">&quot;banana&quot;</span></code> 。</li>
+</ul>
+</div>
+<div class="section" id="id5">
+<h3>有序集合对象<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h3>
+<p>如果 <code class="docutils literal"><span class="pre">TYPE</span></code> 的值为 <code class="docutils literal"><span class="pre">REDIS_RDB_TYPE_ZSET</span></code> ，
+那么 <code class="docutils literal"><span class="pre">value</span></code> 保存的就是一个 <code class="docutils literal"><span class="pre">REDIS_ENCODING_SKIPLIST</span></code> 编码的有序集合对象，
+RDB 文件保存这种对象的结构如图 IMAGE_SKIPLIST_ZSET 所示。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-302678ff61bb7f1ef314e25387aa8ec7332f6bec.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_SKIPLIST_ZSET    SKIPLIST 编码有序集合对象的保存结构&quot;;
+
+    node [shape = record];
+
+    zset [label = &quot; sorted_set_size | element1 | element2 | ... | elementN &quot;];
+
+}" />
+</p>
+<p><code class="docutils literal"><span class="pre">sorted_set_size</span></code> 记录了有序集合的大小，
+也即是这个有序集合保存了多少元素，
+读入程序需要根据这个值来决定应该读入多少有序集合元素。</p>
+<p>以 <code class="docutils literal"><span class="pre">element</span></code> 开头的部分代表有序集合中的元素，
+每个元素又分为成员（member）和分值（score）两部分，
+成员是一个字符串对象，
+分值则是一个 <code class="docutils literal"><span class="pre">double</span></code> 类型的浮点数，
+程序在保存 RDB 文件时会先将分值转换成字符串对象，
+然后再用保存字符串对象的方法将分值保存起来。</p>
+<p>有序集合中的每个元素都以成员紧挨着分值的方式排列，
+如图 IMAGE_MEMBER_AND_SCORE_OF_ZSET 所示。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-7713e95163ce57885a66503a289d3c805df8d136.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_MEMBER_AND_SCORE_OF_ZSET    成员和分值的保存结构&quot;;
+
+    node [shape = record];
+
+    sorted_set [label = &quot; member1 | score1 | member2 | score2 | member3 | score3 | ... &quot;];
+
+}" />
+</p>
+<p>因此，
+从更详细的角度看，
+图 IMAGE_SKIPLIST_ZSET 所展示的结构可以进一步修改为图 IMAGE_DETIAL_SKIPLIST_ZSET 。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-0e978f798bd32c23520af663d67222cd8e7f3fb7.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_DETIAL_SKIPLIST_ZSET    更详细的 SKIPLIST 编码有序集合对象的保存结构&quot;;
+
+    node [shape = record];
+
+    sorted_set [label = &quot; sorted_set_size | member1 | score1 | member2 | score2 | ... | memberN | scoreN &quot;];
+
+}" />
+</p>
+<p>作为示例，
+图 IMAGE_EXAMPLE_OF_SKIPLIST_ZSET 展示了一个带有两个元素的有序集合。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-2b0b1e1411c325523648e8a89a6455283311d343.png" alt="digraph {
+
+    label = &quot;\n图 IMAGE_EXAMPLE_OF_SKIPLIST_ZSET    保存 SKIPLIST 编码有序集合的例子&quot;;
+
+    node [shape = record];
+
+    sorted_set [label = &quot; 2 | 2 | \&quot;pi\&quot; | 4 | \&quot;3.14\&quot; | 1 | \&quot;e\&quot; | 3 | \&quot;2.7\&quot; &quot;];
+
+}" />
+</p>
+<p>在这个示例结构中，
+第一个数字 <code class="docutils literal"><span class="pre">2</span></code> 记录了有序集合的元素数量，
+之后跟着的是两个有序集合元素：</p>
+<ul class="simple">
+<li>第一个元素的成员是长度为 <code class="docutils literal"><span class="pre">2</span></code> 的字符串 <code class="docutils literal"><span class="pre">&quot;pi&quot;</span></code> ，
+分值被转换成字符串之后变成了长度为 <code class="docutils literal"><span class="pre">4</span></code> 的字符串 <code class="docutils literal"><span class="pre">&quot;3.14&quot;</span></code> 。</li>
+<li>第二个元素的成员是长度为 <code class="docutils literal"><span class="pre">1</span></code> 的字符串 <code class="docutils literal"><span class="pre">&quot;e&quot;</span></code> ，
+分值被转换成字符串之后变成了长度为 <code class="docutils literal"><span class="pre">3</span></code> 的字符串 <code class="docutils literal"><span class="pre">&quot;2.7&quot;</span></code> 。</li>
+</ul>
+</div>
+<div class="section" id="intset">
+<h3>INTSET 编码的集合<a class="headerlink" href="#intset" title="Permalink to this headline">¶</a></h3>
+<p>如果 <code class="docutils literal"><span class="pre">TYPE</span></code> 的值为 <code class="docutils literal"><span class="pre">REDIS_RDB_TYPE_SET_INTSET</span></code> ，
+那么 <code class="docutils literal"><span class="pre">value</span></code> 保存的就是一个整数集合对象，
+RDB 文件保存这种对象的方法是，
+先将整数集合转换为字符串对象，
+然后将这个字符串对象保存到 RDB 文件里面。</p>
+<p>如果程序在读入 RDB 文件的过程中，
+碰到由整数集合对象转换成的字符串对象，
+那么程序会根据 <code class="docutils literal"><span class="pre">TYPE</span></code> 值的指示，
+先读入字符串对象，
+再将这个字符串对象转换成原来的整数集合对象。</p>
+</div>
+<div class="section" id="ziplist">
+<h3>ZIPLIST 编码的列表、哈希表或者有序集合<a class="headerlink" href="#ziplist" title="Permalink to this headline">¶</a></h3>
+<p>如果 <code class="docutils literal"><span class="pre">TYPE</span></code> 的值为 <code class="docutils literal"><span class="pre">REDIS_RDB_TYPE_LIST_ZIPLIST</span></code> 、
+<code class="docutils literal"><span class="pre">REDIS_RDB_TYPE_HASH_ZIPLIST</span></code> 或者 <code class="docutils literal"><span class="pre">REDIS_RDB_TYPE_ZSET_ZIPLIST</span></code> ，
+那么 <code class="docutils literal"><span class="pre">value</span></code> 保存的就是一个压缩列表对象，
+RDB 文件保存这种对象的方法是：</p>
+<ol class="arabic simple">
+<li>将压缩列表转换成一个字符串对象。</li>
+<li>将转换所得的字符串对象保存到 RDB 文件。</li>
+</ol>
+<p>如果程序在读入 RDB 文件的过程中，
+碰到由压缩列表对象转换成的字符串对象，
+那么程序会根据 <code class="docutils literal"><span class="pre">TYPE</span></code> 值的指示，
+执行以下操作：</p>
+<ol class="arabic simple">
+<li>读入字符串对象，并将它转换成原来的压缩列表对象。</li>
+<li>根据 <code class="docutils literal"><span class="pre">TYPE</span></code> 的值，设置压缩列表对象的类型：
+如果 <code class="docutils literal"><span class="pre">TYPE</span></code> 的值为 <code class="docutils literal"><span class="pre">REDIS_RDB_TYPE_LIST_ZIPLIST</span></code> ，
+那么压缩列表对象的类型为列表；
+如果 <code class="docutils literal"><span class="pre">TYPE</span></code> 的值为 <code class="docutils literal"><span class="pre">REDIS_RDB_TYPE_HASH_ZIPLIST</span></code> ，
+那么压缩列表对象的类型为哈希表；
+如果 <code class="docutils literal"><span class="pre">TYPE</span></code> 的值为 <code class="docutils literal"><span class="pre">REDIS_RDB_TYPE_ZSET_ZIPLIST</span></code> ，
+那么压缩列表对象的类型为有序集合。</li>
+</ol>
+<p>从步骤 2 可以看出，
+由于 <code class="docutils literal"><span class="pre">TYPE</span></code> 的存在，
+即使列表、哈希表和有序集合三种类型都使用压缩列表来保存，
+RDB 读入程序也总可以将读入并转换之后得出的压缩列表设置成原来的类型。</p>
+</div>
+</div>
+</div>
+
+
+
+            <div class="section" id="discuss">
+    <h2>
+        讨论
+        <a class="headerlink" href="#discuss" title="永久链接至标题">¶</a>
+    </h2>
+    <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'redisbookv1'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li><a href="../../index.html">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, 黄健宏（huangz）.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+    </div>
+  </body>
+</html>

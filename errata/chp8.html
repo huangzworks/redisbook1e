@@ -1,0 +1,214 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>第 8 章《对象》 &mdash; Redis 设计与实现</title>
+    
+    <link rel="stylesheet" href="../_static/pyramid.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <link rel="top" title="Redis 设计与实现" href="../index.html" /> 
+
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+
+  </head>
+  <body>
+
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li><a href="../index.html">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="id1">
+<h1>第 8 章《对象》<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="id2">
+<h2>64 页<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<p>在这一页的倒数第二段：</p>
+<blockquote>
+<div>如果字符串对象保存的是一个字符串值，
+并且这个字符串值的长度大于 <code class="docutils literal"><span class="pre">32</span></code> 字节，
+那么字符串对象将使用一个简单动态字符串（SDS）来保存这个字符串值，
+并将对象的编码设置为 <code class="docutils literal"><span class="pre">raw</span></code> 。</div></blockquote>
+<p>在本书定稿之后，
+Redis 将这个值从 <code class="docutils literal"><span class="pre">32</span></code> 改为了 <code class="docutils literal"><span class="pre">39</span></code> ，
+所以我们也需要进行相应的更新，
+修改之后的内容为：</p>
+<blockquote>
+<div>如果字符串对象保存的是一个字符串值，
+并且这个字符串值的长度大于 <code class="docutils literal"><span class="pre">39</span></code> 字节，
+那么字符串对象将使用一个简单动态字符串（SDS）来保存这个字符串值，
+并将对象的编码设置为 <code class="docutils literal"><span class="pre">raw</span></code> 。</div></blockquote>
+<p>受此影响，
+65 页的图 8-2 也要更新为以下模样（图中的 <code class="docutils literal"><span class="pre">len</span></code> 属性有改动）：</p>
+<p class="graphviz">
+<img src="../_images/graphviz-8731210637d0567af28d3a9d4089d5f864d29950.png" alt="digraph {
+
+    label = &quot;\n 图 8-2    raw 编码的字符串对象&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    redisObject [label = &quot; redisObject | type \n REDIS_STRING | encoding \n REDIS_ENCODING_RAW | &lt;ptr&gt; ptr | ... &quot;];
+
+    sdshdr [label = &quot; &lt;head&gt; sdshdr | free \n 0 | len \n 43 | &lt;buf&gt; buf&quot;];
+
+    buf [label = &quot; { 'L' | 'o' | 'n' | 'g' | ... | 'k' | 'i' | 'n' | 'g' | ' ' | '.' | '.' | '.' | '\\0' } &quot; ];
+
+    //
+
+    redisObject:ptr -&gt; sdshdr:head;
+    sdshdr:buf -&gt; buf;
+
+}" />
+</p>
+<p>而创建图 8-2 所示字符串的代码也要改为：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">SET</span> <span class="n">story</span> <span class="s">&quot;Long, long, long ago there lived a king ...&quot;</span>
+<span class="n">OK</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">STRLEN</span> <span class="n">story</span>
+<span class="p">(</span><span class="n">integer</span><span class="p">)</span> <span class="mi">43</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">OBJECT</span> <span class="n">ENCODING</span> <span class="n">story</span>
+<span class="s">&quot;raw&quot;</span>
+</pre></div>
+</div>
+<p>感谢 <a class="reference external" href="http://redisbook.com/en/latest/preview/object/string.html#comment-1481763423">xp</a> 反馈这个问题。</p>
+</div>
+<div class="section" id="id3">
+<h2>65 页<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<p>在这一页的中间开头第一段：</p>
+<blockquote>
+<div>如果字符串对象保存的是一个字符串值，
+并且这个字符串值的长度小于等于 <code class="docutils literal"><span class="pre">32</span></code> 字节，
+那么字符串对象将使用 <code class="docutils literal"><span class="pre">embstr</span></code> 编码的方式来保存这个字符串值。</div></blockquote>
+<p>在本书定稿之后，
+Redis 将这个值从 <code class="docutils literal"><span class="pre">32</span></code> 改为了 <code class="docutils literal"><span class="pre">39</span></code> ，
+所以我们也需要进行相应的更新，
+修改之后的内容为：</p>
+<blockquote>
+<div>如果字符串对象保存的是一个字符串值，
+并且这个字符串值的长度小于等于 <code class="docutils literal"><span class="pre">39</span></code> 字节，
+那么字符串对象将使用 <code class="docutils literal"><span class="pre">embstr</span></code> 编码的方式来保存这个字符串值。</div></blockquote>
+<p>感谢 <a class="reference external" href="http://redisbook.com/en/latest/preview/object/string.html#comment-1481763423">xp</a> 反馈这个问题。</p>
+</div>
+<div class="section" id="id5">
+<h2>75 页<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h2>
+<p>在 8.5 节开头的介绍内容中，
+第二段代码：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">SAD</span> <span class="n">Dfruits</span> <span class="s">&quot;apple&quot;</span> <span class="s">&quot;banana&quot;</span> <span class="s">&quot;cherry&quot;</span>
+<span class="p">(</span><span class="n">integer</span><span class="p">)</span><span class="mi">3</span>
+</pre></div>
+</div>
+<p>中的 <code class="docutils literal"><span class="pre">SADD</span></code> 命令印刷出错，
+正确的代码应该为：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">SADD</span> <span class="n">fruits</span> <span class="s">&quot;apple&quot;</span> <span class="s">&quot;banana&quot;</span> <span class="s">&quot;cherry&quot;</span>
+<span class="p">(</span><span class="n">integer</span><span class="p">)</span><span class="mi">3</span>
+</pre></div>
+</div>
+<p>感谢 <a class="reference external" href="http://www.douban.com/people/zhkzyth/">zhkzyth</a> 反馈这个错误。</p>
+</div>
+<div class="section" id="id6">
+<h2>77 页<a class="headerlink" href="#id6" title="Permalink to this headline">¶</a></h2>
+<p>8.6 节开头的第二段：</p>
+<blockquote>
+<div><code class="docutils literal"><span class="pre">ziplist</span></code> 编码的压缩列表对象使用压缩列表作为底层实现，
+……</div></blockquote>
+<p>中的“压缩列表对象”有误，应该改为“有序集合对象”才对，
+以下是修正之后的内容：</p>
+<blockquote>
+<div><code class="docutils literal"><span class="pre">ziplist</span></code> 编码的有序集合对象使用压缩列表作为底层实现，
+……</div></blockquote>
+</div>
+<div class="section" id="id7">
+<h2>80 页<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h2>
+<p>本页的最后一句：</p>
+<blockquote>
+<div>因为有序集合键的值为哈希对象，
+所以用于有序集合键的所有命令都是针对哈希对象来构建的，
+表 8-1 列出了其中一部分有序集合键命令，
+以及这些命令在不同编码的哈希对象下的实现方法。</div></blockquote>
+<p>这里的“哈希对象”应该全部改为“有序集合对象”才对，
+以下是修正后的正文：</p>
+<blockquote>
+<div>因为有序集合键的值为有序集合对象，
+所以用于有序集合键的所有命令都是针对有序集合对象来构建的，
+表 8-1 列出了其中一部分有序集合键命令，
+以及这些命令在不同编码的有序集合对象下的实现方法。</div></blockquote>
+<p>感谢 Andy 反馈这个问题。</p>
+</div>
+</div>
+
+
+
+            <div class="section" id="discuss">
+    <h2>
+        讨论
+        <a class="headerlink" href="#discuss" title="永久链接至标题">¶</a>
+    </h2>
+    <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'redisbookv1'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li><a href="../index.html">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, 黄健宏（huangz）.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+    </div>
+  </body>
+</html>

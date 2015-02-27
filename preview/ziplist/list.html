@@ -1,0 +1,234 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>压缩列表的构成 &mdash; Redis 设计与实现</title>
+    
+    <link rel="stylesheet" href="../../_static/pyramid.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="Redis 设计与实现" href="../../index.html" /> 
+
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+
+  </head>
+  <body>
+
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li><a href="../../index.html">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="id1">
+<h1>压缩列表的构成<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
+<p>压缩列表是 Redis 为了节约内存而开发的，
+由一系列特殊编码的连续内存块组成的顺序型（sequential）数据结构。</p>
+<p>一个压缩列表可以包含任意多个节点（entry），
+每个节点可以保存一个字节数组或者一个整数值。</p>
+<p>图 7-1 展示了压缩列表的各个组成部分，
+表 7-1 则记录了各个组成部分的类型、长度、以及用途。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-fe42f343a3f32f477efb5e895da547d476a7c97d.png" alt="digraph {
+
+    label = &quot;\n 图 7-1    压缩列表的各个组成部分&quot;;
+
+    node [shape = record];
+
+    ziplist [label = &quot; zlbytes | zltail | zllen | entry1 | entry2 | ... | entryN | zlend &quot;];
+
+}" />
+</p>
+<hr class="docutils" />
+<p>表 7-1    压缩列表各个组成部分的详细说明</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="11%" />
+<col width="13%" />
+<col width="11%" />
+<col width="65%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">属性</th>
+<th class="head">类型</th>
+<th class="head">长度</th>
+<th class="head">用途</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">zlbytes</span></code></td>
+<td><code class="docutils literal"><span class="pre">uint32_t</span></code></td>
+<td><code class="docutils literal"><span class="pre">4</span></code> 字节</td>
+<td>记录整个压缩列表占用的内存字节数：在对压缩列表进行内存重分配，
+或者计算 <code class="docutils literal"><span class="pre">zlend</span></code> 的位置时使用。</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">zltail</span></code></td>
+<td><code class="docutils literal"><span class="pre">uint32_t</span></code></td>
+<td><code class="docutils literal"><span class="pre">4</span></code> 字节</td>
+<td>记录压缩列表表尾节点距离压缩列表的起始地址有多少字节：
+通过这个偏移量，程序无须遍历整个压缩列表就可以确定表尾节点的地址。</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">zllen</span></code></td>
+<td><code class="docutils literal"><span class="pre">uint16_t</span></code></td>
+<td><code class="docutils literal"><span class="pre">2</span></code> 字节</td>
+<td>记录了压缩列表包含的节点数量：
+当这个属性的值小于 <code class="docutils literal"><span class="pre">UINT16_MAX</span></code> （<code class="docutils literal"><span class="pre">65535</span></code>）时，
+这个属性的值就是压缩列表包含节点的数量；
+当这个值等于 <code class="docutils literal"><span class="pre">UINT16_MAX</span></code> 时，
+节点的真实数量需要遍历整个压缩列表才能计算得出。</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">entryX</span></code></td>
+<td>列表节点</td>
+<td>不定</td>
+<td>压缩列表包含的各个节点，节点的长度由节点保存的内容决定。</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">zlend</span></code></td>
+<td><code class="docutils literal"><span class="pre">uint8_t</span></code></td>
+<td><code class="docutils literal"><span class="pre">1</span></code> 字节</td>
+<td>特殊值 <code class="docutils literal"><span class="pre">0xFF</span></code> （十进制 <code class="docutils literal"><span class="pre">255</span></code> ），用于标记压缩列表的末端。</td>
+</tr>
+</tbody>
+</table>
+<hr class="docutils" />
+<p>图 7-2 展示了一个压缩列表示例：</p>
+<ul class="simple">
+<li>列表 <code class="docutils literal"><span class="pre">zlbytes</span></code> 属性的值为 <code class="docutils literal"><span class="pre">0x50</span></code> （十进制 <code class="docutils literal"><span class="pre">80</span></code>），
+表示压缩列表的总长为 <code class="docutils literal"><span class="pre">80</span></code> 字节。</li>
+<li>列表 <code class="docutils literal"><span class="pre">zltail</span></code> 属性的值为 <code class="docutils literal"><span class="pre">0x3c</span></code> （十进制 <code class="docutils literal"><span class="pre">60</span></code>），
+这表示如果我们有一个指向压缩列表起始地址的指针 <code class="docutils literal"><span class="pre">p</span></code> ，
+那么只要用指针 <code class="docutils literal"><span class="pre">p</span></code> 加上偏移量 <code class="docutils literal"><span class="pre">60</span></code> ，
+就可以计算出表尾节点 <code class="docutils literal"><span class="pre">entry3</span></code> 的地址。</li>
+<li>列表 <code class="docutils literal"><span class="pre">zllen</span></code> 属性的值为 <code class="docutils literal"><span class="pre">0x3</span></code> （十进制 <code class="docutils literal"><span class="pre">3</span></code>），
+表示压缩列表包含三个节点。</li>
+</ul>
+<p class="graphviz">
+<img src="../../_images/graphviz-071fe5086440a360087904af9a5f78e8e02c2d8d.png" alt="digraph {
+
+    rankdir = BT;
+
+    label = &quot;\n 图 7-2    包含三个节点的压缩列表&quot;;
+
+    node [shape = record];
+
+    ziplist [label = &quot; &lt;zlbytes&gt; zlbytes \n 0x50 | zltail \n 0x3c | zllen \n 0x3 | entry1 | entry2 | &lt;entry3&gt; entry3 | zlend \n 0xFF &quot;];
+
+    node [shape = plaintext];
+
+    p [label = &quot;p&quot;];
+
+    p -&gt; ziplist:zlbytes;
+
+    tail [label = &quot;p + 60&quot;];
+
+    tail -&gt; ziplist:entry3;
+
+}" />
+</p>
+<p>图 7-3 展示了另一个压缩列表示例：</p>
+<ul class="simple">
+<li>列表 <code class="docutils literal"><span class="pre">zlbytes</span></code> 属性的值为 <code class="docutils literal"><span class="pre">0xd2</span></code> （十进制 <code class="docutils literal"><span class="pre">210</span></code>），
+表示压缩列表的总长为 <code class="docutils literal"><span class="pre">210</span></code> 字节。</li>
+<li>列表 <code class="docutils literal"><span class="pre">zltail</span></code> 属性的值为 <code class="docutils literal"><span class="pre">0xb3</span></code> （十进制 <code class="docutils literal"><span class="pre">179</span></code>），
+这表示如果我们有一个指向压缩列表起始地址的指针 <code class="docutils literal"><span class="pre">p</span></code> ，
+那么只要用指针 <code class="docutils literal"><span class="pre">p</span></code> 加上偏移量 <code class="docutils literal"><span class="pre">179</span></code> ，
+就可以计算出表尾节点 <code class="docutils literal"><span class="pre">entry5</span></code> 的地址。</li>
+<li>列表 <code class="docutils literal"><span class="pre">zllen</span></code> 属性的值为 <code class="docutils literal"><span class="pre">0x5</span></code> （十进制 <code class="docutils literal"><span class="pre">5</span></code>），
+表示压缩列表包含五个节点。</li>
+</ul>
+<p class="graphviz">
+<img src="../../_images/graphviz-a3654fb3d550f27965699e3049654cc59924f99c.png" alt="digraph {
+
+    label = &quot;\n 图 7-3    包含五个节点的压缩列表&quot;;
+
+    rankdir = BT;
+
+    node [shape = record];
+
+    ziplist [label = &quot; &lt;zlbytes&gt; zlbytes \n 0xd2 | zltail \n 0xb3 | zllen \n 0x5 | entry1 | entry2 | entry3 | entry4 | &lt;entry5&gt; entry5 | zlend \n 0xFF &quot;];
+
+    node [shape = plaintext];
+
+    p [label = &quot;p&quot;];
+
+    p -&gt; ziplist:zlbytes;
+
+    tail [label = &quot;p + 179&quot;];
+
+    tail -&gt; ziplist:entry5;
+
+}" />
+</p>
+</div>
+
+
+
+            <div class="section" id="discuss">
+    <h2>
+        讨论
+        <a class="headerlink" href="#discuss" title="永久链接至标题">¶</a>
+    </h2>
+    <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'redisbookv1'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li><a href="../../index.html">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, 黄健宏（huangz）.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+    </div>
+  </body>
+</html>

@@ -1,0 +1,471 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>对象的类型与编码 &mdash; Redis 设计与实现</title>
+    
+    <link rel="stylesheet" href="../../_static/pyramid.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="Redis 设计与实现" href="../../index.html" /> 
+
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+
+  </head>
+  <body>
+
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li><a href="../../index.html">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="id1">
+<h1>对象的类型与编码<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
+<p>Redis 使用对象来表示数据库中的键和值，
+每次当我们在 Redis 的数据库中新创建一个键值对时，
+我们至少会创建两个对象，
+一个对象用作键值对的键（键对象），
+另一个对象用作键值对的值（值对象）。</p>
+<p>举个例子，
+以下 <em class="xref std std-ref">SET</em> 命令在数据库中创建了一个新的键值对，
+其中键值对的键是一个包含了字符串值 <code class="docutils literal"><span class="pre">&quot;msg&quot;</span></code> 的对象，
+而键值对的值则是一个包含了字符串值 <code class="docutils literal"><span class="pre">&quot;hello</span> <span class="pre">world&quot;</span></code> 的对象：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">SET</span> <span class="n">msg</span> <span class="s">&quot;hello world&quot;</span>
+<span class="n">OK</span>
+</pre></div>
+</div>
+<p>Redis 中的每个对象都由一个 <code class="docutils literal"><span class="pre">redisObject</span></code> 结构表示，
+该结构中和保存数据有关的三个属性分别是 <code class="docutils literal"><span class="pre">type</span></code> 属性、 <code class="docutils literal"><span class="pre">encoding</span></code> 属性和 <code class="docutils literal"><span class="pre">ptr</span></code> 属性：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="k">typedef</span> <span class="k">struct</span> <span class="n">redisObject</span> <span class="p">{</span>
+
+    <span class="c1">// 类型</span>
+    <span class="kt">unsigned</span> <span class="nl">type</span><span class="p">:</span><span class="mi">4</span><span class="p">;</span>
+
+    <span class="c1">// 编码</span>
+    <span class="kt">unsigned</span> <span class="nl">encoding</span><span class="p">:</span><span class="mi">4</span><span class="p">;</span>
+
+    <span class="c1">// 指向底层实现数据结构的指针</span>
+    <span class="kt">void</span> <span class="o">*</span><span class="n">ptr</span><span class="p">;</span>
+
+    <span class="c1">// ...</span>
+
+<span class="p">}</span> <span class="n">robj</span><span class="p">;</span>
+</pre></div>
+</div>
+<div class="section" id="id2">
+<h2>类型<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<p>对象的 <code class="docutils literal"><span class="pre">type</span></code> 属性记录了对象的类型，
+这个属性的值可以是表 8-1 列出的常量的其中一个。</p>
+<hr class="docutils" />
+<p>表 8-1    对象的类型</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="38%" />
+<col width="62%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">类型常量</th>
+<th class="head">对象的名称</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">REDIS_STRING</span></code></td>
+<td>字符串对象</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">REDIS_LIST</span></code></td>
+<td>列表对象</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">REDIS_HASH</span></code></td>
+<td>哈希对象</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">REDIS_SET</span></code></td>
+<td>集合对象</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">REDIS_ZSET</span></code></td>
+<td>有序集合对象</td>
+</tr>
+</tbody>
+</table>
+<hr class="docutils" />
+<p>对于 Redis 数据库保存的键值对来说，
+键总是一个字符串对象，
+而值则可以是字符串对象、列表对象、哈希对象、集合对象或者有序集合对象的其中一种，
+因此：</p>
+<ul class="simple">
+<li>当我们称呼一个数据库键为“字符串键”时，
+我们指的是“这个数据库键所对应的值为字符串对象”；</li>
+<li>当我们称呼一个键为“列表键”时，
+我们指的是“这个数据库键所对应的值为列表对象”，</li>
+</ul>
+<p>诸如此类。</p>
+<p><em class="xref std std-ref">TYPE</em> 命令的实现方式也与此类似，
+当我们对一个数据库键执行 <em class="xref std std-ref">TYPE</em> 命令时，
+命令返回的结果为数据库键对应的值对象的类型，
+而不是键对象的类型：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="cp"># 键为字符串对象，值为字符串对象</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">SET</span> <span class="n">msg</span> <span class="s">&quot;hello world&quot;</span>
+<span class="n">OK</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">TYPE</span> <span class="n">msg</span>
+<span class="n">string</span>
+
+<span class="cp"># 键为字符串对象，值为列表对象</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">RPUSH</span> <span class="n">numbers</span> <span class="mi">1</span> <span class="mi">3</span> <span class="mi">5</span>
+<span class="p">(</span><span class="n">integer</span><span class="p">)</span> <span class="mi">6</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">TYPE</span> <span class="n">numbers</span>
+<span class="n">list</span>
+
+<span class="cp"># 键为字符串对象，值为哈希对象</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">HMSET</span> <span class="n">profile</span> <span class="n">name</span> <span class="n">Tome</span> <span class="n">age</span> <span class="mi">25</span> <span class="n">career</span> <span class="n">Programmer</span>
+<span class="n">OK</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">TYPE</span> <span class="n">profile</span>
+<span class="n">hash</span>
+
+<span class="cp"># 键为字符串对象，值为集合对象</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">SADD</span> <span class="n">fruits</span> <span class="n">apple</span> <span class="n">banana</span> <span class="n">cherry</span>
+<span class="p">(</span><span class="n">integer</span><span class="p">)</span> <span class="mi">3</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">TYPE</span> <span class="n">fruits</span>
+<span class="n">set</span>
+
+<span class="cp"># 键为字符串对象，值为有序集合对象</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">ZADD</span> <span class="n">price</span> <span class="mf">8.5</span> <span class="n">apple</span> <span class="mf">5.0</span> <span class="n">banana</span> <span class="mf">6.0</span> <span class="n">cherry</span>
+<span class="p">(</span><span class="n">integer</span><span class="p">)</span> <span class="mi">3</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">TYPE</span> <span class="n">price</span>
+<span class="n">zset</span>
+</pre></div>
+</div>
+<p>表 8-2 列出了 <em class="xref std std-ref">TYPE</em> 命令在面对不同类型的值对象时所产生的输出。</p>
+<hr class="docutils" />
+<p>表 8-2    不同类型值对象的 <em class="xref std std-ref">TYPE</em> 命令输出</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="20%" />
+<col width="35%" />
+<col width="45%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">对象</th>
+<th class="head">对象 <code class="docutils literal"><span class="pre">type</span></code> 属性的值</th>
+<th class="head"><em class="xref std std-ref">TYPE</em> 命令的输出</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>字符串对象</td>
+<td><code class="docutils literal"><span class="pre">REDIS_STRING</span></code></td>
+<td><code class="docutils literal"><span class="pre">&quot;string&quot;</span></code></td>
+</tr>
+<tr class="row-odd"><td>列表对象</td>
+<td><code class="docutils literal"><span class="pre">REDIS_LIST</span></code></td>
+<td><code class="docutils literal"><span class="pre">&quot;list&quot;</span></code></td>
+</tr>
+<tr class="row-even"><td>哈希对象</td>
+<td><code class="docutils literal"><span class="pre">REDIS_HASH</span></code></td>
+<td><code class="docutils literal"><span class="pre">&quot;hash&quot;</span></code></td>
+</tr>
+<tr class="row-odd"><td>集合对象</td>
+<td><code class="docutils literal"><span class="pre">REDIS_SET</span></code></td>
+<td><code class="docutils literal"><span class="pre">&quot;set&quot;</span></code></td>
+</tr>
+<tr class="row-even"><td>有序集合对象</td>
+<td><code class="docutils literal"><span class="pre">REDIS_ZSET</span></code></td>
+<td><code class="docutils literal"><span class="pre">&quot;zset&quot;</span></code></td>
+</tr>
+</tbody>
+</table>
+</div>
+<hr class="docutils" />
+<div class="section" id="id3">
+<h2>编码和底层实现<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<p>对象的 <code class="docutils literal"><span class="pre">ptr</span></code> 指针指向对象的底层实现数据结构，
+而这些数据结构由对象的 <code class="docutils literal"><span class="pre">encoding</span></code> 属性决定。</p>
+<p><code class="docutils literal"><span class="pre">encoding</span></code> 属性记录了对象所使用的编码，
+也即是说这个对象使用了什么数据结构作为对象的底层实现，
+这个属性的值可以是表 8-3 列出的常量的其中一个。</p>
+<hr class="docutils" />
+<p>表 8-3    对象的编码</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="33%" />
+<col width="67%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">编码常量</th>
+<th class="head">编码所对应的底层数据结构</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">REDIS_ENCODING_INT</span></code></td>
+<td><code class="docutils literal"><span class="pre">long</span></code> 类型的整数</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">REDIS_ENCODING_EMBSTR</span></code></td>
+<td><code class="docutils literal"><span class="pre">embstr</span></code> 编码的简单动态字符串</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">REDIS_ENCODING_RAW</span></code></td>
+<td>简单动态字符串</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">REDIS_ENCODING_HT</span></code></td>
+<td>字典</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">REDIS_ENCODING_LINKEDLIST</span></code></td>
+<td>双端链表</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">REDIS_ENCODING_ZIPLIST</span></code></td>
+<td>压缩列表</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">REDIS_ENCODING_INTSET</span></code></td>
+<td>整数集合</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">REDIS_ENCODING_SKIPLIST</span></code></td>
+<td>跳跃表和字典</td>
+</tr>
+</tbody>
+</table>
+<hr class="docutils" />
+<p>每种类型的对象都至少使用了两种不同的编码，
+表 8-4 列出了每种类型的对象可以使用的编码。</p>
+<hr class="docutils" />
+<p>表 8-4    不同类型和编码的对象</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="17%" />
+<col width="28%" />
+<col width="54%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">类型</th>
+<th class="head">编码</th>
+<th class="head">对象</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">REDIS_STRING</span></code></td>
+<td><code class="docutils literal"><span class="pre">REDIS_ENCODING_INT</span></code></td>
+<td>使用整数值实现的字符串对象。</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">REDIS_STRING</span></code></td>
+<td><code class="docutils literal"><span class="pre">REDIS_ENCODING_EMBSTR</span></code></td>
+<td>使用 <code class="docutils literal"><span class="pre">embstr</span></code> 编码的简单动态字符串实现的字符串对象。</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">REDIS_STRING</span></code></td>
+<td><code class="docutils literal"><span class="pre">REDIS_ENCODING_RAW</span></code></td>
+<td>使用简单动态字符串实现的字符串对象。</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">REDIS_LIST</span></code></td>
+<td><code class="docutils literal"><span class="pre">REDIS_ENCODING_ZIPLIST</span></code></td>
+<td>使用压缩列表实现的列表对象。</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">REDIS_LIST</span></code></td>
+<td><code class="docutils literal"><span class="pre">REDIS_ENCODING_LINKEDLIST</span></code></td>
+<td>使用双端链表实现的列表对象。</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">REDIS_HASH</span></code></td>
+<td><code class="docutils literal"><span class="pre">REDIS_ENCODING_ZIPLIST</span></code></td>
+<td>使用压缩列表实现的哈希对象。</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">REDIS_HASH</span></code></td>
+<td><code class="docutils literal"><span class="pre">REDIS_ENCODING_HT</span></code></td>
+<td>使用字典实现的哈希对象。</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">REDIS_SET</span></code></td>
+<td><code class="docutils literal"><span class="pre">REDIS_ENCODING_INTSET</span></code></td>
+<td>使用整数集合实现的集合对象。</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">REDIS_SET</span></code></td>
+<td><code class="docutils literal"><span class="pre">REDIS_ENCODING_HT</span></code></td>
+<td>使用字典实现的集合对象。</td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">REDIS_ZSET</span></code></td>
+<td><code class="docutils literal"><span class="pre">REDIS_ENCODING_ZIPLIST</span></code></td>
+<td>使用压缩列表实现的有序集合对象。</td>
+</tr>
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">REDIS_ZSET</span></code></td>
+<td><code class="docutils literal"><span class="pre">REDIS_ENCODING_SKIPLIST</span></code></td>
+<td>使用跳跃表和字典实现的有序集合对象。</td>
+</tr>
+</tbody>
+</table>
+<hr class="docutils" />
+<p>使用 <em class="xref std std-ref">OBJECT ENCODING</em> 命令可以查看一个数据库键的值对象的编码：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">SET</span> <span class="n">msg</span> <span class="s">&quot;hello wrold&quot;</span>
+<span class="n">OK</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">OBJECT</span> <span class="n">ENCODING</span> <span class="n">msg</span>
+<span class="s">&quot;embstr&quot;</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">SET</span> <span class="n">story</span> <span class="s">&quot;long long long long long long ago ...&quot;</span>
+<span class="n">OK</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">OBJECT</span> <span class="n">ENCODING</span> <span class="n">story</span>
+<span class="s">&quot;raw&quot;</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">SADD</span> <span class="n">numbers</span> <span class="mi">1</span> <span class="mi">3</span> <span class="mi">5</span>
+<span class="p">(</span><span class="n">integer</span><span class="p">)</span> <span class="mi">3</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">OBJECT</span> <span class="n">ENCODING</span> <span class="n">numbers</span>
+<span class="s">&quot;intset&quot;</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">SADD</span> <span class="n">numbers</span> <span class="s">&quot;seven&quot;</span>
+<span class="p">(</span><span class="n">integer</span><span class="p">)</span> <span class="mi">1</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">OBJECT</span> <span class="n">ENCODING</span> <span class="n">numbers</span>
+<span class="s">&quot;hashtable&quot;</span>
+</pre></div>
+</div>
+<p>表 8-5 列出了不同编码的对象所对应的 <em class="xref std std-ref">OBJECT ENCODING</em> 命令输出。</p>
+<hr class="docutils" />
+<p>表 8-5    <em class="xref std std-ref">OBJECT ENCODING</em> 对不同编码的输出</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="35%" />
+<col width="27%" />
+<col width="38%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">对象所使用的底层数据结构</th>
+<th class="head">编码常量</th>
+<th class="head"><em class="xref std std-ref">OBJECT ENCODING</em> 命令输出</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td>整数</td>
+<td><code class="docutils literal"><span class="pre">REDIS_ENCODING_INT</span></code></td>
+<td><code class="docutils literal"><span class="pre">&quot;int&quot;</span></code></td>
+</tr>
+<tr class="row-odd"><td><code class="docutils literal"><span class="pre">embstr</span></code> 编码的简单动态字符串（SDS）</td>
+<td><code class="docutils literal"><span class="pre">REDIS_ENCODING_EMBSTR</span></code></td>
+<td><code class="docutils literal"><span class="pre">&quot;embstr&quot;</span></code></td>
+</tr>
+<tr class="row-even"><td>简单动态字符串</td>
+<td><code class="docutils literal"><span class="pre">REDIS_ENCODING_RAW</span></code></td>
+<td><code class="docutils literal"><span class="pre">&quot;raw&quot;</span></code></td>
+</tr>
+<tr class="row-odd"><td>字典</td>
+<td><code class="docutils literal"><span class="pre">REDIS_ENCODING_HT</span></code></td>
+<td><code class="docutils literal"><span class="pre">&quot;hashtable&quot;</span></code></td>
+</tr>
+<tr class="row-even"><td>双端链表</td>
+<td><code class="docutils literal"><span class="pre">REDIS_ENCODING_LINKEDLIST</span></code></td>
+<td><code class="docutils literal"><span class="pre">&quot;linkedlist&quot;</span></code></td>
+</tr>
+<tr class="row-odd"><td>压缩列表</td>
+<td><code class="docutils literal"><span class="pre">REDIS_ENCODING_ZIPLIST</span></code></td>
+<td><code class="docutils literal"><span class="pre">&quot;ziplist&quot;</span></code></td>
+</tr>
+<tr class="row-even"><td>整数集合</td>
+<td><code class="docutils literal"><span class="pre">REDIS_ENCODING_INTSET</span></code></td>
+<td><code class="docutils literal"><span class="pre">&quot;intset&quot;</span></code></td>
+</tr>
+<tr class="row-odd"><td>跳跃表和字典</td>
+<td><code class="docutils literal"><span class="pre">REDIS_ENCODING_SKIPLIST</span></code></td>
+<td><code class="docutils literal"><span class="pre">&quot;skiplist&quot;</span></code></td>
+</tr>
+</tbody>
+</table>
+<hr class="docutils" />
+<p>通过 <code class="docutils literal"><span class="pre">encoding</span></code> 属性来设定对象所使用的编码，
+而不是为特定类型的对象关联一种固定的编码，
+极大地提升了 Redis 的灵活性和效率，
+因为 Redis 可以根据不同的使用场景来为一个对象设置不同的编码，
+从而优化对象在某一场景下的效率。</p>
+<p>举个例子，
+在列表对象包含的元素比较少时，
+Redis 使用压缩列表作为列表对象的底层实现：</p>
+<ul class="simple">
+<li>因为压缩列表比双端链表更节约内存，
+并且在元素数量较少时，
+在内存中以连续块方式保存的压缩列表比起双端链表可以更快被载入到缓存中；</li>
+<li>随着列表对象包含的元素越来越多，
+使用压缩列表来保存元素的优势逐渐消失时，
+对象就会将底层实现从压缩列表转向功能更强、也更适合保存大量元素的双端链表上面；</li>
+</ul>
+<p>其他类型的对象也会通过使用多种不同的编码来进行类似的优化。</p>
+<p>在接下来的内容中，
+我们将分别介绍 Redis 中的五种不同类型的对象，
+说明这些对象底层所使用的编码方式，
+列出对象从一种编码转换成另一种编码所需的条件，
+以及同一个命令在多种不同编码上的实现方法。</p>
+</div>
+</div>
+
+
+
+            <div class="section" id="discuss">
+    <h2>
+        讨论
+        <a class="headerlink" href="#discuss" title="永久链接至标题">¶</a>
+    </h2>
+    <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'redisbookv1'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li><a href="../../index.html">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, 黄健宏（huangz）.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+    </div>
+  </body>
+</html>
