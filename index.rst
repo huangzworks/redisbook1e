@@ -26,7 +26,7 @@ Redis 设计与实现
 `互动出版网（china-pub） <http://product.china-pub.com/3770218>`_ 、
 `亚马逊 <http://www.amazon.cn/%E6%95%B0%E6%8D%AE%E5%BA%93%E6%8A%80%E6%9C%AF%E4%B8%9B%E4%B9%A6-Redis%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0-%E9%BB%84%E5%81%A5%E5%AE%8F/dp/B00L4XHH0S>`_ 、
 `当当网 <http://product.dangdang.com/23501734.html>`_ ，
-另外本书的 `Kindle 版本 <http://www.amazon.cn/Redis/dp/B00LZNV5B4>`_ 和 `多看阅读版本 <http://www.duokan.com/book/53962>`_ 也已有售。
+另外本书的 `Kindle 版本 <http://www.amazon.cn/Redis/dp/B00LZNV5B4>`_ 、 `多看阅读版本 <http://www.duokan.com/book/53962>`_ 和 `豆瓣阅读版本 <http://read.douban.com/ebook/7519526/>`_ 也已有售。
 
 ..
     另外，
