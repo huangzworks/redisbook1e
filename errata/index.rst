@@ -31,8 +31,8 @@
 
 - `第 168 页 <http://redisbook.com/errata/chp13.html#id2>`_
 
-- `第 178 页 <html://redisbook.com/errata/chp14.html#id2>`_
+- `第 178 页 <http://redisbook.com/errata/chp14.html#id2>`_
 
 - `第 182 页 <http://redisbook.com/errata/chp14.html#id3>`_
 
-- `第 183 页 <html://redisbook.com/errata/chp14.html#id4>`_
+- `第 183 页 <http://redisbook.com/errata/chp14.html#id4>`_
