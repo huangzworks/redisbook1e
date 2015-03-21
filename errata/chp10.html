@@ -6,7 +6,7 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
     
-    <title>勘误信息 &mdash; Redis 设计与实现</title>
+    <title>第 10 章《RDB 持久化》勘误 &mdash; Redis 设计与实现</title>
     
     <link rel="stylesheet" href="../_static/pyramid.css" type="text/css" />
     <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
@@ -49,39 +49,19 @@
         <div class="bodywrapper">
           <div class="body">
             
-  <div class="section" id="id1">
-<h1>勘误信息<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
-<p>购买了本书第一次印刷和第二次印刷的读者，
-需要修改以下列出的所有错误：</p>
-<div class="toctree-wrapper compound">
-<ul>
-<li class="toctree-l1"><a class="reference internal" href="chp2.html">第 2 章《简单动态字符串》勘误</a></li>
-<li class="toctree-l1"><a class="reference internal" href="chp3.html">第 3 章《链表》勘误</a></li>
-<li class="toctree-l1"><a class="reference internal" href="chp4.html">第 4 章《字典》勘误</a></li>
-<li class="toctree-l1"><a class="reference internal" href="chp5.html">第 5 章《跳跃表》勘误</a></li>
-<li class="toctree-l1"><a class="reference internal" href="chp6.html">第 6 章《整数集合》勘误</a></li>
-<li class="toctree-l1"><a class="reference internal" href="chp8.html">第 8 章《对象》</a></li>
-<li class="toctree-l1"><a class="reference internal" href="chp9.html">第 9 章《数据库》勘误</a></li>
-<li class="toctree-l1"><a class="reference internal" href="chp10.html">第 10 章《RDB 持久化》勘误</a></li>
-<li class="toctree-l1"><a class="reference internal" href="chp12.html">第 12 章《事件》勘误</a></li>
-<li class="toctree-l1"><a class="reference internal" href="chp13.html">第 13 章《客户端》勘误</a></li>
-<li class="toctree-l1"><a class="reference internal" href="chp14.html">第 14 章《服务器》勘误</a></li>
-</ul>
+  <div class="section" id="rdb">
+<h1>第 10 章《RDB 持久化》勘误<a class="headerlink" href="#rdb" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="id1">
+<h2>第 120 页<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<p>10.1.1 节第一句：</p>
+<blockquote>
+<div>……，客户端发送的所有命令请求都会被拒绝。</div></blockquote>
+<p>此处的“拒绝”应该改为“阻塞”，
+以下是修正之后的内容：</p>
+<blockquote>
+<div>……，客户端发送的所有命令请求都会被阻塞。</div></blockquote>
+<p>感谢 <a class="reference external" href="http://weibo.com/u/1935857022">kimi_可米</a> 反馈这个错误。</p>
 </div>
-<p>而购买了本书第三次印刷的读者，
-只需要修改以下几个错误即可：</p>
-<ul class="simple">
-<li><a class="reference external" href="http://redisbook.com/errata/chp5.html#id2">第 40 页</a></li>
-<li><a class="reference external" href="http://redisbook.com/errata/chp5.html#id5">第 45 页</a></li>
-<li><a class="reference external" href="http://redisbook.com/errata/chp8.html#id6">第 77 页</a></li>
-<li><a class="reference external" href="http://redisbook.com/errata/chp8.html#id7">第 80 页</a></li>
-<li><a class="reference external" href="http://redisbook.com/errata/chp10.html#id1">第 120 页</a></li>
-<li><a class="reference external" href="http://redisbook.com/errata/chp13.html#id2">第 168 页</a></li>
-<li><a class="reference external" href="http://redisbook.com/errata/chp14.html#id2">第 178 页</a></li>
-<li><a class="reference external" href="http://redisbook.com/errata/chp14.html#id3">第 182 页</a></li>
-<li><a class="reference external" href="http://redisbook.com/errata/chp14.html#id4">第 183 页</a></li>
-<li><a class="reference external" href="http://redisbook.com/errata/chp14.html#id6">第 189 页</a></li>
-</ul>
 </div>
 
 
