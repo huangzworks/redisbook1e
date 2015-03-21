@@ -39,3 +39,6 @@
 - `第 182 页 <http://redisbook.com/errata/chp14.html#id3>`_
 
 - `第 183 页 <http://redisbook.com/errata/chp14.html#id4>`_
+
+- `第 189 页 <http://redisbook.com/errata/chp14.html#id6>`_
+
