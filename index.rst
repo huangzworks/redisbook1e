@@ -179,8 +179,8 @@ Redis 设计与实现
   - :doc:`preview/event/file_event`
   - 时间事件
   - 事件的调度与执行
-  - 重点回顾
   - :doc:`preview/event/review`
+  - :doc:`preview/event/reference`
 
 13. 客户端
 
