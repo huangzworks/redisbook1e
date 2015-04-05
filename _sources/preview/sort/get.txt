@@ -1,0 +1,247 @@
+GET 选项的实现
+-------------------
+
+在默认情况下，
+:ref:`SORT` 命令在对键进行排序之后，
+总是返回被排序键本身所包含的元素。
+
+比如说，
+在以下这个对 ``students`` 集合进行排序的例子中，
+:ref:`SORT` 命令返回的就是被排序之后的 ``students`` 集合的元素：
+
+::
+
+    redis> SADD students "peter" "jack" "tom"
+    (integer) 3
+
+    redis> SORT students ALPHA
+    1) "jack"
+    2) "peter"
+    3) "tom"
+
+但是，
+通过使用 ``GET`` 选项，
+我们可以让 :ref:`SORT` 命令在对键进行排序之后，
+根据被排序的元素，
+以及 ``GET`` 选项所指定的模式，
+查找并返回某些键的值。
+
+比如说，
+在以下这个例子中，
+:ref:`SORT` 命令首先对 ``students`` 集合进行排序，
+然后根据排序结果中的元素（学生的简称），
+查找并返回这些学生的全名：
+
+::
+
+    # 设置 peter 、 jack 、 tom 的全名
+
+    redis> SET peter-name "Peter White"
+    OK
+
+    redis> SET jack-name "Jack Snow"
+    OK
+
+    redis> SET tom-name "Tom Smith"
+    OK
+
+    # SORT 命令首先对 students 集合进行排序，得到排序结果
+    # 1) "jack"
+    # 2) "peter"
+    # 3) "tom"
+    # 然后根据这些结果，获取并返回键 jack-name 、 peter-name 和 tom-name 的值
+
+    redis> SORT students ALPHA GET *-name
+    1) "Jack Snow"
+    2) "Peter White"
+    3) "Tom Smith"
+
+服务器执行 ``SORT students ALPHA GET *-name`` 命令的详细步骤如下：
+
+1. 创建一个 ``redisSortObject`` 结构数组，
+   数组的长度等于 ``students`` 集合的大小。
+
+2. 遍历数组，
+   将各个数组项的 ``obj`` 指针分别指向 ``students`` 集合的各个元素，
+   如图 21-17 所示。
+
+3. 根据 ``obj`` 指针所指向的集合元素，
+   对数组进行字符串排序，
+   排序后的数组如图 21-18 所示：
+
+   - 被排序到数组索引 ``0`` 位置的是 ``"jack"`` 元素。
+
+   - 被排序到数组索引 ``1`` 位置的是 ``"peter"`` 元素。
+
+   - 被排序到数组索引 ``2`` 位置的是 ``"tom"`` 元素。
+
+4. 遍历数组，
+   根据数组项 ``obj`` 指针所指向的集合元素，
+   以及 ``GET`` 选项所给定的 ``*-name`` 模式，
+   查找相应的键：
+
+   - 对于 ``"jack"`` 元素和 ``*-name`` 模式，
+     查找程序返回键 ``jack-name`` 。
+
+   - 对于 ``"peter"`` 元素和 ``*-name`` 模式，
+     查找程序返回键 ``peter-name`` 。
+
+   - 对于 ``"tom"`` 元素和 ``*-name`` 模式，
+     查找程序返回键 ``tom-name`` 。
+
+5. 遍历查找程序返回的三个键，
+   并向客户端返回它们的值：
+
+   - 首先返回的是 ``jack-name`` 键的值 ``"Jack Snow"`` 。
+
+   - 然后返回的是 ``peter-name`` 键的值 ``"Peter White"`` 。
+
+   - 最后返回的是 ``tom-name`` 键的值 ``"Tom Smith"`` 。
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        subgraph cluster_students {
+
+            label = "students 集合";
+
+            style = dashed;
+
+            node [shape = box];
+
+            peter [label = "StringObject \n \"peter\""];
+
+            jack [label = "StringObject \n \"jack\""];
+
+            tom [label = "StringObject \n \"tom\""];
+
+            peter -> jack -> tom [style = invis];
+
+        }
+
+        node [shape = record];
+
+        array [label = " array | { array[0] \n redisSortObject | { <obj0> obj | u } } | { array[1] \n redisSortObject | { <obj1> obj | u } } | { array[2] \n redisSortObject | { <obj2> obj | u } } "];
+
+        array:obj0 -> peter;
+        array:obj1 -> jack;
+        array:obj2 -> tom;
+
+        label = "\n 图 21-17    排序之前的数组";
+
+    }
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        subgraph cluster_students {
+
+            label = "students 集合";
+
+            style = dashed;
+
+            node [shape = box];
+
+            peter [label = "StringObject \n \"peter\""];
+
+            jack [label = "StringObject \n \"jack\""];
+
+            tom [label = "StringObject \n \"tom\""];
+
+            peter -> jack -> tom [style = invis];
+
+        }
+
+        node [shape = record];
+
+        array [label = " array | { array[0] \n redisSortObject | { <obj0> obj | u } } | { array[1] \n redisSortObject | { <obj1> obj | u } } | { array[2] \n redisSortObject | { <obj2> obj | u } } "];
+
+        array:obj0 -> jack;
+        array:obj1 -> peter;
+        array:obj2 -> tom;
+
+        label = "\n 图 21-18    排序之后的数组";
+
+    }
+
+因为一个 :ref:`SORT` 命令可以带有多个 ``GET`` 选项，
+所以随着 ``GET`` 选项的增多，
+命令要执行的查找操作也会增多。
+
+举个例子，
+以下 :ref:`SORT` 命令对 ``students`` 集合进行了排序，
+并通过两个 ``GET`` 选项来获取被排序元素（一个学生）所对应的全名和出生日期：
+
+::
+
+    # 为学生设置出生日期
+
+    redis> SET peter-birth 1995-6-7
+    OK
+
+    redis> SET tom-birth 1995-8-16
+    OK
+
+    redis> SET jack-birth 1995-5-24
+    OK
+
+    # 排序 students 集合，并获取相应的全名和出生日期
+
+    redis> SORT students ALPHA GET *-name GET *-birth
+    1) "Jack Snow"
+    2) "1995-5-24"
+    3) "Peter White"
+    4) "1995-6-7"
+    5) "Tom Smith"
+    6) "1995-8-16"
+
+服务器执行 ``SORT students ALPHA GET *-name GET *-birth`` 命令的前三个步骤，
+和执行 ``SORT students ALPHA GET *-name`` 命令时的前三个步骤相同，
+但从第四步开始有所区别：
+
+4. 遍历数组，
+   根据数组项 ``obj`` 指针所指向的集合元素，
+   以及两个 ``GET`` 选项所给定的 ``*-name`` 模式和 ``*-birth`` 模式，
+   查找相应的键：
+
+   - 对于 ``"jack"`` 元素和 ``*-name`` 模式，
+     查找程序返回 ``jack-name`` 键。
+
+   - 对于 ``"jack"`` 元素和 ``*-birth`` 模式，
+     查找程序返回 ``jack-birth`` 键。
+
+   - 对于 ``"peter"`` 元素和 ``*-name`` 模式，
+     查找程序返回 ``peter-name`` 键。
+
+   - 对于 ``"peter"`` 元素和 ``*-birth`` 模式，
+     查找程序返回 ``peter-birth`` 键。
+
+   - 对于 ``"tom"`` 元素和 ``*-name`` 模式，
+     查找程序返回 ``tom-name`` 键。
+
+   - 对于 ``"tom"`` 元素和 ``*-birth`` 模式，
+     查找程序返回 ``tom-birth`` 键。
+
+5. 遍历查找程序返回的六个键，
+   并向客户端返回它们的值：
+
+   - 首先返回 ``jack-name`` 键的值 ``"Jack Snow"`` 。
+
+   - 其次返回 ``jack-birth`` 键的值 ``"1995-5-24"`` 。
+
+   - 之后返回 ``peter-name`` 键的值 ``"Peter White"`` 。
+
+   - 再之后返回 ``peter-birth`` 键的值 ``"1995-6-7"`` 。
+
+   - 然后返回 ``tom-name`` 键的值 ``"Tom Smith"`` 。
+
+   - 最后返回 ``tom-birth`` 键的值 ``"1995-8-16"`` 。
+
+:ref:`SORT` 命令在执行其他带有 ``GET`` 选项的排序操作时，
+执行的步骤也和这里给出的步骤类似。

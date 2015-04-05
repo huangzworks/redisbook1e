@@ -1,0 +1,111 @@
+二进制位数组
+========================
+
+Redis 提供了 :ref:`SETBIT` 、 :ref:`GETBIT` 、 :ref:`BITCOUNT` 、 :ref:`BITOP` 四个命令用于处理二进制位数组（\ `bit array <http://en.wikipedia.org/wiki/Bit_array>`_\ ，又称“位数组”）。
+
+其中，
+:ref:`SETBIT` 命令用于为位数组指定偏移量上的二进制位设置值，
+位数组的偏移量从 ``0`` 开始计数，
+而二进制位的值则可以是 ``0`` 或者 ``1`` ：
+
+::
+
+    redis> SETBIT bit 0 1    # 0000 0001
+    (integer) 0
+
+    redis> SETBIT bit 3 1    # 0000 1001
+    (integer) 0
+
+    redis> SETBIT bit 0 0    # 0000 1000
+    (integer) 1
+
+而 :ref:`GETBIT` 命令则用于获取位数组指定偏移量上的二进制位的值：
+
+::
+
+    redis> GETBIT bit 0    # 0000 1000
+    (integer) 0
+
+    redis> GETBIT bit 3    # 0000 1000
+    (integer) 1
+
+:ref:`BITCOUNT` 命令用于统计位数组里面，
+值为 ``1`` 的二进制位的数量：
+
+::
+
+    redis> BITCOUNT bit      # 0000 1000
+    (integer) 1
+
+    redis> SETBIT bit 0 1    # 0000 1001
+    (integer) 0
+
+    redis> BITCOUNT bit
+    (integer) 2
+
+    redis> SETBIT bit 1 1    # 0000 1011
+    (integer) 0
+
+    redis> BITCOUNT bit
+    (integer) 3
+
+最后，
+:ref:`BITOP` 命令既可以对多个位数组进行按位与（and）、按位或（or）、按位异或（xor）运算：
+
+::
+
+    redis> SETBIT x 3 1    # x = 0000 1011
+    (integer) 0
+
+    redis> SETBIT x 1 1
+    (integer) 0
+
+    redis> SETBIT x 0 1
+    (integer) 0
+
+    redis> SETBIT y 2 1    # y = 0000 0110
+    (integer) 0
+
+    redis> SETBIT y 1 1
+    (integer) 0
+
+    redis> SETBIT z 2 1    # z = 0000 0101
+    (integer) 0
+
+    redis> SETBIT z 0 1
+    (integer) 0
+
+    redis> BITOP AND and-result x y z    # 0000 0000
+    (integer) 1
+
+    redis> BITOP OR or-result x y z      # 0000 1111
+    (integer) 1
+
+    redis> BITOP XOR xor-result x y z    # 0000 1000
+    (integer) 1
+
+也可以对给定的位数组进行取反（not）运算：
+
+::
+
+    redis> SETBIT value 0 1    # 0000 1001
+    (integer) 0
+
+    redis> SETBIT value 3 1
+    (integer) 0
+
+    redis> BITOP NOT not-value value    # 1111 0110
+    (integer) 1
+
+本章将对 Redis 表示位数组的方法进行说明，
+并介绍 :ref:`GETBIT` 、 :ref:`SETBIT` 、 :ref:`BITCOUNT` 、 :ref:`BITOP` 四个命令的实现原理。
+
+.. toctree::
+
+    represent
+    getbit
+    setbit
+    bitcount
+    bitop
+    review
+    reference

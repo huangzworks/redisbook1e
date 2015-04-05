@@ -1,0 +1,306 @@
+SETBIT 命令的实现
+----------------------
+
+:ref:`SETBIT` 用于将位数组 ``bitarray`` 在 ``offset`` 偏移量上的二进制位的值设置为 ``value`` ，
+并向客户端返回二进制位被设置之前的旧值：
+
+::
+
+    SETBIT <bitarray> <offset> <value>
+
+以下是 :ref:`SETBIT` 命令的执行过程：
+
+1. 计算 :math:`len = \lfloor offset \div 8 \rfloor + 1` ，
+   ``len`` 值记录了保存 ``offset`` 偏移量指定的二进制位至少需要多少字节。
+
+2. 检查 ``bitarray`` 键保存的位数组（也即是 SDS）的长度是否小于 ``len`` ，
+   如果是的话，
+   将 SDS 的长度扩展为 ``len`` 字节，
+   并将所有新扩展空间的二进制位的值设置为 ``0`` 。
+
+3. 计算 :math:`byte = \lfloor offset \div 8 \rfloor` ，
+   ``byte`` 值记录了 ``offset`` 偏移量指定的二进制位保存在位数组的哪个字节。
+
+4. 计算 :math:`bit = (offset \bmod 8) + 1` ，
+   ``bit`` 值记录了 ``offset`` 偏移量指定的二进制位是 ``byte`` 字节的第几个二进制位。
+
+5. 根据 ``byte`` 值和 ``bit`` 值，
+   在 ``bitarray`` 键保存的位数组中定位 ``offset`` 偏移量指定的二进制位，
+   首先将指定二进制位现在值保存在 ``oldvalue`` 变量，
+   然后将新值 ``value`` 设置为这个二进制位的值。
+
+6. 向客户端返回 ``oldvalue`` 变量的值。
+
+因为 :ref:`SETBIT` 命令执行的所有操作都可以在常数时间内完成，
+所以该命令的时间复杂度为 :math:`O(1)` 。
+
+
+SETBIT 命令的执行示例
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+让我们通过观察一些 :ref:`SETBIT` 命令的执行例子来熟悉 :ref:`SETBIT` 命令的运行过程。
+
+首先，
+如果我们对图 22-2 所示的位数组执行命令：
+
+::
+
+    SETBIT <bitarray> 1 1
+
+那么服务器将执行以下操作：
+
+1. 计算 :math:`\lfloor 1 \div 8 \rfloor + 1` ，
+   得出值 ``1`` ，
+   这表示保存偏移量为 ``1`` 的二进制位至少需要 ``1`` 字节长的位数组。
+
+2. 检查位数组的长度，
+   发现 SDS 的长度不小于 ``1`` 字节，
+   无须执行扩展操作。
+
+3. 计算 :math:`\lfloor 1 \div 8 \rfloor` ，
+   得出值 ``0`` ，
+   说明偏移量为 ``1`` 的二进制位位于 ``buf[0]`` 字节。
+
+4. 计算 :math:`(1 \bmod 8) + 1` ，
+   得出值 ``2`` ，
+   说明偏移量为 ``1`` 的二进制位是 ``buf[0]`` 字节的第 ``2`` 个二进制位。
+
+5. 定位到 ``buf[0]`` 字节的第 ``2`` 个二进制位上面，
+   将二进制位现在的值 ``0`` 保存到 ``oldvalue`` 变量，
+   然后将二进制位的值设置为 ``1`` 。
+
+6. 向客户端返回 ``oldvalue`` 变量的值 ``0`` 。
+
+图 22-6 展示了 :ref:`SETBIT` 命令的执行过程，
+而图 22-7 则展示了 :ref:`SETBIT` 命令执行之后，
+位数组的样子。
+
+.. graphviz::
+
+    digraph {
+
+        label = "\n 图 22-6    SETBIT 命令的执行过程";
+
+        //
+
+        node [shape = plaintext];
+
+        point_to_byte [label = "1） 定位到 buf[0] 字节"];
+
+        point_to_bit [label = "2）定位到 buf[0] 字节的第 2 个二进制位 \n 将位现在的值 0 保存到 oldvalue 变量 \n 然后将位的值设置为 1 "];
+
+        buf [label = " { { <byte> buf[0] | 1 | <bit> 0 | 1 | 1 | 0 | 0 | 1 | 0 } | { buf[1] （空字符） } } ", shape = record];
+
+        //
+
+        edge [style = dashed];
+
+        point_to_byte -> buf:byte;
+        point_to_bit -> buf:bit;
+    }
+
+.. graphviz::
+
+    digraph {
+
+        label = "\n 图 22-7    SETBIT 命令执行之后的位数组";
+
+        buf [label = " { { <byte> buf[0] | 1 | <bit> 1 | 1 | 1 | 0 | 0 | 1 | 0 } | { buf[1] （空字符） } } ", shape = record];
+
+    }
+
+
+带扩展操作的 SETBIT 命令示例
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+前面展示的 :ref:`SETBIT` 例子无须对位数组进行扩展，
+现在，
+让我们来看一个需要对位数组进行扩展的例子。
+
+假设我们对图 22-2 所示的位数组执行命令：
+
+::
+
+    SETBIT <bitarray> 12 1
+
+那么服务器将执行以下操作：
+
+1. 计算 :math:`\lfloor 12 \div 8 \rfloor + 1` ，
+   得出值 ``2`` ，
+   这表示保存偏移量为 ``12`` 的二进制位至少需要 ``2`` 字节长的位数组。
+
+2. 对位数组的长度进行检查，
+   得知位数组现在的长度为 ``1`` 字节，
+   这比执行命令所需的最小长度 ``2`` 字节要小，
+   所以程序会要求将位数组的长度扩展为 ``2`` 字节。
+   不过，
+   尽管程序只要求 ``2`` 字节长的位数组，
+   但 SDS 的空间预分配策略会为 SDS 额外多分配 ``2`` 字节的未使用空间，
+   再加上为保存空字符而额外分配的 ``1`` 字节，
+   扩展之后 ``buf`` 数组的实际长度为 ``5`` 字节，
+   如图 22-8 所示。
+
+3. 计算 :math:`\lfloor 12 \div 8 \rfloor` ，
+   得出值 ``1`` ，
+   说明偏移量为 ``12`` 的二进制位位于 ``buf[1]`` 字节中。
+
+4. 计算 :math:`(12 \bmod 8) + 1` ，
+   得出值 ``5`` ，
+   说明偏移量为 ``12`` 的二进制位是 ``buf[1]`` 字节的第 ``5`` 个二进制位。
+
+5. 定位到 ``buf[1]`` 字节的第 ``5`` 个二进制位，
+   将二进制位现在的值 ``0`` 保存到 ``oldvalue`` 变量，
+   然后将二进制位的值设置为 ``1`` 。
+
+6. 向客户端返回 ``oldvalue`` 变量的值 ``0`` 。
+
+图 22-9 展示了 :ref:`SETBIT` 命令定位并设置指定二进制位的过程，
+而图 22-10 则展示了 :ref:`SETBIT` 命令执行之后，
+位数组的样子。
+
+.. graphviz::
+
+    digraph {
+
+        label = "\n 图 22-8    扩展空间之后的位数组";
+
+        rankdir = LR;
+
+        //
+
+        node [shape = record];
+
+        redisObject [label = " redisObject | ... | type \n REDIS_STRING | ... | <ptr> ptr "];
+
+        sds [label = " <head> sdshdr | free \n 2 | len \n 2 | <buf> buf "];
+
+        buf [label = " { buf[0] | 1 | 0 | 1 | 1 | 0 | 0 | 1 | 0 } | { buf[1] | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 } | { buf[2] （空字符） } | { buf[3] （未使用） } | { buf[4] （未使用） } "];
+
+        //
+
+        redisObject:ptr -> sds:head;
+
+        sds:buf -> buf;
+
+    }
+
+.. graphviz::
+
+    digraph {
+
+        label = "\n 图 22-9    SETBIT 命令的执行过程";
+
+        //
+
+        node [shape = plaintext];
+
+        point_to_byte [label = "1）定位到 buf[1] 字节"];
+        point_yo_bit [label = "2）定位到 buf[1] 字节的第 5 个二进制位 \n 首先将位现在的值 0 保存到 oldvalue 变量 \n 然后将位的值设置为 1 "];
+
+        node [shape = record];
+
+        buf [label = " { { buf[0] | 1 | 0 | 1 | 1 | 0 | 0 | 1 | 0 } | { <byte> buf[1] | 0 | 0 | 0 | 0 | <bit> 0 | 0 | 0 | 0 } | { buf[2] （空字符） } | { buf[3] （未使用） } | { buf[4] （未使用） } } "];
+
+        //
+
+        edge [style = dashed];
+        
+        point_to_byte -> buf:byte;
+        point_yo_bit -> buf:bit;
+    }
+
+.. graphviz::
+
+    digraph {
+
+        label = "\n 图 22-10    执行 SETBIT 命令之后的位数组";
+
+        //
+
+        node [shape = record];
+
+        buf [label = " { { buf[0] | 1 | 0 | 1 | 1 | 0 | 0 | 1 | 0 } | { <byte> buf[1] | 0 | 0 | 0 | 0 | <bit> 1 | 0 | 0 | 0 } | { buf[2] （空字符） } | { buf[3] （未使用） } | { buf[4] （未使用） } } "];
+
+    }
+
+注意，
+因为 ``buf`` 数组使用逆序来保存位数组，
+所以当程序对 ``buf`` 数组进行扩展之后，
+写入操作可以直接在新扩展的二进制位中完成，
+而不必改动位数组原来已有的二进制位。
+
+相反地，
+如果 ``buf`` 数组使用和书写位数组时一样的顺序来保存位数组，
+那么在每次扩展 ``buf`` 数组之后，
+程序都需要将位数组已有的位进行移动，
+然后才能执行写入操作，
+这比 :ref:`SETBIT` 命令目前的实现方式要复杂，
+并且移位带来的 CPU 时间消耗也会影响命令的执行速度。
+
+图 22-11 至图 22-14 模拟了程序在 ``buf`` 数组按书写顺序保存位数组的情况下，
+对位数组 ``0100 1101`` 执行命令 ``SETBIT <bitarray> 12 1`` ，
+将值改为 ``0001 0000 0100 1101`` 的整个过程。
+
+.. graphviz::
+
+    digraph {
+
+        label = "\n 图 22-11    按书写顺序保存的位数组 0100 1101";
+
+        rankdir = LR;
+
+        node [shape = record];
+
+        buf [label = " { buf[0] | 0 | 1 | 0 | 0 | 1 | 1 | 0 | 1 } | { buf[1] （空字符） } "];
+
+    }
+
+.. graphviz::
+
+    digraph {
+
+        label = "\n 图 22-12    扩展之后的位数组";
+
+        rankdir = LR;
+
+        node [shape = record];
+
+        buf [label = " { buf[0] | 0 | 1 | 0 | 0 | 1 | 1 | 0 | 1 } | { buf[1] | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 } | { buf[2] （空字符） } | { buf[3] （未使用） } | { buf[4] （未使用） } "];
+
+    }
+
+.. graphviz::
+
+    digraph {
+
+        label = "\n 图 22-13    移动已有的二进制位";
+
+        rankdir = LR;
+
+        node [shape = record];
+
+        buf [label = " { buf[0] | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 } | { <1> buf[1] | 0 | 1 | 0 | 0 | 1 | 1 | 0 | 1 } | { buf[2] （空字符） } | { buf[3] （未使用） } | { buf[4] （未使用） } "];
+
+        shift [label = "将字节 buf[0] 的所有二进制位 \n 移动到字节 buf[1]", shape = plaintext];
+
+        shift -> buf:1 [style = dashed];
+
+    }
+
+.. graphviz::
+
+    digraph {
+
+        label = "\n 图 22-14    设置指定二进制位的值";
+
+        rankdir = LR;
+
+        node [shape = record];
+
+        buf [label = " { buf[0] | 0 | 0 | 0 | <target> 1 | 0 | 0 | 0 | 0 } | { buf[1] | 0 | 1 | 0 | 0 | 1 | 1 | 0 | 1 } | { buf[2] （空字符） } | { buf[3] （未使用） } | { buf[4] （未使用）} "];
+
+        set [label = "将偏移量为 12 的\n二进制位的值设置为 1", shape = plaintext];
+
+        set -> buf:target [style = dashed];
+
+    }

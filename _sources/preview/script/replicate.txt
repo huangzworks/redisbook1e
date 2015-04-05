@@ -1,0 +1,592 @@
+脚本复制
+-----------
+
+与其他普通 Redis 命令一样，
+当服务器运行在复制模式之下时，
+具有写性质的脚本命令也会被复制到从服务器，
+这些命令包括 :ref:`EVAL` 命令，
+:ref:`EVALSHA` 命令，
+:ref:`SCRIPT_FLUSH` 命令，
+以及 :ref:`SCRIPT_LOAD` 命令。
+
+接下来的两个小节将分别介绍这四个命令的复制方法。
+
+
+复制 EVAL 命令、 SCRIPT FLUSH 命令和 SCRIPT LOAD 命令
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Redis 复制 :ref:`EVAL` 、 :ref:`SCRIPT_FLUSH` 、 :ref:`SCRIPT_LOAD` 三个命令的方法和复制其他普通 Redis 命令的方法一样：
+当主服务器执行完以上三个命令的其中一个时，
+主服务器会直接将被执行的命令传播（propagate）给所有从服务器，
+如图 20-9 所示。
+
+.. graphviz::
+
+    digraph {
+
+        label = "\n 图 20-9    将脚本命令传播给从服务器";
+
+        rankdir = LR;
+
+        //
+
+        node [shape = circle, width = 1.0];
+
+        client [label = "客户端", width = 1.3];
+
+        master [label = "主服务器", width = 1.3];
+
+        slave1 [label = "从服务器 1"];
+
+        slave2 [label = "从服务器 2"];
+
+        more [label = "...", shape = plaintext];
+
+        slaveN [label = "从服务器 N"];
+
+        //
+
+        edge [label = "EVAL \n 或者 \n SCRIPT FLUSH \n 或者 \n SCRIPT LOAD"];
+
+        client -> master;
+        master -> slave1;
+        master -> slave2;
+        master -> more;
+        master -> slaveN;
+
+    }
+
+
+EVAL
+""""""""
+
+对于 :ref:`EVAL` 命令来说，
+在主服务器执行的 Lua 脚本同样会在所有从服务器中执行。
+
+举个例子，
+如果客户端向主服务器执行以下命令：
+
+::
+
+    redis> EVAL "return redis.call('SET', KEYS[1], ARGV[1])" 1 "msg" "hello world"
+    OK
+
+那么主服务器在执行这个 :ref:`EVAL` 命令之后，
+将向所有从服务器传播这条 :ref:`EVAL` 命令，
+从服务器会接收并执行这条 :ref:`EVAL` 命令，
+最终结果是，
+主从服务器双方都会将数据库 ``"msg"`` 键的值设置为 ``"hello world"`` ，
+并且将脚本：
+
+::
+
+    "return redis.call('SET', KEYS[1], ARGV[1])"
+
+保存在脚本字典里面。
+
+
+SCRIPT FLUSH
+""""""""""""""""
+
+如果客户端向主服务器发送 :ref:`SCRIPT_FLUSH` 命令，
+那么主服务器也会向所有从服务器传播 :ref:`SCRIPT_FLUSH` 命令。
+
+最终的结果是，
+主从服务器双方都会重置自己的 Lua 环境，
+并清空自己的脚本字典。
+
+
+SCRIPT LOAD
+""""""""""""""""
+
+如果客户端使用 :ref:`SCRIPT_LOAD` 命令，
+向主服务器载入一个 Lua 脚本，
+那么主服务器将向所有从服务器传播相同的 :ref:`SCRIPT_LOAD` 命令，
+使得所有从服务器也会载入相同的 Lua 脚本。
+
+举个例子，
+如果客户端向主服务器发送命令：
+
+::
+
+    redis> SCRIPT LOAD "return 'hello world'"
+    "5332031c6b470dc5a0dd9b4bf2030dea6d65de91"
+
+那么主服务器也会向所有从服务器传播同样的命令：
+
+::
+
+    SCRIPT LOAD "return 'hello world'"
+
+最终的结果是，
+主从服务器双方都会载入脚本：
+
+::
+
+    "return 'hello world'"
+
+
+复制 EVALSHA 命令
+^^^^^^^^^^^^^^^^^^^
+
+:ref:`EVALSHA` 命令是所有与 Lua 脚本有关的命令中，
+复制操作最复杂的一个 ——
+因为主服务器与从服务器载入 Lua 脚本的情况可能有所不同，
+所以主服务器不能像复制 :ref:`EVAL` 命令、 :ref:`SCRIPT_LOAD` 命令或者 :ref:`SCRIPT_FLUSH` 命令那样，
+直接将 :ref:`EVALSHA` 命令传播给从服务器：
+对于一个在主服务器被成功执行的 :ref:`EVALSHA` 命令来说，
+相同的 :ref:`EVALSHA` 命令在从服务器执行时却可能会出现脚本未找到（not found）错误。
+
+举个例子，
+假设现在有一个主服务器 ``master`` ，
+如果客户端向主服务器发送命令：
+
+::
+
+    master> SCRIPT LOAD "return 'hello world'"
+    "5332031c6b470dc5a0dd9b4bf2030dea6d65de91"
+
+那么在执行这个 :ref:`SCRIPT_LOAD` 命令之后，
+SHA1 值为 ``5332031c6b470dc5a0dd9b4bf2030dea6d65de91`` 的脚本就存在于主服务器中了。
+
+现在，
+假设一个从服务器 ``slave1`` 开始复制主服务器 ``master`` ，
+如果 ``master`` 不想办法将脚本：
+
+::
+
+    "return 'hello world'"
+
+传送给 ``slave1`` 载入的话，
+那么当客户端向主服务器发送命令：
+
+::
+
+    master> EVALSHA "5332031c6b470dc5a0dd9b4bf2030dea6d65de91" 0
+    "hello world"
+
+的时候，
+``master`` 将成功执行这个 :ref:`EVALSHA` 命令，
+而当 ``master`` 将这个命令传播给 ``slave1`` 执行的时候，
+``slave1`` 却会出现脚本未找到错误：
+
+::
+
+    slave1> EVALSHA "5332031c6b470dc5a0dd9b4bf2030dea6d65de91" 0
+    (error) NOSCRIPT No matching script. Please use EVAL.
+
+更为复杂的是，
+因为多个从服务器之间载入 Lua 脚本的情况也可能各有不同，
+所以即使一个 :ref:`EVALSHA` 命令可以在某个从服务器成功执行，
+也不代表这个 :ref:`EVALSHA` 命令就一定可以在另一个从服务器成功执行。
+
+举个例子，
+假设有主服务器 ``master`` 和从服务器 ``slave1`` ，
+并且 ``slave1`` 一直复制着 ``master`` ，
+所以 ``master`` 载入的所有 Lua 脚本，
+``slave1`` 也有载入（通过传播 :ref:`EVAL` 命令或者 :ref:`SCRIPT_LOAD` 命令来实现）。
+
+比如说，
+如果客户端向 ``master`` 发送命令：
+
+::
+
+    master> SCRIPT LOAD "return 'hello world'"
+    "5332031c6b470dc5a0dd9b4bf2030dea6d65de91"
+
+那么这个命令也会被传播到 ``slave1`` 上面，
+所以 ``master`` 和 ``slave1`` 都会成功载入 SHA1 校验和为 ``5332031c6b470dc5a0dd9b4bf2030dea6d65de91`` 的 Lua 脚本。
+
+如果这时，
+一个新的从服务器 ``slave2`` 开始复制主服务器 ``master`` ，
+如果 ``master`` 不想办法将脚本：
+
+::
+
+    "return 'hello world'"
+
+传送给 ``slave2`` 的话，
+那么当客户端向主服务器发送命令：
+
+::
+
+    master> EVALSHA "5332031c6b470dc5a0dd9b4bf2030dea6d65de91" 0
+    "hello world"
+
+的时候，
+``master`` 和 ``slave1`` 都将成功执行这个 :ref:`EVALSHA` 命令，
+而 ``slave2`` 却会发生脚本未找到错误。
+
+为了防止以上假设的情况出现，
+Redis 要求主服务器在传播 :ref:`EVALSHA` 命令的时候，
+必须确保 :ref:`EVALSHA` 命令要执行的脚本已经被所有从服务器载入过，
+如果不能确保这一点的话，
+主服务器会将 :ref:`EVALSHA` 命令转换成一个等价的 :ref:`EVAL` 命令，
+然后通过传播 :ref:`EVAL` 命令来代替 :ref:`EVALSHA` 命令。
+
+传播 :ref:`EVALSHA` 命令，
+或者将 :ref:`EVALSHA` 命令转换成 :ref:`EVAL` 命令，
+都需要用到服务器状态的 ``lua_scripts`` 字典和 ``repl_scriptcache_dict`` 字典，
+接下来的小节将分别介绍这两个字典的作用，
+并最终说明 Redis 复制 :ref:`EVALSHA` 命令的方法。
+
+
+判断传播 EVALSHA 命令是否安全的方法
+"""""""""""""""""""""""""""""""""""""""
+
+主服务器使用服务器状态的 ``repl_scriptcache_dict`` 字典记录自己已经将哪些脚本传播给了所有从服务器：
+
+::
+
+    struct redisServer {
+
+        // ...
+
+        dict *repl_scriptcache_dict;
+
+        // ...
+
+    };
+
+``repl_scriptcache_dict`` 字典的键是一个个 Lua 脚本的 SHA1 校验和，
+而字典的值则全部都是 ``NULL`` ：
+当一个校验和出现在 ``repl_scriptcache_dict`` 字典时，
+说明这个校验和对应的 Lua 脚本已经传播给了所有从服务器，
+主服务器可以直接向从服务器传播包含这个 SHA1 校验和的 :ref:`EVALSHA` 命令，
+而不必担心从服务器会出现脚本未找到错误。
+
+.. graphviz::
+
+    digraph {
+
+        label = "\n图 20-10    一个 repl_scriptcache_dict 字典示例";
+        
+        rankdir = LR;
+
+        node [shape = record];
+
+        //
+
+        lua_scripts [label = "repl_scriptcache_dict | <1> \"2f31ba2bb6d6a0f42cc159d2e2dad55440778de3\" | <2> \"a27e7e8a43702b7046d4f6a7ccf5b60cef6b9bd9\" | <3> \"4475bfb5919b5ad16424cb50f74d4724ae833e72\" "];
+
+        node [shape = plaintext, label = "NULL"];
+
+        lua_scripts:1 -> one;
+        lua_scripts:2 -> two;
+        lua_scripts:3 -> three;
+    }
+
+
+举个例子，
+如果主服务器 ``repl_scriptcache_dict`` 字典的当前状态如图 20-10 所示，
+那么主服务器可以向从服务器传播以下三个 :ref:`EVALSHA` 命令，
+并且从服务器在执行这些 :ref:`EVALSHA` 命令的时候不会出现脚本未找到错误：
+
+::
+
+    EVALSHA "2f31ba2bb6d6a0f42cc159d2e2dad55440778de3" ...
+
+    EVALSHA "a27e7e8a43702b7046d4f6a7ccf5b60cef6b9bd9" ...
+
+    EVALSHA "4475bfb5919b5ad16424cb50f74d4724ae833e72" ...
+
+另一方面，
+如果一个脚本的 SHA1 校验和存在于 ``lua_scripts`` 字典，
+但是却不存在于 ``repl_scriptcache_dict`` 字典，
+那么说明校验和对应的 Lua 脚本已经被主服务器载入，
+但是并没有传播给所有从服务器：
+如果我们尝试向从服务器传播包含这个 SHA1 校验和的 :ref:`EVALSHA` 命令，
+那么至少有一个从服务器会出现脚本未找到错误。
+
+.. graphviz::
+
+    digraph {
+
+        label = "\n图 20-11    lua_scripts 字典";
+        
+        rankdir = LR;
+
+        node [shape = record];
+
+        //
+
+        lua_scripts [label = "lua_scripts | <1> \"2f31ba2bb6d6a0f42cc159d2e2dad55440778de3\" | <2> \"a27e7e8a43702b7046d4f6a7ccf5b60cef6b9bd9\" | <3> \"4475bfb5919b5ad16424cb50f74d4724ae833e72\" | <4> \"5332031c6b470dc5a0dd9b4bf2030dea6d65de91\" "];
+
+        node [shape = plaintext];
+
+        one [label = "\"return 'hi'\""];
+        two [label = "\"return 1+1\""];
+        three [label = "\"return 2*2\""];
+        four [label = "\"return 'hello world'\""];
+
+        lua_scripts:1 -> one;
+        lua_scripts:2 -> two;
+        lua_scripts:3 -> three;
+        lua_scripts:4 -> four;
+    }
+
+举个例子，
+对于图 20-11 所示的 ``lua_scripts`` 字典，
+以及图 20-10 所示的 ``repl_scriptcache_dict`` 字典来说，
+SHA1 校验和为：
+
+::
+
+    "5332031c6b470dc5a0dd9b4bf2030dea6d65de91"
+    
+的脚本：
+
+::
+
+    "return 'hello world'"
+
+虽然存在于 ``lua_scripts`` 字典，
+但是 ``repl_scriptcache_dict`` 字典却并不包含校验和 ``"5332031c6b470dc5a0dd9b4bf2030dea6d65de91"`` ，
+这说明脚本：
+
+::
+
+    "return 'hello world'"
+
+虽然已经载入到主服务器里面，
+但并未传播给所有从服务器，
+如果主服务器尝试向从服务器发送命令：
+
+::
+
+    EVALSHA "5332031c6b470dc5a0dd9b4bf2030dea6d65de91" ...
+
+那么至少会有一个从服务器遇上脚本未找到错误。
+
+
+清空 ``repl_scriptcache_dict`` 字典
+"""""""""""""""""""""""""""""""""""""""""
+
+每当主服务器添加一个新的从服务器时，
+主服务器都会清空自己的 ``repl_scriptcache_dict`` 字典，
+这是因为随着新从服务器的出现，
+``repl_scriptcache_dict`` 字典里面记录的脚本已经不再被所有从服务器载入过，
+所以主服务器会清空 ``repl_scriptcache_dict`` 字典，
+强制自己重新向从服务器传播脚本，
+从而确保新的从服务器不会出现脚本未找到错误。
+
+
+EVALSHA 命令转换成 EVAL 命令的方法
+"""""""""""""""""""""""""""""""""""""""
+
+通过使用 :ref:`EVALSHA` 命令指定的 SHA1 校验和，
+以及 ``lua_scripts`` 字典保存的 Lua 脚本，
+服务器总可以将一个 :ref:`EVALSHA` 命令：
+
+::
+
+    EVALSHA <sha1> <numkeys> [key ...] [arg ...]
+
+转换成一个等价的 :ref:`EVAL` 命令：
+
+::
+
+    EVAL <script> <numkeys> [key ...] [arg ...]
+
+具体的转换方法如下：
+
+1. 根据 SHA1 校验和 ``sha1`` ，
+   在 ``lua_scripts`` 字典中查找 ``sha1`` 对应的 Lua 脚本 ``script`` 。
+
+2. 将原来的 :ref:`EVALSHA` 命令请求改写成 :ref:`EVAL` 命令请求，
+   并且将校验和 ``sha1`` 改成脚本 ``script`` ，
+   至于 ``numkeys`` 、 ``key`` 、 ``arg`` 等参数则保持不变。
+
+举个例子，
+对于图 20-11 所示的 ``lua_scripts`` 字典，
+以及图 20-10 所示的 ``repl_scriptcache_dict`` 字典来说，
+我们总可以将命令：
+
+::
+
+    EVALSHA "5332031c6b470dc5a0dd9b4bf2030dea6d65de91" 0
+
+改写成命令：
+
+::
+
+    EVAL "return 'hello world'" 0
+
+其中脚本的内容：
+
+::
+
+    "return 'hello world'"
+    
+来源于 ``lua_scripts`` 字典 ``"5332031c6b470dc5a0dd9b4bf2030dea6d65de91"`` 键的值。
+
+如果一个 SHA1 值所对应的 Lua 脚本没有被所有从服务器载入过，
+那么主服务器可以将 :ref:`EVALSHA` 命令转换成等价的 :ref:`EVAL` 命令，
+然后通过传播等价的 :ref:`EVAL` 命令来代替原本想要传播的 :ref:`EVALSHA` 命令，
+以此来产生相同的脚本执行效果，
+并确保所有从服务器都不会出现脚本未找到错误。
+
+另外，
+因为主服务器在传播完 :ref:`EVAL` 命令之后，
+会将被传播脚本的 SHA1 校验和（也即是原本 :ref:`EVALSHA` 命令指定的那个校验和）添加到 ``repl_scriptcache_dict`` 字典里面，
+如果之后 :ref:`EVALSHA` 命令再次指定这个 SHA1 校验和，
+主服务器就可以直接传播 :ref:`EVALSHA` 命令，
+而不必再次对 :ref:`EVALSHA` 命令进行转换。
+
+
+传播 EVALSHA 命令的方法
+""""""""""""""""""""""""""
+
+当主服务器成功在本机执行完一个 :ref:`EVALSHA` 命令之后，
+它将根据 :ref:`EVALSHA` 命令指定的 SHA1 校验和是否存在于 ``repl_scriptcache_dict`` 字典来决定是向从服务器传播 :ref:`EVALSHA` 命令还是 :ref:`EVAL` 命令：
+
+1. 如果 :ref:`EVALSHA` 命令指定的 SHA1 校验和存在于 ``repl_scriptcache_dict`` 字典，
+   那么主服务器直接向从服务器传播 :ref:`EVALSHA` 命令。
+
+2. 如果 :ref:`EVALSHA` 命令指定的 SHA1 校验和不存在于 ``repl_scriptcache_dict`` 字典，
+   那么主服务器会将 :ref:`EVALSHA` 命令转换成等价的 :ref:`EVAL` 命令，
+   然后传播这个等价的 :ref:`EVAL` 命令，
+   并将 :ref:`EVALSHA` 命令指定的 SHA1 校验和添加到 ``repl_scriptcache_dict`` 字典里面。
+
+图 20-12 展示了这个判断过程。
+
+.. graphviz::
+
+    digraph {
+
+        label = "\n 图 20-12    主服务器判断传播 EVAL 还是 EVALSHA 的过程";
+
+        node [shape = box];
+
+        command [label = " 主服务器在本机执行完命令 \n EVALSHA <sha1> <numkeys> [key ...] [arg ...] "];
+
+        sha1_exists_in_scriptcache_or_not [label = "校验和 sha1 是否存在于 \n repl_scriptcache_dict 字典？", shape = diamond];
+
+        propagate_evalsha [label = "传播 \n EVALSHA <sha1> <numkeys> [key ...] [arg ...]"];
+
+        convert_evalsha_to_eval [label = "将 EVALSHA 命令转换成等价的 EVAL 命令"];
+
+        propagate_eval [label = "传播 \n EVAL <script> <numkeys> [key ...] [arg ...]"];
+
+        add_sha1_to_scriptcache [label = "将 sha1 添加到 \n repl_scriptcache_dict 字典"];
+
+        //
+
+        command -> sha1_exists_in_scriptcache_or_not;
+
+        sha1_exists_in_scriptcache_or_not -> propagate_evalsha [label = "是"];
+
+        sha1_exists_in_scriptcache_or_not -> convert_evalsha_to_eval [label = "否"];
+
+        convert_evalsha_to_eval -> propagate_eval;
+
+        propagate_eval -> add_sha1_to_scriptcache;    
+
+    }
+
+.. graphviz::
+
+    digraph {
+
+        label = "\n图 20-13    执行 EVALSHA 命令之前的 lua_scripts 字典和 repl_scriptcache_dict 字典";
+        
+        rankdir = LR;
+
+        node [shape = record];
+
+        //
+
+        repl_scriptcache_dict [label = "repl_scriptcache_dict | <1> \"2f31ba2bb6d6a0f42cc159d2e2dad55440778de3\" | <2> \"a27e7e8a43702b7046d4f6a7ccf5b60cef6b9bd9\" | <3> \"4475bfb5919b5ad16424cb50f74d4724ae833e72\" "];
+
+        node [shape = plaintext, label = "NULL"];
+
+        repl_scriptcache_dict:1 -> n1;
+        repl_scriptcache_dict:2 -> n2;
+        repl_scriptcache_dict:3 -> n3;
+
+        node [shape = record];
+
+        //
+
+        lua_scripts [label = "lua_scripts | <1> \"2f31ba2bb6d6a0f42cc159d2e2dad55440778de3\" | <2> \"a27e7e8a43702b7046d4f6a7ccf5b60cef6b9bd9\" | <3> \"4475bfb5919b5ad16424cb50f74d4724ae833e72\" | <4> \"5332031c6b470dc5a0dd9b4bf2030dea6d65de91\" "];
+
+        node [shape = plaintext];
+
+        one [label = "\"return 'hi'\""];
+        two [label = "\"return 1+1\""];
+        three [label = "\"return 2*2\""];
+        four [label = "\"return 'hello world'\""];
+
+        lua_scripts:1 -> one;
+        lua_scripts:2 -> two;
+        lua_scripts:3 -> three;
+        lua_scripts:4 -> four;
+    }
+
+举个例子，
+假设服务器当前 ``lua_scripts`` 字典和 ``repl_scriptcache_dict`` 字典的状态如图 20-13 所示，
+如果客户端向主服务器发送命令：
+
+::
+
+    EVALSHA "5332031c6b470dc5a0dd9b4bf2030dea6d65de91" 0
+
+那么主服务器在执行完这个 :ref:`EVALSHA` 命令之后，
+会将这个 :ref:`EVALSHA` 命令转换成等价的 :ref:`EVAL` 命令：
+
+::
+
+    EVAL "return 'hello world'" 0
+
+并向所有从服务器传播这个 :ref:`EVAL` 命令。
+
+除此之外，
+主服务器还会将 SHA1 校验和 ``"5332031c6b470dc5a0dd9b4bf2030dea6d65de91"`` 添加到 ``repl_scriptcache_dict`` 字典里，
+这样当客户端下次再发送命令：
+
+::
+
+    EVALSHA "5332031c6b470dc5a0dd9b4bf2030dea6d65de91" 0
+
+的时候，
+主服务器就可以直接向从服务器传播这个 :ref:`EVALSHA` 命令，
+而无须将 :ref:`EVALSHA` 命令转换成 :ref:`EVAL` 命令再传播。
+
+添加 ``"5332031c6b470dc5a0dd9b4bf2030dea6d65de91"`` 之后的 ``repl_scriptcache_dict`` 字典如图 20-14 所示。
+ 
+.. graphviz::
+
+    digraph {
+
+        label = "\n图 20-14    执行 EVALSHA 命令之后的 repl_scriptcache_dict 字典";
+        
+        rankdir = LR;
+
+        node [shape = record];
+
+        //
+
+        repl_scriptcache_dict [label = "repl_scriptcache_dict | <1> \"2f31ba2bb6d6a0f42cc159d2e2dad55440778de3\" | <2> \"a27e7e8a43702b7046d4f6a7ccf5b60cef6b9bd9\" | <3> \"4475bfb5919b5ad16424cb50f74d4724ae833e72\" | <4> \"5332031c6b470dc5a0dd9b4bf2030dea6d65de91\""];
+
+        node [shape = plaintext, label = "NULL"];
+
+        repl_scriptcache_dict:1 -> n1;
+        repl_scriptcache_dict:2 -> n2;
+        repl_scriptcache_dict:3 -> n3;
+        repl_scriptcache_dict:4 -> n4;
+
+    }   
+
+..
+    .. topic:: 进一步优化 :ref:`EVALSHA` 命令的传播效率
+
+        Redis 目前使用一个 ``repl_scriptcache_dict`` 字典来记录所有从服务器载入 Lua 脚本的状态，
+        这个做法对于减少重复发送 :ref:`EVAL` 命令来说，
+        并不是最优化的。
+
+        因为根据连接主服务器的时间先后，
+        一个较早连接到主服务器的从服务器会比较迟连接到主服务器的从服务器载入了更多的 Lua 脚本，
+        所以一个较迟连接的从服务器没有载入过的 Lua 脚本，
+        一个较早连接的从服务器可能已经载入过。
+
+        将“所有从服务器共用一个记录字典”改为“每个从服务器单独使用一个记录字典”可以改变这一问题。

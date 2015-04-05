@@ -1,0 +1,577 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>脚本复制 &mdash; Redis 设计与实现</title>
+    
+    <link rel="stylesheet" href="../../_static/pyramid.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="Redis 设计与实现" href="../../index.html" /> 
+
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+
+  </head>
+  <body>
+
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li><a href="../../index.html">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="id1">
+<h1>脚本复制<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
+<p>与其他普通 Redis 命令一样，
+当服务器运行在复制模式之下时，
+具有写性质的脚本命令也会被复制到从服务器，
+这些命令包括 <em class="xref std std-ref">EVAL</em> 命令，
+<em class="xref std std-ref">EVALSHA</em> 命令，
+<em class="xref std std-ref">SCRIPT_FLUSH</em> 命令，
+以及 <em class="xref std std-ref">SCRIPT_LOAD</em> 命令。</p>
+<p>接下来的两个小节将分别介绍这四个命令的复制方法。</p>
+<div class="section" id="eval-script-flush-script-load">
+<h2>复制 EVAL 命令、 SCRIPT FLUSH 命令和 SCRIPT LOAD 命令<a class="headerlink" href="#eval-script-flush-script-load" title="Permalink to this headline">¶</a></h2>
+<p>Redis 复制 <em class="xref std std-ref">EVAL</em> 、 <em class="xref std std-ref">SCRIPT_FLUSH</em> 、 <em class="xref std std-ref">SCRIPT_LOAD</em> 三个命令的方法和复制其他普通 Redis 命令的方法一样：
+当主服务器执行完以上三个命令的其中一个时，
+主服务器会直接将被执行的命令传播（propagate）给所有从服务器，
+如图 20-9 所示。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-3dd73e3a33d3296432d160fc0ce47ffc4a17aa68.png" alt="digraph {
+
+    label = &quot;\n 图 20-9    将脚本命令传播给从服务器&quot;;
+
+    rankdir = LR;
+
+    //
+
+    node [shape = circle, width = 1.0];
+
+    client [label = &quot;客户端&quot;, width = 1.3];
+
+    master [label = &quot;主服务器&quot;, width = 1.3];
+
+    slave1 [label = &quot;从服务器 1&quot;];
+
+    slave2 [label = &quot;从服务器 2&quot;];
+
+    more [label = &quot;...&quot;, shape = plaintext];
+
+    slaveN [label = &quot;从服务器 N&quot;];
+
+    //
+
+    edge [label = &quot;EVAL \n 或者 \n SCRIPT FLUSH \n 或者 \n SCRIPT LOAD&quot;];
+
+    client -&gt; master;
+    master -&gt; slave1;
+    master -&gt; slave2;
+    master -&gt; more;
+    master -&gt; slaveN;
+
+}" />
+</p>
+<div class="section" id="eval">
+<h3>EVAL<a class="headerlink" href="#eval" title="Permalink to this headline">¶</a></h3>
+<p>对于 <em class="xref std std-ref">EVAL</em> 命令来说，
+在主服务器执行的 Lua 脚本同样会在所有从服务器中执行。</p>
+<p>举个例子，
+如果客户端向主服务器执行以下命令：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">EVAL</span> <span class="s">&quot;return redis.call(&#39;SET&#39;, KEYS[1], ARGV[1])&quot;</span> <span class="mi">1</span> <span class="s">&quot;msg&quot;</span> <span class="s">&quot;hello world&quot;</span>
+<span class="n">OK</span>
+</pre></div>
+</div>
+<p>那么主服务器在执行这个 <em class="xref std std-ref">EVAL</em> 命令之后，
+将向所有从服务器传播这条 <em class="xref std std-ref">EVAL</em> 命令，
+从服务器会接收并执行这条 <em class="xref std std-ref">EVAL</em> 命令，
+最终结果是，
+主从服务器双方都会将数据库 <code class="docutils literal"><span class="pre">&quot;msg&quot;</span></code> 键的值设置为 <code class="docutils literal"><span class="pre">&quot;hello</span> <span class="pre">world&quot;</span></code> ，
+并且将脚本：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="s">&quot;return redis.call(&#39;SET&#39;, KEYS[1], ARGV[1])&quot;</span>
+</pre></div>
+</div>
+<p>保存在脚本字典里面。</p>
+</div>
+<div class="section" id="script-flush">
+<h3>SCRIPT FLUSH<a class="headerlink" href="#script-flush" title="Permalink to this headline">¶</a></h3>
+<p>如果客户端向主服务器发送 <em class="xref std std-ref">SCRIPT_FLUSH</em> 命令，
+那么主服务器也会向所有从服务器传播 <em class="xref std std-ref">SCRIPT_FLUSH</em> 命令。</p>
+<p>最终的结果是，
+主从服务器双方都会重置自己的 Lua 环境，
+并清空自己的脚本字典。</p>
+</div>
+<div class="section" id="script-load">
+<h3>SCRIPT LOAD<a class="headerlink" href="#script-load" title="Permalink to this headline">¶</a></h3>
+<p>如果客户端使用 <em class="xref std std-ref">SCRIPT_LOAD</em> 命令，
+向主服务器载入一个 Lua 脚本，
+那么主服务器将向所有从服务器传播相同的 <em class="xref std std-ref">SCRIPT_LOAD</em> 命令，
+使得所有从服务器也会载入相同的 Lua 脚本。</p>
+<p>举个例子，
+如果客户端向主服务器发送命令：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">SCRIPT</span> <span class="n">LOAD</span> <span class="s">&quot;return &#39;hello world&#39;&quot;</span>
+<span class="s">&quot;5332031c6b470dc5a0dd9b4bf2030dea6d65de91&quot;</span>
+</pre></div>
+</div>
+<p>那么主服务器也会向所有从服务器传播同样的命令：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">SCRIPT</span> <span class="n">LOAD</span> <span class="s">&quot;return &#39;hello world&#39;&quot;</span>
+</pre></div>
+</div>
+<p>最终的结果是，
+主从服务器双方都会载入脚本：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="s">&quot;return &#39;hello world&#39;&quot;</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="evalsha">
+<h2>复制 EVALSHA 命令<a class="headerlink" href="#evalsha" title="Permalink to this headline">¶</a></h2>
+<p><em class="xref std std-ref">EVALSHA</em> 命令是所有与 Lua 脚本有关的命令中，
+复制操作最复杂的一个 ——
+因为主服务器与从服务器载入 Lua 脚本的情况可能有所不同，
+所以主服务器不能像复制 <em class="xref std std-ref">EVAL</em> 命令、 <em class="xref std std-ref">SCRIPT_LOAD</em> 命令或者 <em class="xref std std-ref">SCRIPT_FLUSH</em> 命令那样，
+直接将 <em class="xref std std-ref">EVALSHA</em> 命令传播给从服务器：
+对于一个在主服务器被成功执行的 <em class="xref std std-ref">EVALSHA</em> 命令来说，
+相同的 <em class="xref std std-ref">EVALSHA</em> 命令在从服务器执行时却可能会出现脚本未找到（not found）错误。</p>
+<p>举个例子，
+假设现在有一个主服务器 <code class="docutils literal"><span class="pre">master</span></code> ，
+如果客户端向主服务器发送命令：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">master</span><span class="o">&gt;</span> <span class="n">SCRIPT</span> <span class="n">LOAD</span> <span class="s">&quot;return &#39;hello world&#39;&quot;</span>
+<span class="s">&quot;5332031c6b470dc5a0dd9b4bf2030dea6d65de91&quot;</span>
+</pre></div>
+</div>
+<p>那么在执行这个 <em class="xref std std-ref">SCRIPT_LOAD</em> 命令之后，
+SHA1 值为 <code class="docutils literal"><span class="pre">5332031c6b470dc5a0dd9b4bf2030dea6d65de91</span></code> 的脚本就存在于主服务器中了。</p>
+<p>现在，
+假设一个从服务器 <code class="docutils literal"><span class="pre">slave1</span></code> 开始复制主服务器 <code class="docutils literal"><span class="pre">master</span></code> ，
+如果 <code class="docutils literal"><span class="pre">master</span></code> 不想办法将脚本：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="s">&quot;return &#39;hello world&#39;&quot;</span>
+</pre></div>
+</div>
+<p>传送给 <code class="docutils literal"><span class="pre">slave1</span></code> 载入的话，
+那么当客户端向主服务器发送命令：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">master</span><span class="o">&gt;</span> <span class="n">EVALSHA</span> <span class="s">&quot;5332031c6b470dc5a0dd9b4bf2030dea6d65de91&quot;</span> <span class="mi">0</span>
+<span class="s">&quot;hello world&quot;</span>
+</pre></div>
+</div>
+<p>的时候，
+<code class="docutils literal"><span class="pre">master</span></code> 将成功执行这个 <em class="xref std std-ref">EVALSHA</em> 命令，
+而当 <code class="docutils literal"><span class="pre">master</span></code> 将这个命令传播给 <code class="docutils literal"><span class="pre">slave1</span></code> 执行的时候，
+<code class="docutils literal"><span class="pre">slave1</span></code> 却会出现脚本未找到错误：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">slave1</span><span class="o">&gt;</span> <span class="n">EVALSHA</span> <span class="s">&quot;5332031c6b470dc5a0dd9b4bf2030dea6d65de91&quot;</span> <span class="mi">0</span>
+<span class="p">(</span><span class="n">error</span><span class="p">)</span> <span class="n">NOSCRIPT</span> <span class="n">No</span> <span class="n">matching</span> <span class="n">script</span><span class="p">.</span> <span class="n">Please</span> <span class="n">use</span> <span class="n">EVAL</span><span class="p">.</span>
+</pre></div>
+</div>
+<p>更为复杂的是，
+因为多个从服务器之间载入 Lua 脚本的情况也可能各有不同，
+所以即使一个 <em class="xref std std-ref">EVALSHA</em> 命令可以在某个从服务器成功执行，
+也不代表这个 <em class="xref std std-ref">EVALSHA</em> 命令就一定可以在另一个从服务器成功执行。</p>
+<p>举个例子，
+假设有主服务器 <code class="docutils literal"><span class="pre">master</span></code> 和从服务器 <code class="docutils literal"><span class="pre">slave1</span></code> ，
+并且 <code class="docutils literal"><span class="pre">slave1</span></code> 一直复制着 <code class="docutils literal"><span class="pre">master</span></code> ，
+所以 <code class="docutils literal"><span class="pre">master</span></code> 载入的所有 Lua 脚本，
+<code class="docutils literal"><span class="pre">slave1</span></code> 也有载入（通过传播 <em class="xref std std-ref">EVAL</em> 命令或者 <em class="xref std std-ref">SCRIPT_LOAD</em> 命令来实现）。</p>
+<p>比如说，
+如果客户端向 <code class="docutils literal"><span class="pre">master</span></code> 发送命令：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">master</span><span class="o">&gt;</span> <span class="n">SCRIPT</span> <span class="n">LOAD</span> <span class="s">&quot;return &#39;hello world&#39;&quot;</span>
+<span class="s">&quot;5332031c6b470dc5a0dd9b4bf2030dea6d65de91&quot;</span>
+</pre></div>
+</div>
+<p>那么这个命令也会被传播到 <code class="docutils literal"><span class="pre">slave1</span></code> 上面，
+所以 <code class="docutils literal"><span class="pre">master</span></code> 和 <code class="docutils literal"><span class="pre">slave1</span></code> 都会成功载入 SHA1 校验和为 <code class="docutils literal"><span class="pre">5332031c6b470dc5a0dd9b4bf2030dea6d65de91</span></code> 的 Lua 脚本。</p>
+<p>如果这时，
+一个新的从服务器 <code class="docutils literal"><span class="pre">slave2</span></code> 开始复制主服务器 <code class="docutils literal"><span class="pre">master</span></code> ，
+如果 <code class="docutils literal"><span class="pre">master</span></code> 不想办法将脚本：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="s">&quot;return &#39;hello world&#39;&quot;</span>
+</pre></div>
+</div>
+<p>传送给 <code class="docutils literal"><span class="pre">slave2</span></code> 的话，
+那么当客户端向主服务器发送命令：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">master</span><span class="o">&gt;</span> <span class="n">EVALSHA</span> <span class="s">&quot;5332031c6b470dc5a0dd9b4bf2030dea6d65de91&quot;</span> <span class="mi">0</span>
+<span class="s">&quot;hello world&quot;</span>
+</pre></div>
+</div>
+<p>的时候，
+<code class="docutils literal"><span class="pre">master</span></code> 和 <code class="docutils literal"><span class="pre">slave1</span></code> 都将成功执行这个 <em class="xref std std-ref">EVALSHA</em> 命令，
+而 <code class="docutils literal"><span class="pre">slave2</span></code> 却会发生脚本未找到错误。</p>
+<p>为了防止以上假设的情况出现，
+Redis 要求主服务器在传播 <em class="xref std std-ref">EVALSHA</em> 命令的时候，
+必须确保 <em class="xref std std-ref">EVALSHA</em> 命令要执行的脚本已经被所有从服务器载入过，
+如果不能确保这一点的话，
+主服务器会将 <em class="xref std std-ref">EVALSHA</em> 命令转换成一个等价的 <em class="xref std std-ref">EVAL</em> 命令，
+然后通过传播 <em class="xref std std-ref">EVAL</em> 命令来代替 <em class="xref std std-ref">EVALSHA</em> 命令。</p>
+<p>传播 <em class="xref std std-ref">EVALSHA</em> 命令，
+或者将 <em class="xref std std-ref">EVALSHA</em> 命令转换成 <em class="xref std std-ref">EVAL</em> 命令，
+都需要用到服务器状态的 <code class="docutils literal"><span class="pre">lua_scripts</span></code> 字典和 <code class="docutils literal"><span class="pre">repl_scriptcache_dict</span></code> 字典，
+接下来的小节将分别介绍这两个字典的作用，
+并最终说明 Redis 复制 <em class="xref std std-ref">EVALSHA</em> 命令的方法。</p>
+<div class="section" id="id2">
+<h3>判断传播 EVALSHA 命令是否安全的方法<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h3>
+<p>主服务器使用服务器状态的 <code class="docutils literal"><span class="pre">repl_scriptcache_dict</span></code> 字典记录自己已经将哪些脚本传播给了所有从服务器：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="k">struct</span> <span class="n">redisServer</span> <span class="p">{</span>
+
+    <span class="c1">// ...</span>
+
+    <span class="n">dict</span> <span class="o">*</span><span class="n">repl_scriptcache_dict</span><span class="p">;</span>
+
+    <span class="c1">// ...</span>
+
+<span class="p">};</span>
+</pre></div>
+</div>
+<p><code class="docutils literal"><span class="pre">repl_scriptcache_dict</span></code> 字典的键是一个个 Lua 脚本的 SHA1 校验和，
+而字典的值则全部都是 <code class="docutils literal"><span class="pre">NULL</span></code> ：
+当一个校验和出现在 <code class="docutils literal"><span class="pre">repl_scriptcache_dict</span></code> 字典时，
+说明这个校验和对应的 Lua 脚本已经传播给了所有从服务器，
+主服务器可以直接向从服务器传播包含这个 SHA1 校验和的 <em class="xref std std-ref">EVALSHA</em> 命令，
+而不必担心从服务器会出现脚本未找到错误。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-3afa10ca3bb05b71bb09f9c98803ace7a6ac1759.png" alt="digraph {
+
+    label = &quot;\n图 20-10    一个 repl_scriptcache_dict 字典示例&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    //
+
+    lua_scripts [label = &quot;repl_scriptcache_dict | &lt;1&gt; \&quot;2f31ba2bb6d6a0f42cc159d2e2dad55440778de3\&quot; | &lt;2&gt; \&quot;a27e7e8a43702b7046d4f6a7ccf5b60cef6b9bd9\&quot; | &lt;3&gt; \&quot;4475bfb5919b5ad16424cb50f74d4724ae833e72\&quot; &quot;];
+
+    node [shape = plaintext, label = &quot;NULL&quot;];
+
+    lua_scripts:1 -&gt; one;
+    lua_scripts:2 -&gt; two;
+    lua_scripts:3 -&gt; three;
+}" />
+</p>
+<p>举个例子，
+如果主服务器 <code class="docutils literal"><span class="pre">repl_scriptcache_dict</span></code> 字典的当前状态如图 20-10 所示，
+那么主服务器可以向从服务器传播以下三个 <em class="xref std std-ref">EVALSHA</em> 命令，
+并且从服务器在执行这些 <em class="xref std std-ref">EVALSHA</em> 命令的时候不会出现脚本未找到错误：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">EVALSHA</span> <span class="s">&quot;2f31ba2bb6d6a0f42cc159d2e2dad55440778de3&quot;</span> <span class="p">...</span>
+
+<span class="n">EVALSHA</span> <span class="s">&quot;a27e7e8a43702b7046d4f6a7ccf5b60cef6b9bd9&quot;</span> <span class="p">...</span>
+
+<span class="n">EVALSHA</span> <span class="s">&quot;4475bfb5919b5ad16424cb50f74d4724ae833e72&quot;</span> <span class="p">...</span>
+</pre></div>
+</div>
+<p>另一方面，
+如果一个脚本的 SHA1 校验和存在于 <code class="docutils literal"><span class="pre">lua_scripts</span></code> 字典，
+但是却不存在于 <code class="docutils literal"><span class="pre">repl_scriptcache_dict</span></code> 字典，
+那么说明校验和对应的 Lua 脚本已经被主服务器载入，
+但是并没有传播给所有从服务器：
+如果我们尝试向从服务器传播包含这个 SHA1 校验和的 <em class="xref std std-ref">EVALSHA</em> 命令，
+那么至少有一个从服务器会出现脚本未找到错误。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-24dd19642dc30ce4b23eccad80f73a2ad47951a8.png" alt="digraph {
+
+    label = &quot;\n图 20-11    lua_scripts 字典&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    //
+
+    lua_scripts [label = &quot;lua_scripts | &lt;1&gt; \&quot;2f31ba2bb6d6a0f42cc159d2e2dad55440778de3\&quot; | &lt;2&gt; \&quot;a27e7e8a43702b7046d4f6a7ccf5b60cef6b9bd9\&quot; | &lt;3&gt; \&quot;4475bfb5919b5ad16424cb50f74d4724ae833e72\&quot; | &lt;4&gt; \&quot;5332031c6b470dc5a0dd9b4bf2030dea6d65de91\&quot; &quot;];
+
+    node [shape = plaintext];
+
+    one [label = &quot;\&quot;return 'hi'\&quot;&quot;];
+    two [label = &quot;\&quot;return 1+1\&quot;&quot;];
+    three [label = &quot;\&quot;return 2*2\&quot;&quot;];
+    four [label = &quot;\&quot;return 'hello world'\&quot;&quot;];
+
+    lua_scripts:1 -&gt; one;
+    lua_scripts:2 -&gt; two;
+    lua_scripts:3 -&gt; three;
+    lua_scripts:4 -&gt; four;
+}" />
+</p>
+<p>举个例子，
+对于图 20-11 所示的 <code class="docutils literal"><span class="pre">lua_scripts</span></code> 字典，
+以及图 20-10 所示的 <code class="docutils literal"><span class="pre">repl_scriptcache_dict</span></code> 字典来说，
+SHA1 校验和为：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="s">&quot;5332031c6b470dc5a0dd9b4bf2030dea6d65de91&quot;</span>
+</pre></div>
+</div>
+<p>的脚本：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="s">&quot;return &#39;hello world&#39;&quot;</span>
+</pre></div>
+</div>
+<p>虽然存在于 <code class="docutils literal"><span class="pre">lua_scripts</span></code> 字典，
+但是 <code class="docutils literal"><span class="pre">repl_scriptcache_dict</span></code> 字典却并不包含校验和 <code class="docutils literal"><span class="pre">&quot;5332031c6b470dc5a0dd9b4bf2030dea6d65de91&quot;</span></code> ，
+这说明脚本：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="s">&quot;return &#39;hello world&#39;&quot;</span>
+</pre></div>
+</div>
+<p>虽然已经载入到主服务器里面，
+但并未传播给所有从服务器，
+如果主服务器尝试向从服务器发送命令：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">EVALSHA</span> <span class="s">&quot;5332031c6b470dc5a0dd9b4bf2030dea6d65de91&quot;</span> <span class="p">...</span>
+</pre></div>
+</div>
+<p>那么至少会有一个从服务器遇上脚本未找到错误。</p>
+</div>
+<div class="section" id="repl-scriptcache-dict">
+<h3>清空 <code class="docutils literal"><span class="pre">repl_scriptcache_dict</span></code> 字典<a class="headerlink" href="#repl-scriptcache-dict" title="Permalink to this headline">¶</a></h3>
+<p>每当主服务器添加一个新的从服务器时，
+主服务器都会清空自己的 <code class="docutils literal"><span class="pre">repl_scriptcache_dict</span></code> 字典，
+这是因为随着新从服务器的出现，
+<code class="docutils literal"><span class="pre">repl_scriptcache_dict</span></code> 字典里面记录的脚本已经不再被所有从服务器载入过，
+所以主服务器会清空 <code class="docutils literal"><span class="pre">repl_scriptcache_dict</span></code> 字典，
+强制自己重新向从服务器传播脚本，
+从而确保新的从服务器不会出现脚本未找到错误。</p>
+</div>
+<div class="section" id="evalsha-eval">
+<h3>EVALSHA 命令转换成 EVAL 命令的方法<a class="headerlink" href="#evalsha-eval" title="Permalink to this headline">¶</a></h3>
+<p>通过使用 <em class="xref std std-ref">EVALSHA</em> 命令指定的 SHA1 校验和，
+以及 <code class="docutils literal"><span class="pre">lua_scripts</span></code> 字典保存的 Lua 脚本，
+服务器总可以将一个 <em class="xref std std-ref">EVALSHA</em> 命令：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">EVALSHA</span> <span class="o">&lt;</span><span class="n">sha1</span><span class="o">&gt;</span> <span class="o">&lt;</span><span class="n">numkeys</span><span class="o">&gt;</span> <span class="p">[</span><span class="n">key</span> <span class="p">...]</span> <span class="p">[</span><span class="n">arg</span> <span class="p">...]</span>
+</pre></div>
+</div>
+<p>转换成一个等价的 <em class="xref std std-ref">EVAL</em> 命令：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">EVAL</span> <span class="o">&lt;</span><span class="n">script</span><span class="o">&gt;</span> <span class="o">&lt;</span><span class="n">numkeys</span><span class="o">&gt;</span> <span class="p">[</span><span class="n">key</span> <span class="p">...]</span> <span class="p">[</span><span class="n">arg</span> <span class="p">...]</span>
+</pre></div>
+</div>
+<p>具体的转换方法如下：</p>
+<ol class="arabic simple">
+<li>根据 SHA1 校验和 <code class="docutils literal"><span class="pre">sha1</span></code> ，
+在 <code class="docutils literal"><span class="pre">lua_scripts</span></code> 字典中查找 <code class="docutils literal"><span class="pre">sha1</span></code> 对应的 Lua 脚本 <code class="docutils literal"><span class="pre">script</span></code> 。</li>
+<li>将原来的 <em class="xref std std-ref">EVALSHA</em> 命令请求改写成 <em class="xref std std-ref">EVAL</em> 命令请求，
+并且将校验和 <code class="docutils literal"><span class="pre">sha1</span></code> 改成脚本 <code class="docutils literal"><span class="pre">script</span></code> ，
+至于 <code class="docutils literal"><span class="pre">numkeys</span></code> 、 <code class="docutils literal"><span class="pre">key</span></code> 、 <code class="docutils literal"><span class="pre">arg</span></code> 等参数则保持不变。</li>
+</ol>
+<p>举个例子，
+对于图 20-11 所示的 <code class="docutils literal"><span class="pre">lua_scripts</span></code> 字典，
+以及图 20-10 所示的 <code class="docutils literal"><span class="pre">repl_scriptcache_dict</span></code> 字典来说，
+我们总可以将命令：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">EVALSHA</span> <span class="s">&quot;5332031c6b470dc5a0dd9b4bf2030dea6d65de91&quot;</span> <span class="mi">0</span>
+</pre></div>
+</div>
+<p>改写成命令：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">EVAL</span> <span class="s">&quot;return &#39;hello world&#39;&quot;</span> <span class="mi">0</span>
+</pre></div>
+</div>
+<p>其中脚本的内容：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="s">&quot;return &#39;hello world&#39;&quot;</span>
+</pre></div>
+</div>
+<p>来源于 <code class="docutils literal"><span class="pre">lua_scripts</span></code> 字典 <code class="docutils literal"><span class="pre">&quot;5332031c6b470dc5a0dd9b4bf2030dea6d65de91&quot;</span></code> 键的值。</p>
+<p>如果一个 SHA1 值所对应的 Lua 脚本没有被所有从服务器载入过，
+那么主服务器可以将 <em class="xref std std-ref">EVALSHA</em> 命令转换成等价的 <em class="xref std std-ref">EVAL</em> 命令，
+然后通过传播等价的 <em class="xref std std-ref">EVAL</em> 命令来代替原本想要传播的 <em class="xref std std-ref">EVALSHA</em> 命令，
+以此来产生相同的脚本执行效果，
+并确保所有从服务器都不会出现脚本未找到错误。</p>
+<p>另外，
+因为主服务器在传播完 <em class="xref std std-ref">EVAL</em> 命令之后，
+会将被传播脚本的 SHA1 校验和（也即是原本 <em class="xref std std-ref">EVALSHA</em> 命令指定的那个校验和）添加到 <code class="docutils literal"><span class="pre">repl_scriptcache_dict</span></code> 字典里面，
+如果之后 <em class="xref std std-ref">EVALSHA</em> 命令再次指定这个 SHA1 校验和，
+主服务器就可以直接传播 <em class="xref std std-ref">EVALSHA</em> 命令，
+而不必再次对 <em class="xref std std-ref">EVALSHA</em> 命令进行转换。</p>
+</div>
+<div class="section" id="id3">
+<h3>传播 EVALSHA 命令的方法<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h3>
+<p>当主服务器成功在本机执行完一个 <em class="xref std std-ref">EVALSHA</em> 命令之后，
+它将根据 <em class="xref std std-ref">EVALSHA</em> 命令指定的 SHA1 校验和是否存在于 <code class="docutils literal"><span class="pre">repl_scriptcache_dict</span></code> 字典来决定是向从服务器传播 <em class="xref std std-ref">EVALSHA</em> 命令还是 <em class="xref std std-ref">EVAL</em> 命令：</p>
+<ol class="arabic simple">
+<li>如果 <em class="xref std std-ref">EVALSHA</em> 命令指定的 SHA1 校验和存在于 <code class="docutils literal"><span class="pre">repl_scriptcache_dict</span></code> 字典，
+那么主服务器直接向从服务器传播 <em class="xref std std-ref">EVALSHA</em> 命令。</li>
+<li>如果 <em class="xref std std-ref">EVALSHA</em> 命令指定的 SHA1 校验和不存在于 <code class="docutils literal"><span class="pre">repl_scriptcache_dict</span></code> 字典，
+那么主服务器会将 <em class="xref std std-ref">EVALSHA</em> 命令转换成等价的 <em class="xref std std-ref">EVAL</em> 命令，
+然后传播这个等价的 <em class="xref std std-ref">EVAL</em> 命令，
+并将 <em class="xref std std-ref">EVALSHA</em> 命令指定的 SHA1 校验和添加到 <code class="docutils literal"><span class="pre">repl_scriptcache_dict</span></code> 字典里面。</li>
+</ol>
+<p>图 20-12 展示了这个判断过程。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-a7e2ff0ea8e7182c4548ed44a512dea0fd77f34c.png" alt="digraph {
+
+    label = &quot;\n 图 20-12    主服务器判断传播 EVAL 还是 EVALSHA 的过程&quot;;
+
+    node [shape = box];
+
+    command [label = &quot; 主服务器在本机执行完命令 \n EVALSHA &lt;sha1&gt; &lt;numkeys&gt; [key ...] [arg ...] &quot;];
+
+    sha1_exists_in_scriptcache_or_not [label = &quot;校验和 sha1 是否存在于 \n repl_scriptcache_dict 字典？&quot;, shape = diamond];
+
+    propagate_evalsha [label = &quot;传播 \n EVALSHA &lt;sha1&gt; &lt;numkeys&gt; [key ...] [arg ...]&quot;];
+
+    convert_evalsha_to_eval [label = &quot;将 EVALSHA 命令转换成等价的 EVAL 命令&quot;];
+
+    propagate_eval [label = &quot;传播 \n EVAL &lt;script&gt; &lt;numkeys&gt; [key ...] [arg ...]&quot;];
+
+    add_sha1_to_scriptcache [label = &quot;将 sha1 添加到 \n repl_scriptcache_dict 字典&quot;];
+
+    //
+
+    command -&gt; sha1_exists_in_scriptcache_or_not;
+
+    sha1_exists_in_scriptcache_or_not -&gt; propagate_evalsha [label = &quot;是&quot;];
+
+    sha1_exists_in_scriptcache_or_not -&gt; convert_evalsha_to_eval [label = &quot;否&quot;];
+
+    convert_evalsha_to_eval -&gt; propagate_eval;
+
+    propagate_eval -&gt; add_sha1_to_scriptcache;
+
+}" />
+</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-70fe132d9d47ca4da685729cd6b734103c830fa6.png" alt="digraph {
+
+    label = &quot;\n图 20-13    执行 EVALSHA 命令之前的 lua_scripts 字典和 repl_scriptcache_dict 字典&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    //
+
+    repl_scriptcache_dict [label = &quot;repl_scriptcache_dict | &lt;1&gt; \&quot;2f31ba2bb6d6a0f42cc159d2e2dad55440778de3\&quot; | &lt;2&gt; \&quot;a27e7e8a43702b7046d4f6a7ccf5b60cef6b9bd9\&quot; | &lt;3&gt; \&quot;4475bfb5919b5ad16424cb50f74d4724ae833e72\&quot; &quot;];
+
+    node [shape = plaintext, label = &quot;NULL&quot;];
+
+    repl_scriptcache_dict:1 -&gt; n1;
+    repl_scriptcache_dict:2 -&gt; n2;
+    repl_scriptcache_dict:3 -&gt; n3;
+
+    node [shape = record];
+
+    //
+
+    lua_scripts [label = &quot;lua_scripts | &lt;1&gt; \&quot;2f31ba2bb6d6a0f42cc159d2e2dad55440778de3\&quot; | &lt;2&gt; \&quot;a27e7e8a43702b7046d4f6a7ccf5b60cef6b9bd9\&quot; | &lt;3&gt; \&quot;4475bfb5919b5ad16424cb50f74d4724ae833e72\&quot; | &lt;4&gt; \&quot;5332031c6b470dc5a0dd9b4bf2030dea6d65de91\&quot; &quot;];
+
+    node [shape = plaintext];
+
+    one [label = &quot;\&quot;return 'hi'\&quot;&quot;];
+    two [label = &quot;\&quot;return 1+1\&quot;&quot;];
+    three [label = &quot;\&quot;return 2*2\&quot;&quot;];
+    four [label = &quot;\&quot;return 'hello world'\&quot;&quot;];
+
+    lua_scripts:1 -&gt; one;
+    lua_scripts:2 -&gt; two;
+    lua_scripts:3 -&gt; three;
+    lua_scripts:4 -&gt; four;
+}" />
+</p>
+<p>举个例子，
+假设服务器当前 <code class="docutils literal"><span class="pre">lua_scripts</span></code> 字典和 <code class="docutils literal"><span class="pre">repl_scriptcache_dict</span></code> 字典的状态如图 20-13 所示，
+如果客户端向主服务器发送命令：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">EVALSHA</span> <span class="s">&quot;5332031c6b470dc5a0dd9b4bf2030dea6d65de91&quot;</span> <span class="mi">0</span>
+</pre></div>
+</div>
+<p>那么主服务器在执行完这个 <em class="xref std std-ref">EVALSHA</em> 命令之后，
+会将这个 <em class="xref std std-ref">EVALSHA</em> 命令转换成等价的 <em class="xref std std-ref">EVAL</em> 命令：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">EVAL</span> <span class="s">&quot;return &#39;hello world&#39;&quot;</span> <span class="mi">0</span>
+</pre></div>
+</div>
+<p>并向所有从服务器传播这个 <em class="xref std std-ref">EVAL</em> 命令。</p>
+<p>除此之外，
+主服务器还会将 SHA1 校验和 <code class="docutils literal"><span class="pre">&quot;5332031c6b470dc5a0dd9b4bf2030dea6d65de91&quot;</span></code> 添加到 <code class="docutils literal"><span class="pre">repl_scriptcache_dict</span></code> 字典里，
+这样当客户端下次再发送命令：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">EVALSHA</span> <span class="s">&quot;5332031c6b470dc5a0dd9b4bf2030dea6d65de91&quot;</span> <span class="mi">0</span>
+</pre></div>
+</div>
+<p>的时候，
+主服务器就可以直接向从服务器传播这个 <em class="xref std std-ref">EVALSHA</em> 命令，
+而无须将 <em class="xref std std-ref">EVALSHA</em> 命令转换成 <em class="xref std std-ref">EVAL</em> 命令再传播。</p>
+<p>添加 <code class="docutils literal"><span class="pre">&quot;5332031c6b470dc5a0dd9b4bf2030dea6d65de91&quot;</span></code> 之后的 <code class="docutils literal"><span class="pre">repl_scriptcache_dict</span></code> 字典如图 20-14 所示。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-926931b22c6fba121b1c8fb2540544a4fa142d37.png" alt="digraph {
+
+    label = &quot;\n图 20-14    执行 EVALSHA 命令之后的 repl_scriptcache_dict 字典&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    //
+
+    repl_scriptcache_dict [label = &quot;repl_scriptcache_dict | &lt;1&gt; \&quot;2f31ba2bb6d6a0f42cc159d2e2dad55440778de3\&quot; | &lt;2&gt; \&quot;a27e7e8a43702b7046d4f6a7ccf5b60cef6b9bd9\&quot; | &lt;3&gt; \&quot;4475bfb5919b5ad16424cb50f74d4724ae833e72\&quot; | &lt;4&gt; \&quot;5332031c6b470dc5a0dd9b4bf2030dea6d65de91\&quot;&quot;];
+
+    node [shape = plaintext, label = &quot;NULL&quot;];
+
+    repl_scriptcache_dict:1 -&gt; n1;
+    repl_scriptcache_dict:2 -&gt; n2;
+    repl_scriptcache_dict:3 -&gt; n3;
+    repl_scriptcache_dict:4 -&gt; n4;
+
+}" />
+</p>
+</div>
+</div>
+</div>
+
+
+
+            <div class="section" id="discuss">
+    <h2>
+        讨论
+        <a class="headerlink" href="#discuss" title="永久链接至标题">¶</a>
+    </h2>
+    <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'redisbookv1'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li><a href="../../index.html">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, 黄健宏（huangz）.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+    </div>
+  </body>
+</html>

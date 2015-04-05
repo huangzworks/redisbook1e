@@ -300,12 +300,16 @@ Redis 设计与实现
   - :doc:`preview/monitor/review`
 
 
-相关资源
+注释源码
 -----------------
 
-`Redis 3.0 源码注释 <https://github.com/huangz1990/redis-3.0-annotated>`_ —— 
-包含中文注释的 Redis 3.0 源码，
-帮助有兴趣的读者深入了解 Redis 的实现细节。
+为了帮助有需要的读者进一步了解 Redis 的实现细节，
+本书附带了一份包含详细中文注释的 Redis 3.0 版本源码可供参考：
+`https://github.com/huangz1990/redis-3.0-annotated <https://github.com/huangz1990/redis-3.0-annotated>`_ 。
+
+
+相关资源
+-----------------
 
 `《如何阅读 Redis 源码》 <http://blog.huangz.me/diary/2014/how-to-read-redis-source-code.html>`_ ——
 文章给出了一个推荐的 Redis 源码阅读顺序以供参考，

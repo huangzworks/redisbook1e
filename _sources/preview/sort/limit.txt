@@ -1,0 +1,177 @@
+LIMIT 选项的实现
+---------------------
+
+在默认情况下，
+:ref:`SORT` 命令总会将排序后的所有元素都返回给客户端：
+
+::
+
+    redis> SADD alphabet a b c d e f
+    (integer) 6
+
+    # 集合中的元素是乱序存放的
+    redis> SMEMBERS alphabet
+    1) "d"
+    2) "c"
+    3) "a"
+    4) "b"
+    5) "f"
+    6) "e"
+
+    # 对集合进行排序，并返回所有排序后的元素
+    redis> SORT alphabet ALPHA
+    1) "a"
+    2) "b"
+    3) "c"
+    4) "d"
+    5) "e"
+    6) "f"
+
+但是，
+通过 ``LIMIT`` 选项，
+我们可以让 :ref:`SORT` 命令只返回其中一部分已排序的元素。
+
+``LIMIT`` 选项的格式为 ``LIMIT <offset> <count>`` ：
+
+- ``offset`` 参数表示要跳过的已排序元素数量。
+
+- ``count`` 参数表示跳过给定数量的已排序元素之后，
+  要返回的已排序元素数量。
+
+举个例子，
+以下代码首先对 ``alphabet`` 集合进行排序，
+接着跳过 ``0`` 个已排序元素，
+然后返回 ``4`` 个已排序元素：
+
+::
+
+    redis> SORT alphabet ALPHA LIMIT 0 4
+    1) "a"
+    2) "b"
+    3) "c"
+    4) "d"
+
+与此类似，
+以下代码首先对 ``alphabet`` 集合进行排序，
+接着跳过 ``2`` 个已排序元素，
+然后返回 ``3`` 个已排序元素：
+
+::
+
+    redis> SORT alphabet ALPHA LIMIT 2 3
+    1) "c"
+    2) "d"
+    3) "e"
+
+服务器执行 ``SORT alphabet ALPHA LIMIT 0 4`` 命令的详细步骤如下：
+
+1. 创建一个 ``redisSortObject`` 结构数组，
+   数组的长度等于 ``alphabet`` 集合的大小。
+
+2. 遍历数组，
+   将各个数组项的 ``obj`` 指针分别指向 ``alphabet`` 集合的各个元素，
+   如图 21-15 所示。
+
+3. 根据 ``obj`` 指针所指向的集合元素，
+   对数组进行字符串排序，
+   排序后的数组如图 21-16 所示。
+
+4. 根据选项 ``LIMIT 0 4`` ，
+   将指针移动到数组的索引 ``0`` 上面，
+   然后依次访问 ``array[0]`` 、 ``array[1]`` 、 ``array[2]`` 、 ``array[3]`` 这 ``4`` 个数组项，
+   并将数组项的 ``obj`` 指针所指向的元素 ``"a"`` 、 ``"b"`` 、 ``"c"`` 、 ``"d"`` 返回给客户端。
+
+服务器执行 ``SORT alphabet ALPHA LIMIT 2 3`` 命令时的第一至第三步都和执行 ``SORT alphabet ALPHA LIMIT 0 4`` 命令时的步骤一样，
+只是第四步有所不同：
+
+4. 根据选项 ``LIMIT 2 3`` ，
+   将指针移动到数组的索引 ``2`` 上面，
+   然后依次访问 ``array[2]`` 、 ``array[3]`` 、 ``array[4]`` 这 ``3`` 个数组项，
+   并将数组项的 ``obj`` 指针所指向的元素 ``"c"`` 、 ``"d"`` 、 ``"e"`` 返回给客户端。
+
+:ref:`SORT` 命令在执行其他带有 ``LIMIT`` 选项的排序操作时，
+执行的步骤也和这里给出的步骤类似。
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        subgraph cluster_alphabet {
+
+            label = "alphabet 集合\n";
+
+            style = dashed;
+
+            node [shape = box];
+
+            a [label = "StringObject \n \"a\""];
+            b [label = "StringObject \n \"b\""];
+            c [label = "StringObject \n \"c\""];
+            d [label = "StringObject \n \"d\""];
+            e [label = "StringObject \n \"e\""];
+            f [label = "StringObject \n \"f\""];
+
+            edge [style = invis];
+
+            d -> c -> a;
+            b -> f -> e;
+        }
+
+        array [label = " array | { array[0] \n redisSortObject | { <obj0> obj | u } } | { array[1] \n redisSortObject | { <obj1> obj | u } } | { array[2] \n redisSortObject | { <obj2> obj | u } } | { array[3] \n redisSortObject | { <obj3> obj | u } } | { array[4] \n redisSortObject | { <obj4> obj | u } } | { array[5] \n redisSortObject | { <obj5> obj | u } } ", shape = record];
+
+        edge [minlen = 2.0];
+
+        array:obj0 -> d;
+        array:obj1 -> c;
+        array:obj2 -> a;
+        array:obj3 -> b;
+        array:obj4 -> f;
+        array:obj5 -> e;
+
+        label = "\n 图 21-15    将 obj 指针指向集合的各个元素";
+
+    }
+
+.. graphviz::
+
+    digraph {
+
+        rankdir = LR;
+
+        subgraph cluster_alphabet {
+
+            label = "alphabet 集合\n\n";
+
+            style = dashed;
+
+            node [shape = box];
+
+            a [label = "StringObject \n \"a\""];
+            b [label = "StringObject \n \"b\""];
+            c [label = "StringObject \n \"c\""];
+            d [label = "StringObject \n \"d\""];
+            e [label = "StringObject \n \"e\""];
+            f [label = "StringObject \n \"f\""];
+
+            edge [style = invis];
+
+            d -> c -> a;
+            b -> f -> e;
+        }
+
+        array [label = " array | { array[0] \n redisSortObject | { <obj0> obj | u } } | { array[1] \n redisSortObject | { <obj1> obj | u } } | { array[2] \n redisSortObject | { <obj2> obj | u } } | { array[3] \n redisSortObject | { <obj3> obj | u } } | { array[4] \n redisSortObject | { <obj4> obj | u } } | { array[5] \n redisSortObject | { <obj5> obj | u } } ", shape = record];
+
+        edge [minlen = 2.0];
+
+        array:obj0 -> a;
+        array:obj1 -> b;
+        array:obj2 -> c;
+        array:obj3 -> d;
+        array:obj4 -> e;
+        array:obj5 -> f;
+
+        label = "\n 图 21-16    排序后的数组";
+
+    }

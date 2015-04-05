@@ -1,0 +1,362 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>SETBIT 命令的实现 &mdash; Redis 设计与实现</title>
+    
+    <link rel="stylesheet" href="../../_static/pyramid.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="Redis 设计与实现" href="../../index.html" /> 
+
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+
+  </head>
+  <body>
+
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li><a href="../../index.html">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="setbit">
+<h1>SETBIT 命令的实现<a class="headerlink" href="#setbit" title="Permalink to this headline">¶</a></h1>
+<p><em class="xref std std-ref">SETBIT</em> 用于将位数组 <code class="docutils literal"><span class="pre">bitarray</span></code> 在 <code class="docutils literal"><span class="pre">offset</span></code> 偏移量上的二进制位的值设置为 <code class="docutils literal"><span class="pre">value</span></code> ，
+并向客户端返回二进制位被设置之前的旧值：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">SETBIT</span> <span class="o">&lt;</span><span class="n">bitarray</span><span class="o">&gt;</span> <span class="o">&lt;</span><span class="n">offset</span><span class="o">&gt;</span> <span class="o">&lt;</span><span class="n">value</span><span class="o">&gt;</span>
+</pre></div>
+</div>
+<p>以下是 <em class="xref std std-ref">SETBIT</em> 命令的执行过程：</p>
+<ol class="arabic simple">
+<li>计算 <img class="math" src="../../_images/math/f9ceb67e4830a6c7ceb3b4be3c2db7dc79ce655a.png" alt="len = \lfloor offset \div 8 \rfloor + 1"/> ，
+<code class="docutils literal"><span class="pre">len</span></code> 值记录了保存 <code class="docutils literal"><span class="pre">offset</span></code> 偏移量指定的二进制位至少需要多少字节。</li>
+<li>检查 <code class="docutils literal"><span class="pre">bitarray</span></code> 键保存的位数组（也即是 SDS）的长度是否小于 <code class="docutils literal"><span class="pre">len</span></code> ，
+如果是的话，
+将 SDS 的长度扩展为 <code class="docutils literal"><span class="pre">len</span></code> 字节，
+并将所有新扩展空间的二进制位的值设置为 <code class="docutils literal"><span class="pre">0</span></code> 。</li>
+<li>计算 <img class="math" src="../../_images/math/0528efecd54859d8bd81ed6d2f5d0f8bef759dd1.png" alt="byte = \lfloor offset \div 8 \rfloor"/> ，
+<code class="docutils literal"><span class="pre">byte</span></code> 值记录了 <code class="docutils literal"><span class="pre">offset</span></code> 偏移量指定的二进制位保存在位数组的哪个字节。</li>
+<li>计算 <img class="math" src="../../_images/math/5ab28b4fea12ad7b9341b29ac86d4742ec6801ff.png" alt="bit = (offset \bmod 8) + 1"/> ，
+<code class="docutils literal"><span class="pre">bit</span></code> 值记录了 <code class="docutils literal"><span class="pre">offset</span></code> 偏移量指定的二进制位是 <code class="docutils literal"><span class="pre">byte</span></code> 字节的第几个二进制位。</li>
+<li>根据 <code class="docutils literal"><span class="pre">byte</span></code> 值和 <code class="docutils literal"><span class="pre">bit</span></code> 值，
+在 <code class="docutils literal"><span class="pre">bitarray</span></code> 键保存的位数组中定位 <code class="docutils literal"><span class="pre">offset</span></code> 偏移量指定的二进制位，
+首先将指定二进制位现在值保存在 <code class="docutils literal"><span class="pre">oldvalue</span></code> 变量，
+然后将新值 <code class="docutils literal"><span class="pre">value</span></code> 设置为这个二进制位的值。</li>
+<li>向客户端返回 <code class="docutils literal"><span class="pre">oldvalue</span></code> 变量的值。</li>
+</ol>
+<p>因为 <em class="xref std std-ref">SETBIT</em> 命令执行的所有操作都可以在常数时间内完成，
+所以该命令的时间复杂度为 <img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</p>
+<div class="section" id="id1">
+<h2>SETBIT 命令的执行示例<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<p>让我们通过观察一些 <em class="xref std std-ref">SETBIT</em> 命令的执行例子来熟悉 <em class="xref std std-ref">SETBIT</em> 命令的运行过程。</p>
+<p>首先，
+如果我们对图 22-2 所示的位数组执行命令：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">SETBIT</span> <span class="o">&lt;</span><span class="n">bitarray</span><span class="o">&gt;</span> <span class="mi">1</span> <span class="mi">1</span>
+</pre></div>
+</div>
+<p>那么服务器将执行以下操作：</p>
+<ol class="arabic simple">
+<li>计算 <img class="math" src="../../_images/math/56184a8af9d1b17ae0ed4ee6b92f88dc88cdf2aa.png" alt="\lfloor 1 \div 8 \rfloor + 1"/> ，
+得出值 <code class="docutils literal"><span class="pre">1</span></code> ，
+这表示保存偏移量为 <code class="docutils literal"><span class="pre">1</span></code> 的二进制位至少需要 <code class="docutils literal"><span class="pre">1</span></code> 字节长的位数组。</li>
+<li>检查位数组的长度，
+发现 SDS 的长度不小于 <code class="docutils literal"><span class="pre">1</span></code> 字节，
+无须执行扩展操作。</li>
+<li>计算 <img class="math" src="../../_images/math/2642da86df99d6019e779f8b525155a0e1ac2ae4.png" alt="\lfloor 1 \div 8 \rfloor"/> ，
+得出值 <code class="docutils literal"><span class="pre">0</span></code> ，
+说明偏移量为 <code class="docutils literal"><span class="pre">1</span></code> 的二进制位位于 <code class="docutils literal"><span class="pre">buf[0]</span></code> 字节。</li>
+<li>计算 <img class="math" src="../../_images/math/acb3e74ffb2f81b247d9670f6737721438f1c911.png" alt="(1 \bmod 8) + 1"/> ，
+得出值 <code class="docutils literal"><span class="pre">2</span></code> ，
+说明偏移量为 <code class="docutils literal"><span class="pre">1</span></code> 的二进制位是 <code class="docutils literal"><span class="pre">buf[0]</span></code> 字节的第 <code class="docutils literal"><span class="pre">2</span></code> 个二进制位。</li>
+<li>定位到 <code class="docutils literal"><span class="pre">buf[0]</span></code> 字节的第 <code class="docutils literal"><span class="pre">2</span></code> 个二进制位上面，
+将二进制位现在的值 <code class="docutils literal"><span class="pre">0</span></code> 保存到 <code class="docutils literal"><span class="pre">oldvalue</span></code> 变量，
+然后将二进制位的值设置为 <code class="docutils literal"><span class="pre">1</span></code> 。</li>
+<li>向客户端返回 <code class="docutils literal"><span class="pre">oldvalue</span></code> 变量的值 <code class="docutils literal"><span class="pre">0</span></code> 。</li>
+</ol>
+<p>图 22-6 展示了 <em class="xref std std-ref">SETBIT</em> 命令的执行过程，
+而图 22-7 则展示了 <em class="xref std std-ref">SETBIT</em> 命令执行之后，
+位数组的样子。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-1aac5ce203184eb82535c67eb11255a59e5022a6.png" alt="digraph {
+
+    label = &quot;\n 图 22-6    SETBIT 命令的执行过程&quot;;
+
+    //
+
+    node [shape = plaintext];
+
+    point_to_byte [label = &quot;1） 定位到 buf[0] 字节&quot;];
+
+    point_to_bit [label = &quot;2）定位到 buf[0] 字节的第 2 个二进制位 \n 将位现在的值 0 保存到 oldvalue 变量 \n 然后将位的值设置为 1 &quot;];
+
+    buf [label = &quot; { { &lt;byte&gt; buf[0] | 1 | &lt;bit&gt; 0 | 1 | 1 | 0 | 0 | 1 | 0 } | { buf[1] （空字符） } } &quot;, shape = record];
+
+    //
+
+    edge [style = dashed];
+
+    point_to_byte -&gt; buf:byte;
+    point_to_bit -&gt; buf:bit;
+}" />
+</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-04f479d75ea9a3f600e45858010ccd8b9ac1527d.png" alt="digraph {
+
+    label = &quot;\n 图 22-7    SETBIT 命令执行之后的位数组&quot;;
+
+    buf [label = &quot; { { &lt;byte&gt; buf[0] | 1 | &lt;bit&gt; 1 | 1 | 1 | 0 | 0 | 1 | 0 } | { buf[1] （空字符） } } &quot;, shape = record];
+
+}" />
+</p>
+</div>
+<div class="section" id="id2">
+<h2>带扩展操作的 SETBIT 命令示例<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
+<p>前面展示的 <em class="xref std std-ref">SETBIT</em> 例子无须对位数组进行扩展，
+现在，
+让我们来看一个需要对位数组进行扩展的例子。</p>
+<p>假设我们对图 22-2 所示的位数组执行命令：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">SETBIT</span> <span class="o">&lt;</span><span class="n">bitarray</span><span class="o">&gt;</span> <span class="mi">12</span> <span class="mi">1</span>
+</pre></div>
+</div>
+<p>那么服务器将执行以下操作：</p>
+<ol class="arabic simple">
+<li>计算 <img class="math" src="../../_images/math/31ff6331a7d4610db501eaeb008e3ce5d5c37bee.png" alt="\lfloor 12 \div 8 \rfloor + 1"/> ，
+得出值 <code class="docutils literal"><span class="pre">2</span></code> ，
+这表示保存偏移量为 <code class="docutils literal"><span class="pre">12</span></code> 的二进制位至少需要 <code class="docutils literal"><span class="pre">2</span></code> 字节长的位数组。</li>
+<li>对位数组的长度进行检查，
+得知位数组现在的长度为 <code class="docutils literal"><span class="pre">1</span></code> 字节，
+这比执行命令所需的最小长度 <code class="docutils literal"><span class="pre">2</span></code> 字节要小，
+所以程序会要求将位数组的长度扩展为 <code class="docutils literal"><span class="pre">2</span></code> 字节。
+不过，
+尽管程序只要求 <code class="docutils literal"><span class="pre">2</span></code> 字节长的位数组，
+但 SDS 的空间预分配策略会为 SDS 额外多分配 <code class="docutils literal"><span class="pre">2</span></code> 字节的未使用空间，
+再加上为保存空字符而额外分配的 <code class="docutils literal"><span class="pre">1</span></code> 字节，
+扩展之后 <code class="docutils literal"><span class="pre">buf</span></code> 数组的实际长度为 <code class="docutils literal"><span class="pre">5</span></code> 字节，
+如图 22-8 所示。</li>
+<li>计算 <img class="math" src="../../_images/math/0d54c826b34d76f9db3e22fe039e6e46c8e66705.png" alt="\lfloor 12 \div 8 \rfloor"/> ，
+得出值 <code class="docutils literal"><span class="pre">1</span></code> ，
+说明偏移量为 <code class="docutils literal"><span class="pre">12</span></code> 的二进制位位于 <code class="docutils literal"><span class="pre">buf[1]</span></code> 字节中。</li>
+<li>计算 <img class="math" src="../../_images/math/1ea6692c7fab7027a9e9592e57d24570f9f20ab1.png" alt="(12 \bmod 8) + 1"/> ，
+得出值 <code class="docutils literal"><span class="pre">5</span></code> ，
+说明偏移量为 <code class="docutils literal"><span class="pre">12</span></code> 的二进制位是 <code class="docutils literal"><span class="pre">buf[1]</span></code> 字节的第 <code class="docutils literal"><span class="pre">5</span></code> 个二进制位。</li>
+<li>定位到 <code class="docutils literal"><span class="pre">buf[1]</span></code> 字节的第 <code class="docutils literal"><span class="pre">5</span></code> 个二进制位，
+将二进制位现在的值 <code class="docutils literal"><span class="pre">0</span></code> 保存到 <code class="docutils literal"><span class="pre">oldvalue</span></code> 变量，
+然后将二进制位的值设置为 <code class="docutils literal"><span class="pre">1</span></code> 。</li>
+<li>向客户端返回 <code class="docutils literal"><span class="pre">oldvalue</span></code> 变量的值 <code class="docutils literal"><span class="pre">0</span></code> 。</li>
+</ol>
+<p>图 22-9 展示了 <em class="xref std std-ref">SETBIT</em> 命令定位并设置指定二进制位的过程，
+而图 22-10 则展示了 <em class="xref std std-ref">SETBIT</em> 命令执行之后，
+位数组的样子。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-f7f8465c6205b8c67bec7f091e0fe773f1223f80.png" alt="digraph {
+
+    label = &quot;\n 图 22-8    扩展空间之后的位数组&quot;;
+
+    rankdir = LR;
+
+    //
+
+    node [shape = record];
+
+    redisObject [label = &quot; redisObject | ... | type \n REDIS_STRING | ... | &lt;ptr&gt; ptr &quot;];
+
+    sds [label = &quot; &lt;head&gt; sdshdr | free \n 2 | len \n 2 | &lt;buf&gt; buf &quot;];
+
+    buf [label = &quot; { buf[0] | 1 | 0 | 1 | 1 | 0 | 0 | 1 | 0 } | { buf[1] | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 } | { buf[2] （空字符） } | { buf[3] （未使用） } | { buf[4] （未使用） } &quot;];
+
+    //
+
+    redisObject:ptr -&gt; sds:head;
+
+    sds:buf -&gt; buf;
+
+}" />
+</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-e8d9b42919a10d2205cb57fca78dc87eaf816e8d.png" alt="digraph {
+
+    label = &quot;\n 图 22-9    SETBIT 命令的执行过程&quot;;
+
+    //
+
+    node [shape = plaintext];
+
+    point_to_byte [label = &quot;1）定位到 buf[1] 字节&quot;];
+    point_yo_bit [label = &quot;2）定位到 buf[1] 字节的第 5 个二进制位 \n 首先将位现在的值 0 保存到 oldvalue 变量 \n 然后将位的值设置为 1 &quot;];
+
+    node [shape = record];
+
+    buf [label = &quot; { { buf[0] | 1 | 0 | 1 | 1 | 0 | 0 | 1 | 0 } | { &lt;byte&gt; buf[1] | 0 | 0 | 0 | 0 | &lt;bit&gt; 0 | 0 | 0 | 0 } | { buf[2] （空字符） } | { buf[3] （未使用） } | { buf[4] （未使用） } } &quot;];
+
+    //
+
+    edge [style = dashed];
+
+    point_to_byte -&gt; buf:byte;
+    point_yo_bit -&gt; buf:bit;
+}" />
+</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-37414e9c430061f7cbfc9a629018ebc4b7203e22.png" alt="digraph {
+
+    label = &quot;\n 图 22-10    执行 SETBIT 命令之后的位数组&quot;;
+
+    //
+
+    node [shape = record];
+
+    buf [label = &quot; { { buf[0] | 1 | 0 | 1 | 1 | 0 | 0 | 1 | 0 } | { &lt;byte&gt; buf[1] | 0 | 0 | 0 | 0 | &lt;bit&gt; 1 | 0 | 0 | 0 } | { buf[2] （空字符） } | { buf[3] （未使用） } | { buf[4] （未使用） } } &quot;];
+
+}" />
+</p>
+<p>注意，
+因为 <code class="docutils literal"><span class="pre">buf</span></code> 数组使用逆序来保存位数组，
+所以当程序对 <code class="docutils literal"><span class="pre">buf</span></code> 数组进行扩展之后，
+写入操作可以直接在新扩展的二进制位中完成，
+而不必改动位数组原来已有的二进制位。</p>
+<p>相反地，
+如果 <code class="docutils literal"><span class="pre">buf</span></code> 数组使用和书写位数组时一样的顺序来保存位数组，
+那么在每次扩展 <code class="docutils literal"><span class="pre">buf</span></code> 数组之后，
+程序都需要将位数组已有的位进行移动，
+然后才能执行写入操作，
+这比 <em class="xref std std-ref">SETBIT</em> 命令目前的实现方式要复杂，
+并且移位带来的 CPU 时间消耗也会影响命令的执行速度。</p>
+<p>图 22-11 至图 22-14 模拟了程序在 <code class="docutils literal"><span class="pre">buf</span></code> 数组按书写顺序保存位数组的情况下，
+对位数组 <code class="docutils literal"><span class="pre">0100</span> <span class="pre">1101</span></code> 执行命令 <code class="docutils literal"><span class="pre">SETBIT</span> <span class="pre">&lt;bitarray&gt;</span> <span class="pre">12</span> <span class="pre">1</span></code> ，
+将值改为 <code class="docutils literal"><span class="pre">0001</span> <span class="pre">0000</span> <span class="pre">0100</span> <span class="pre">1101</span></code> 的整个过程。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-a82222755669aeba9ff71c918b0df8da705525e2.png" alt="digraph {
+
+    label = &quot;\n 图 22-11    按书写顺序保存的位数组 0100 1101&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    buf [label = &quot; { buf[0] | 0 | 1 | 0 | 0 | 1 | 1 | 0 | 1 } | { buf[1] （空字符） } &quot;];
+
+}" />
+</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-ef3273693f19e5ceffeb927dd0816534581d649c.png" alt="digraph {
+
+    label = &quot;\n 图 22-12    扩展之后的位数组&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    buf [label = &quot; { buf[0] | 0 | 1 | 0 | 0 | 1 | 1 | 0 | 1 } | { buf[1] | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 } | { buf[2] （空字符） } | { buf[3] （未使用） } | { buf[4] （未使用） } &quot;];
+
+}" />
+</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-c8ace52129e858697dd2f040de554b062492f790.png" alt="digraph {
+
+    label = &quot;\n 图 22-13    移动已有的二进制位&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    buf [label = &quot; { buf[0] | 0 | 0 | 0 | 0 | 0 | 0 | 0 | 0 } | { &lt;1&gt; buf[1] | 0 | 1 | 0 | 0 | 1 | 1 | 0 | 1 } | { buf[2] （空字符） } | { buf[3] （未使用） } | { buf[4] （未使用） } &quot;];
+
+    shift [label = &quot;将字节 buf[0] 的所有二进制位 \n 移动到字节 buf[1]&quot;, shape = plaintext];
+
+    shift -&gt; buf:1 [style = dashed];
+
+}" />
+</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-c982a3452d9e586b3472f007bda2fc4f0b6d68de.png" alt="digraph {
+
+    label = &quot;\n 图 22-14    设置指定二进制位的值&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    buf [label = &quot; { buf[0] | 0 | 0 | 0 | &lt;target&gt; 1 | 0 | 0 | 0 | 0 } | { buf[1] | 0 | 1 | 0 | 0 | 1 | 1 | 0 | 1 } | { buf[2] （空字符） } | { buf[3] （未使用） } | { buf[4] （未使用）} &quot;];
+
+    set [label = &quot;将偏移量为 12 的\n二进制位的值设置为 1&quot;, shape = plaintext];
+
+    set -&gt; buf:target [style = dashed];
+
+}" />
+</p>
+</div>
+</div>
+
+
+
+            <div class="section" id="discuss">
+    <h2>
+        讨论
+        <a class="headerlink" href="#discuss" title="永久链接至标题">¶</a>
+    </h2>
+    <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'redisbookv1'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li><a href="../../index.html">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, 黄健宏（huangz）.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+    </div>
+  </body>
+</html>

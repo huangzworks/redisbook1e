@@ -1,0 +1,241 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Lua 环境协作组件 &mdash; Redis 设计与实现</title>
+    
+    <link rel="stylesheet" href="../../_static/pyramid.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '1.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <link rel="top" title="Redis 设计与实现" href="../../index.html" /> 
+
+<!--[if lte IE 6]>
+<link rel="stylesheet" href="../../_static/ie6.css" type="text/css" media="screen" charset="utf-8" />
+<![endif]-->
+
+
+  </head>
+  <body>
+
+
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li><a href="../../index.html">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="lua">
+<h1>Lua 环境协作组件<a class="headerlink" href="#lua" title="Permalink to this headline">¶</a></h1>
+<p>除了创建并修改 Lua 环境之外，
+Redis 服务器还创建了两个用于与 Lua 环境进行协作的组件，
+它们分别是负责执行 Lua 脚本中的 Redis 命令的伪客户端，
+以及用于保存 Lua 脚本的 <code class="docutils literal"><span class="pre">lua_scripts</span></code> 字典。</p>
+<p>接下来的两个小节将分别介绍这两个组件。</p>
+<div class="section" id="id1">
+<h2>伪客户端<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h2>
+<p>因为执行 Redis 命令必须有相应的客户端状态，
+所以为了执行 Lua 脚本中包含的 Redis 命令，
+Redis 服务器专门为 Lua 环境创建了一个伪客户端，
+并由这个伪客户端负责处理 Lua 脚本中包含的所有 Redis 命令。</p>
+<p>Lua 脚本使用 <code class="docutils literal"><span class="pre">redis.call</span></code> 函数或者 <code class="docutils literal"><span class="pre">redis.pcall</span></code> 函数执行一个 Redis 命令，
+需要完成以下步骤：</p>
+<ol class="arabic simple">
+<li>Lua 环境将 <code class="docutils literal"><span class="pre">redis.call</span></code> 函数或者 <code class="docutils literal"><span class="pre">redis.pcall</span></code> 函数想要执行的命令传给伪客户端。</li>
+<li>伪客户端将脚本想要执行的命令传给命令执行器。</li>
+<li>命令执行器执行伪客户端传给它的命令，
+并将命令的执行结果返回给伪客户端。</li>
+<li>伪客户端接收命令执行器返回的命令结果，
+并将这个命令结果返回给 Lua 环境。</li>
+<li>Lua 环境在接收到命令结果之后，
+将该结果返回给 <code class="docutils literal"><span class="pre">redis.call</span></code> 函数或者 <code class="docutils literal"><span class="pre">redis.pcall</span></code> 函数。</li>
+<li>接收到结果的 <code class="docutils literal"><span class="pre">redis.call</span></code> 函数或者 <code class="docutils literal"><span class="pre">redis.pcall</span></code> 函数会将命令结果作为函数返回值返回给脚本中的调用者。</li>
+</ol>
+<p>图 20-2 展示了 Lua 脚本在调用 <code class="docutils literal"><span class="pre">redis.call</span></code> 函数时，
+Lua 环境、伪客户端、命令执行器三者之间的通讯过程
+（调用 <code class="docutils literal"><span class="pre">redis.pcall</span></code> 函数时产生的通讯过程也是一样的）。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-931713e37044d603256ee7f4f6c09e930ee37d6b.png" alt="digraph {
+
+    label = &quot;\n图 20-2    Lua 脚本执行 Redis 命令时的通讯步骤&quot;;
+
+    rankdir = LR;
+
+    node [shape = record, height = 2.0];
+
+    splines = ortho;
+
+    //
+
+    lua [label = &quot;L\nu\na\n环\n境&quot;];
+    fake_client [label = &quot;伪\n客\n户\n端&quot;];
+    eval [label = &quot;命\n令\n执\n行\n器&quot;];
+
+    lua -&gt; fake_client [label = &quot;1) 传送 redis.call 函数\n想要执行的 Redis 命令&quot;]
+    fake_client -&gt; eval [label = &quot;2) 将命令传给执行器执行&quot;];
+    lua -&gt; fake_client [dir = back, label = &quot;\n4) 将命令结果传回给 Lua 环境&quot;];
+    fake_client -&gt; eval [dir = back, label = &quot;\n3) 返回命令的执行结果&quot;];
+}" />
+</p>
+<p>举个例子，
+图 20-3 展示了 Lua 脚本在执行以下命令时：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">EVAL</span> <span class="s">&quot;return redis.call(&#39;DBSIZE&#39;)&quot;</span> <span class="mi">0</span>
+<span class="p">(</span><span class="n">integer</span><span class="p">)</span> <span class="mi">10086</span>
+</pre></div>
+</div>
+<p>Lua 环境、伪客户端、命令执行器三者之间的通讯过程。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-d21cd81cd29c2e3155068616b5a78607e08334ec.png" alt="digraph {
+
+    label = &quot;\n图 20-3    Lua 脚本执行 DBSIZE 命令时的通讯步骤&quot;;
+
+    rankdir = LR;
+
+    node [shape = record, height = 2.0];
+
+    splines = ortho;
+
+    //
+
+    lua [label = &quot;L\nu\na\n环\n境&quot;];
+    fake_client [label = &quot;伪\n客\n户\n端&quot;];
+    eval [label = &quot;命\n令\n执\n行\n器&quot;];
+
+    lua -&gt; fake_client [label = &quot;1) 传送 DBSIZE 请求&quot;]
+    fake_client -&gt; eval [label = &quot;2) 将 DBSIZE 命令传给执行器执行&quot;];
+    lua -&gt; fake_client [dir = back, label = &quot;\n4) 将命令结果 10086 传回给 Lua 环境&quot;];
+    fake_client -&gt; eval [dir = back, label = &quot;\n3) 返回命令的执行结果 10086&quot;];
+}" />
+</p>
+</div>
+<div class="section" id="lua-scripts">
+<h2><code class="docutils literal"><span class="pre">lua_scripts</span></code> 字典<a class="headerlink" href="#lua-scripts" title="Permalink to this headline">¶</a></h2>
+<p>除了伪客户端之外，
+Redis 服务器为 Lua 环境创建的另一个协作组件是 <code class="docutils literal"><span class="pre">lua_scripts</span></code> 字典，
+这个字典的键为某个 Lua 脚本的 SHA1 校验和（checksum），
+而字典的值则是 SHA1 校验和对应的 Lua 脚本：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="k">struct</span> <span class="n">redisServer</span> <span class="p">{</span>
+
+    <span class="c1">// ...</span>
+
+    <span class="n">dict</span> <span class="o">*</span><span class="n">lua_scripts</span><span class="p">;</span>
+
+    <span class="c1">// ...</span>
+
+<span class="p">};</span>
+</pre></div>
+</div>
+<p>Redis 服务器会将所有被 <em class="xref std std-ref">EVAL</em> 命令执行过的 Lua 脚本，
+以及所有被 <em class="xref std std-ref">SCRIPT_LOAD</em> 命令载入过的 Lua 脚本都保存到 <code class="docutils literal"><span class="pre">lua_scripts</span></code> 字典里面。</p>
+<p>举个例子，
+如果客户端向服务器发送以下命令：</p>
+<div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">SCRIPT</span> <span class="n">LOAD</span> <span class="s">&quot;return &#39;hi&#39;&quot;</span>
+<span class="s">&quot;2f31ba2bb6d6a0f42cc159d2e2dad55440778de3&quot;</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">SCRIPT</span> <span class="n">LOAD</span> <span class="s">&quot;return 1+1&quot;</span>
+<span class="s">&quot;a27e7e8a43702b7046d4f6a7ccf5b60cef6b9bd9&quot;</span>
+
+<span class="n">redis</span><span class="o">&gt;</span> <span class="n">SCRIPT</span> <span class="n">LOAD</span> <span class="s">&quot;return 2*2&quot;</span>
+<span class="s">&quot;4475bfb5919b5ad16424cb50f74d4724ae833e72&quot;</span>
+</pre></div>
+</div>
+<p>那么服务器的 <code class="docutils literal"><span class="pre">lua_scripts</span></code> 字典将包含被 <em class="xref std std-ref">SCRIPT_LOAD</em> 命令载入的三个 Lua 脚本，
+如图 20-4 所示。</p>
+<p class="graphviz">
+<img src="../../_images/graphviz-0202a0b9f583aaab80234c905ba9f9b877a69295.png" alt="digraph {
+
+    label = &quot;\n 图 20-4    lua_scripts 字典示例&quot;;
+
+    rankdir = LR;
+
+    node [shape = record];
+
+    //
+
+    lua_scripts [label = &quot;lua_scripts | ... | &lt;1&gt; \&quot;2f31ba2bb6d6a0f42cc159d2e2dad55440778de3\&quot; | &lt;2&gt; \&quot;a27e7e8a43702b7046d4f6a7ccf5b60cef6b9bd9\&quot; | &lt;3&gt; \&quot;4475bfb5919b5ad16424cb50f74d4724ae833e72\&quot; | ... &quot;];
+
+    node [shape = plaintext];
+
+    one [label = &quot;\&quot;return 'hi'\&quot;&quot;];
+    two [label = &quot;\&quot;return 1+1\&quot;&quot;];
+    three [label = &quot;\&quot;return 2*2\&quot;&quot;];
+
+    lua_scripts:1 -&gt; one;
+    lua_scripts:2 -&gt; two;
+    lua_scripts:3 -&gt; three;
+}" />
+</p>
+<p><code class="docutils literal"><span class="pre">lua_scripts</span></code> 字典有两个作用，
+一个是实现 <em class="xref std std-ref">SCRIPT_EXISTS</em> 命令，
+另一个是实现脚本复制功能，
+本章稍后将详细说明 <code class="docutils literal"><span class="pre">lua_scripts</span></code> 字典在这两个功能中的作用。</p>
+</div>
+</div>
+
+
+
+            <div class="section" id="discuss">
+    <h2>
+        讨论
+        <a class="headerlink" href="#discuss" title="永久链接至标题">¶</a>
+    </h2>
+    <div id="disqus_thread"></div>
+    <script type="text/javascript">
+        /* * * CONFIGURATION VARIABLES: EDIT BEFORE PASTING INTO YOUR WEBPAGE * * */
+        var disqus_shortname = 'redisbookv1'; // required: replace example with your forum shortname
+
+        /* * * DON'T EDIT BELOW THIS LINE * * */
+        (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+        })();
+    </script>
+    <noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+    <a href="http://disqus.com" class="dsq-brlink">comments powered by <span class="logo-disqus">Disqus</span></a>
+</div>
+
+          </div>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li><a href="../../index.html">Redis 设计与实现</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2015, 黄健宏（huangz）.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+    </div>
+  </body>
+</html>
