@@ -87,7 +87,32 @@
 <p>感谢 <a class="reference external" href="http://redisbook.com/en/latest/#comment-1471774909">xiaolou</a>  反馈这个错误。</p>
 </div>
 <div class="section" id="id3">
-<h2>18 页<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<h2>17 页<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
+<p>表 2-2 中给出的 <code class="docutils literal"><span class="pre">sdsfree</span></code> 函数的复杂度有误，
+它的复杂度应该是 O(1) 才对，
+以下是修正后的内容：</p>
+<table border="1" class="docutils">
+<colgroup>
+<col width="17%" />
+<col width="35%" />
+<col width="49%" />
+</colgroup>
+<thead valign="bottom">
+<tr class="row-odd"><th class="head">函数</th>
+<th class="head">作用</th>
+<th class="head">时间复杂度</th>
+</tr>
+</thead>
+<tbody valign="top">
+<tr class="row-even"><td><code class="docutils literal"><span class="pre">sdsfree</span></code></td>
+<td>释放给定的 SDS 。</td>
+<td><img class="math" src="../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/></td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section" id="id4">
+<h2>18 页<a class="headerlink" href="#id4" title="Permalink to this headline">¶</a></h2>
 <p>表 2-2 中对 <code class="docutils literal"><span class="pre">sdstrim</span></code> 的描述和时间复杂度都有误，
 以下是修正后的内容：</p>
 <table border="1" class="docutils">
