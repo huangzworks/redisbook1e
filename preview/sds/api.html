@@ -77,7 +77,7 @@
 </tr>
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">sdsfree</span></code></td>
 <td>释放给定的 SDS 。</td>
-<td><img class="math" src="../../_images/math/4d51d3f476c76dc066b26271168bc3b67f49d2be.png" alt="O(N)"/> ， <code class="docutils literal"><span class="pre">N</span></code> 为被释放 SDS 的长度。</td>
+<td><img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/></td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">sdslen</span></code></td>
 <td>返回 SDS 的已使用空间字节数。</td>
@@ -125,7 +125,8 @@
 <td>接受一个 SDS 和一个 C 字符串作为参数，
 从 SDS 左右两端分别移除所有在 C
 字符串中出现过的字符。</td>
-<td><img class="math" src="../../_images/math/8912be2deda42f022bc42bf2ab30cb3c7c6f5d55.png" alt="O(N^2)"/> ， <code class="docutils literal"><span class="pre">N</span></code> 为给定 C 字符串的长度。</td>
+<td><img class="math" src="../../_images/math/3d44cc77fa3b9f3f60c9a414b0f9e50f6afff40b.png" alt="O(M*N)"/> ， <code class="docutils literal"><span class="pre">M</span></code> 为 SDS 的长度，
+<code class="docutils literal"><span class="pre">N</span></code> 为给定 C 字符串的长度。</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">sdscmp</span></code></td>
 <td>对比两个 SDS 字符串是否相同。</td>
