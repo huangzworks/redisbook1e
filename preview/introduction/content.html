@@ -126,7 +126,7 @@
 <p>《RDB 持久化》和《AOF 持久化》两章分别介绍了 Redis 两种不同的持久化方式的实现原理：
 说明了服务器根据数据库来生成持久化文件的方法，
 服务器根据持久化文件来还原数据库的方法，
-以及 <em class="xref std std-ref">BGSAVE</em> 命令和 <em class="xref std std-ref">BGREWRITEAOF</em> 命令的实现原理，
+以及 <span class="xref std std-ref">BGSAVE</span> 命令和 <span class="xref std std-ref">BGREWRITEAOF</span> 命令的实现原理，
 等等。</p>
 <p>《事件》一章对 Redis 的文件事件和时间事件进行了介绍：</p>
 <ul class="simple">
@@ -172,23 +172,23 @@ Sentinel 判断服务器是否下线的方法，
 <h3>第四部分<a class="headerlink" href="#id7" title="Permalink to this headline">¶</a></h3>
 <p>本书的第四部分 —— 也即是《独立功能的实现》部分，
 对 Redis 中各个相对独立的功能模块进行了介绍。</p>
-<p>《发布与订阅》一章对 <em class="xref std std-ref">PUBLISH</em> 、 <em class="xref std std-ref">SUBSCRIBE</em> 、 <em class="xref std std-ref">PUBSUB</em> 等命令的实现原理进行了介绍，
+<p>《发布与订阅》一章对 <span class="xref std std-ref">PUBLISH</span> 、 <span class="xref std std-ref">SUBSCRIBE</span> 、 <span class="xref std std-ref">PUBSUB</span> 等命令的实现原理进行了介绍，
 解释了 Redis 的发布与订阅功能是如何实现的。</p>
-<p>《事务》一章对 <em class="xref std std-ref">MULTI</em> 、 <em class="xref std std-ref">EXEC</em> 、 <em class="xref std std-ref">WATCH</em> 等命令的实现原理进行了介绍，
+<p>《事务》一章对 <span class="xref std std-ref">MULTI</span> 、 <span class="xref std std-ref">EXEC</span> 、 <span class="xref std std-ref">WATCH</span> 等命令的实现原理进行了介绍，
 解释了 Redis 的事务是如何实现的，
 并说明了 Redis 的事务对 ACID 性质的支持程度。</p>
-<p>《Lua 脚本》一章对 <em class="xref std std-ref">EVAL</em> 、 <em class="xref std std-ref">EVALSHA</em> 、 <em class="xref std std-ref">SCRIPT_LOAD</em> 等命令的实现原理进行了介绍，
+<p>《Lua 脚本》一章对 <span class="xref std std-ref">EVAL</span> 、 <span class="xref std std-ref">EVALSHA</span> 、 <span class="xref std std-ref">SCRIPT_LOAD</span> 等命令的实现原理进行了介绍，
 解释了 Redis 服务器是如何执行和管理用户传入的 Lua 脚本的；
 这一章还对 Redis 服务器构建 Lua 环境的过程，
 以及主从服务器之间复制 Lua 脚本的方法进行了介绍。</p>
-<p>《排序》一章对 <em class="xref std std-ref">SORT</em> 命令、
-以及 <em class="xref std std-ref">SORT</em> 命令所有可用选项（比如 <code class="docutils literal"><span class="pre">DESC</span></code> 、 <code class="docutils literal"><span class="pre">ALPHA</span></code> 、 <code class="docutils literal"><span class="pre">GET</span></code> ，等等）的实现原理进行了介绍，
-并说明了当 <em class="xref std std-ref">SORT</em> 命令带有多个选项时，
+<p>《排序》一章对 <span class="xref std std-ref">SORT</span> 命令、
+以及 <span class="xref std std-ref">SORT</span> 命令所有可用选项（比如 <code class="docutils literal"><span class="pre">DESC</span></code> 、 <code class="docutils literal"><span class="pre">ALPHA</span></code> 、 <code class="docutils literal"><span class="pre">GET</span></code> ，等等）的实现原理进行了介绍，
+并说明了当 <span class="xref std std-ref">SORT</span> 命令带有多个选项时，
 不同选项执行的先后顺序。</p>
 <p>《二进制位数组》一章对 Redis 保存二进制位数组的方法进行了介绍，
-并说明了 <em class="xref std std-ref">GETBIT</em> 、 <em class="xref std std-ref">SETBIT</em> 、 <em class="xref std std-ref">BITCOUNT</em> 、 <em class="xref std std-ref">BITOP</em> 这几个二进制位数组操作命令的实现原理。</p>
+并说明了 <span class="xref std std-ref">GETBIT</span> 、 <span class="xref std std-ref">SETBIT</span> 、 <span class="xref std std-ref">BITCOUNT</span> 、 <span class="xref std std-ref">BITOP</span> 这几个二进制位数组操作命令的实现原理。</p>
 <p>《慢查询日志》一章对 Redis 创建和保存慢查询日志（slow log）的方法进行了介绍，
-并说明了 <em class="xref std std-ref">SLOWLOG GET</em> 、 <em class="xref std std-ref">SLOWLOG LEN</em> 、 <em class="xref std std-ref">SLOWLOG RESET</em> 等慢查询日志操作命令的实现原理。</p>
+并说明了 <span class="xref std std-ref">SLOWLOG GET</span> 、 <span class="xref std std-ref">SLOWLOG LEN</span> 、 <span class="xref std std-ref">SLOWLOG RESET</span> 等慢查询日志操作命令的实现原理。</p>
 <p>《监视器》一章介绍了将客户端变为监视器（monitor）的方法，
 以及服务器在处理命令请求时，
 向监视器发送命令信息的方法。</p>
@@ -352,7 +352,7 @@ Sentinel 判断服务器是否下线的方法，
     </div>
     <div class="footer">
         &copy; Copyright 2015, 黄健宏（huangz）.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.
     </div>
   </body>
 </html>

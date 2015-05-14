@@ -53,14 +53,14 @@
 <h1>重点回顾<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
 <ul class="simple">
 <li>服务器状态在 <code class="docutils literal"><span class="pre">pubsub_channels</span></code> 字典保存了所有频道的订阅关系：
-<em class="xref std std-ref">SUBSCRIBE</em> 命令负责将客户端和被订阅的频道关联到这个字典里面，
-而 <em class="xref std std-ref">UNSUBSCRIBE</em> 命令则负责解除客户端和被退订频道之间的关联。</li>
+<span class="xref std std-ref">SUBSCRIBE</span> 命令负责将客户端和被订阅的频道关联到这个字典里面，
+而 <span class="xref std std-ref">UNSUBSCRIBE</span> 命令则负责解除客户端和被退订频道之间的关联。</li>
 <li>服务器状态在 <code class="docutils literal"><span class="pre">pubsub_patterns</span></code> 链表保存了所有模式的订阅关系：
-<em class="xref std std-ref">PSUBSCRIBE</em> 命令负责将客户端和被订阅的模式记录到这个链表中，
-而 <em class="xref std std-ref">UNSUBSCRIBE</em> 命令则负责移除客户端和被退订模式在链表中的记录。</li>
-<li><em class="xref std std-ref">PUBLISH</em> 命令通过访问 <code class="docutils literal"><span class="pre">pubsub_channels</span></code> 字典来向频道的所有订阅者发送消息，
+<span class="xref std std-ref">PSUBSCRIBE</span> 命令负责将客户端和被订阅的模式记录到这个链表中，
+而 <span class="xref std std-ref">UNSUBSCRIBE</span> 命令则负责移除客户端和被退订模式在链表中的记录。</li>
+<li><span class="xref std std-ref">PUBLISH</span> 命令通过访问 <code class="docutils literal"><span class="pre">pubsub_channels</span></code> 字典来向频道的所有订阅者发送消息，
 通过访问 <code class="docutils literal"><span class="pre">pubsub_patterns</span></code> 链表来向所有匹配频道的模式的订阅者发送消息。</li>
-<li><em class="xref std std-ref">PUBSUB</em> 命令的三个子命令都是通过读取 <code class="docutils literal"><span class="pre">pubsub_channels</span></code> 字典和 <code class="docutils literal"><span class="pre">pubsub_patterns</span></code> 链表中的信息来实现的。</li>
+<li><span class="xref std std-ref">PUBSUB</span> 命令的三个子命令都是通过读取 <code class="docutils literal"><span class="pre">pubsub_channels</span></code> 字典和 <code class="docutils literal"><span class="pre">pubsub_patterns</span></code> 链表中的信息来实现的。</li>
 </ul>
 </div>
 
@@ -103,7 +103,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2015, 黄健宏（huangz）.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.
     </div>
   </body>
 </html>

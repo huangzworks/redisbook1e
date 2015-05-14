@@ -460,7 +460,7 @@
 <span class="s">&quot;hello world&quot;</span>
 </pre></div>
 </div>
-<p><em class="xref std std-ref">GET</em> 命令将首先在键空间中查找键 <code class="docutils literal"><span class="pre">message</span></code> ，
+<p><span class="xref std std-ref">GET</span> 命令将首先在键空间中查找键 <code class="docutils literal"><span class="pre">message</span></code> ，
 找到键之后接着取得该键所对应的字符串对象值，
 之后再返回值对象所包含的字符串 <code class="docutils literal"><span class="pre">&quot;hello</span> <span class="pre">world&quot;</span></code> ，
 取值过程如图 IMAGE_FETCH_VALUE_VIA_GET 所示。</p>
@@ -527,7 +527,7 @@
 <span class="mi">3</span><span class="p">)</span> <span class="s">&quot;c&quot;</span>
 </pre></div>
 </div>
-<p><em class="xref std std-ref">LRANGE</em> 命令将首先在键空间中查找键 <code class="docutils literal"><span class="pre">alphabet</span></code> ，
+<p><span class="xref std std-ref">LRANGE</span> 命令将首先在键空间中查找键 <code class="docutils literal"><span class="pre">alphabet</span></code> ，
 找到键之后接着取得该键所对应的列表对象值，
 之后再返回列表对象中包含的三个字符串对象的值，
 取值过程如图 IMAGE_FETCH_VALUE_VIA_LRANGE 所示。</p>
@@ -593,15 +593,15 @@
 还有很多针对数据库本身的 Redis 命令，
 也是通过对键空间进行处理来完成的。</p>
 <p>比如说，
-用于清空整个数据库的 <em class="xref std std-ref">FLUSHDB</em> 命令，
+用于清空整个数据库的 <span class="xref std std-ref">FLUSHDB</span> 命令，
 就是通过删除键空间中的所有键值对来实现的。</p>
 <p>又比如说，
-用于随机返回数据库中某个键的 <em class="xref std std-ref">RANDOMKEY</em> 命令，
+用于随机返回数据库中某个键的 <span class="xref std std-ref">RANDOMKEY</span> 命令，
 就是通过在键空间中随机返回一个键来实现的。</p>
 <p>另外，
-用于返回数据库键数量的 <em class="xref std std-ref">DBSIZE</em> 命令，
+用于返回数据库键数量的 <span class="xref std std-ref">DBSIZE</span> 命令，
 就是通过返回键空间中包含键值对的数量来实现的。</p>
-<p>类似的命令还有 <em class="xref std std-ref">EXISTS</em> 、 <em class="xref std std-ref">RENAME</em> 、 <em class="xref std std-ref">KEYS</em> ，
+<p>类似的命令还有 <span class="xref std std-ref">EXISTS</span> 、 <span class="xref std std-ref">RENAME</span> 、 <span class="xref std std-ref">KEYS</span> ，
 等等，
 这些命令都是通过对键空间进行操作来实现的。</p>
 </div>
@@ -615,17 +615,17 @@
 <li>在读取一个键之后（读操作和写操作都要对键进行读取），
 服务器会根据键是否存在，
 以此来更新服务器的键空间命中（hit）次数或键空间不命中（miss）次数，
-这两个值可以在 <em class="xref std std-ref">INFO stats</em> 命令的 <code class="docutils literal"><span class="pre">keyspace_hits</span></code> 属性和 <code class="docutils literal"><span class="pre">keyspace_misses</span></code> 属性中查看。</li>
+这两个值可以在 <span class="xref std std-ref">INFO stats</span> 命令的 <code class="docutils literal"><span class="pre">keyspace_hits</span></code> 属性和 <code class="docutils literal"><span class="pre">keyspace_misses</span></code> 属性中查看。</li>
 <li>在读取一个键之后，
 服务器会更新键的 LRU （最后一次使用）时间，
 这个值可以用于计算键的闲置时间，
-使用命令 <em class="xref std std-ref">OBJECT idletime &lt;key&gt;</em> 命令可以查看键 <code class="docutils literal"><span class="pre">key</span></code> 的闲置时间。</li>
+使用命令 <span class="xref std std-ref">OBJECT idletime &lt;key&gt;</span> 命令可以查看键 <code class="docutils literal"><span class="pre">key</span></code> 的闲置时间。</li>
 <li>如果服务器在读取一个键时，
 发现该键已经过期，
 那么服务器会先删除这个过期键，
 然后才执行余下的其他操作，
 本章稍后对过期键的讨论会详细说明这一点。</li>
-<li>如果有客户端使用 <em class="xref std std-ref">WATCH</em> 命令监视了某个键，
+<li>如果有客户端使用 <span class="xref std std-ref">WATCH</span> 命令监视了某个键，
 那么服务器在对被监视的键进行修改之后，
 会将这个键标记为脏（dirty），
 从而让事务程序注意到这个键已经被修改过，
@@ -681,7 +681,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2015, 黄健宏（huangz）.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.
     </div>
   </body>
 </html>

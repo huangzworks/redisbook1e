@@ -51,12 +51,12 @@
             
   <div class="section" id="sort-key">
 <h1>SORT &lt;key&gt; 命令的实现<a class="headerlink" href="#sort-key" title="Permalink to this headline">¶</a></h1>
-<p><em class="xref std std-ref">SORT</em> 命令的最简单执行形式为：</p>
+<p><span class="xref std std-ref">SORT</span> 命令的最简单执行形式为：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="n">SORT</span> <span class="o">&lt;</span><span class="n">key</span><span class="o">&gt;</span>
 </pre></div>
 </div>
 <p>这个命令可以对一个包含数字值的键 <code class="docutils literal"><span class="pre">key</span></code> 进行排序。</p>
-<p>以下示例展示了如何使用 <em class="xref std std-ref">SORT</em> 命令对一个包含三个数字值的列表键进行排序：</p>
+<p>以下示例展示了如何使用 <span class="xref std std-ref">SORT</span> 命令对一个包含三个数字值的列表键进行排序：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">RPUSH</span> <span class="n">numbers</span> <span class="mi">3</span> <span class="mi">1</span> <span class="mi">2</span>
 <span class="p">(</span><span class="n">integer</span><span class="p">)</span> <span class="mi">3</span>
 
@@ -236,11 +236,11 @@
 <span class="p">}</span> <span class="n">redisSortObject</span><span class="p">;</span>
 </pre></div>
 </div>
-<p><em class="xref std std-ref">SORT</em> 命令为每个被排序的键都创建一个与键长度相同的数组，
+<p><span class="xref std std-ref">SORT</span> 命令为每个被排序的键都创建一个与键长度相同的数组，
 数组的每个项都是一个 <code class="docutils literal"><span class="pre">redisSortObject</span></code> 结构，
-根据 <em class="xref std std-ref">SORT</em> 命令使用的选项不同，
+根据 <span class="xref std std-ref">SORT</span> 命令使用的选项不同，
 程序使用 <code class="docutils literal"><span class="pre">redisSortObject</span></code> 结构的方式也不同，
-稍后介绍 <em class="xref std std-ref">SORT</em> 命令的各种选项时我们会看到这一点。</p>
+稍后介绍 <span class="xref std std-ref">SORT</span> 命令的各种选项时我们会看到这一点。</p>
 </div>
 
 
@@ -282,7 +282,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2015, 黄健宏（huangz）.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.
     </div>
   </body>
 </html>

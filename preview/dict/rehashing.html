@@ -312,9 +312,9 @@ rehash 指的是重新计算键的哈希值和索引值，
 <p>当以下条件中的任意一个被满足时，
 程序会自动开始对哈希表执行扩展操作：</p>
 <ol class="arabic simple">
-<li>服务器目前没有在执行 <em class="xref std std-ref">BGSAVE</em> 命令或者 <em class="xref std std-ref">BGREWRITEAOF</em> 命令，
+<li>服务器目前没有在执行 <span class="xref std std-ref">BGSAVE</span> 命令或者 <span class="xref std std-ref">BGREWRITEAOF</span> 命令，
 并且哈希表的负载因子大于等于 <code class="docutils literal"><span class="pre">1</span></code> ；</li>
-<li>服务器目前正在执行 <em class="xref std std-ref">BGSAVE</em> 命令或者 <em class="xref std std-ref">BGREWRITEAOF</em> 命令，
+<li>服务器目前正在执行 <span class="xref std std-ref">BGSAVE</span> 命令或者 <span class="xref std std-ref">BGREWRITEAOF</span> 命令，
 并且哈希表的负载因子大于等于 <code class="docutils literal"><span class="pre">5</span></code> ；</li>
 </ol>
 <p>其中哈希表的负载因子可以通过公式：</p>
@@ -337,9 +337,9 @@ rehash 指的是重新计算键的哈希值和索引值，
 <div class="highlight-c"><div class="highlight"><pre><span class="n">load_factor</span> <span class="o">=</span> <span class="mi">256</span> <span class="o">/</span> <span class="mi">512</span> <span class="o">=</span> <span class="mf">0.5</span>
 </pre></div>
 </div>
-<p>根据 <em class="xref std std-ref">BGSAVE</em> 命令或 <em class="xref std std-ref">BGREWRITEAOF</em> 命令是否正在执行，
+<p>根据 <span class="xref std std-ref">BGSAVE</span> 命令或 <span class="xref std std-ref">BGREWRITEAOF</span> 命令是否正在执行，
 服务器执行扩展操作所需的负载因子并不相同，
-这是因为在执行 <em class="xref std std-ref">BGSAVE</em> 命令或 <em class="xref std std-ref">BGREWRITEAOF</em> 命令的过程中，
+这是因为在执行 <span class="xref std std-ref">BGSAVE</span> 命令或 <span class="xref std std-ref">BGREWRITEAOF</span> 命令的过程中，
 Redis 需要创建当前服务器进程的子进程，
 而大多数操作系统都采用写时复制（<a class="reference external" href="http://en.wikipedia.org/wiki/Copy-on-write">copy-on-write</a>）技术来优化子进程的使用效率，
 所以在子进程存在期间，
@@ -392,7 +392,7 @@ Redis 需要创建当前服务器进程的子进程，
     </div>
     <div class="footer">
         &copy; Copyright 2015, 黄健宏（huangz）.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.
     </div>
   </body>
 </html>

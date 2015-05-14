@@ -57,7 +57,7 @@
 一个对象用作键值对的键（键对象），
 另一个对象用作键值对的值（值对象）。</p>
 <p>举个例子，
-以下 <em class="xref std std-ref">SET</em> 命令在数据库中创建了一个新的键值对，
+以下 <span class="xref std std-ref">SET</span> 命令在数据库中创建了一个新的键值对，
 其中键值对的键是一个包含了字符串值 <code class="docutils literal"><span class="pre">&quot;msg&quot;</span></code> 的对象，
 而键值对的值则是一个包含了字符串值 <code class="docutils literal"><span class="pre">&quot;hello</span> <span class="pre">world&quot;</span></code> 的对象：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">SET</span> <span class="n">msg</span> <span class="s">&quot;hello world&quot;</span>
@@ -128,8 +128,8 @@
 我们指的是“这个数据库键所对应的值为列表对象”，</li>
 </ul>
 <p>诸如此类。</p>
-<p><em class="xref std std-ref">TYPE</em> 命令的实现方式也与此类似，
-当我们对一个数据库键执行 <em class="xref std std-ref">TYPE</em> 命令时，
+<p><span class="xref std std-ref">TYPE</span> 命令的实现方式也与此类似，
+当我们对一个数据库键执行 <span class="xref std std-ref">TYPE</span> 命令时，
 命令返回的结果为数据库键对应的值对象的类型，
 而不是键对象的类型：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="cp"># 键为字符串对象，值为字符串对象</span>
@@ -173,9 +173,9 @@
 <span class="n">zset</span>
 </pre></div>
 </div>
-<p>表 8-2 列出了 <em class="xref std std-ref">TYPE</em> 命令在面对不同类型的值对象时所产生的输出。</p>
+<p>表 8-2 列出了 <span class="xref std std-ref">TYPE</span> 命令在面对不同类型的值对象时所产生的输出。</p>
 <hr class="docutils" />
-<p>表 8-2    不同类型值对象的 <em class="xref std std-ref">TYPE</em> 命令输出</p>
+<p>表 8-2    不同类型值对象的 <span class="xref std std-ref">TYPE</span> 命令输出</p>
 <table border="1" class="docutils">
 <colgroup>
 <col width="20%" />
@@ -185,7 +185,7 @@
 <thead valign="bottom">
 <tr class="row-odd"><th class="head">对象</th>
 <th class="head">对象 <code class="docutils literal"><span class="pre">type</span></code> 属性的值</th>
-<th class="head"><em class="xref std std-ref">TYPE</em> 命令的输出</th>
+<th class="head"><span class="xref std std-ref">TYPE</span> 命令的输出</th>
 </tr>
 </thead>
 <tbody valign="top">
@@ -324,7 +324,7 @@
 </tbody>
 </table>
 <hr class="docutils" />
-<p>使用 <em class="xref std std-ref">OBJECT ENCODING</em> 命令可以查看一个数据库键的值对象的编码：</p>
+<p>使用 <span class="xref std std-ref">OBJECT ENCODING</span> 命令可以查看一个数据库键的值对象的编码：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">SET</span> <span class="n">msg</span> <span class="s">&quot;hello wrold&quot;</span>
 <span class="n">OK</span>
 
@@ -350,9 +350,9 @@
 <span class="s">&quot;hashtable&quot;</span>
 </pre></div>
 </div>
-<p>表 8-5 列出了不同编码的对象所对应的 <em class="xref std std-ref">OBJECT ENCODING</em> 命令输出。</p>
+<p>表 8-5 列出了不同编码的对象所对应的 <span class="xref std std-ref">OBJECT ENCODING</span> 命令输出。</p>
 <hr class="docutils" />
-<p>表 8-5    <em class="xref std std-ref">OBJECT ENCODING</em> 对不同编码的输出</p>
+<p>表 8-5    <span class="xref std std-ref">OBJECT ENCODING</span> 对不同编码的输出</p>
 <table border="1" class="docutils">
 <colgroup>
 <col width="35%" />
@@ -362,7 +362,7 @@
 <thead valign="bottom">
 <tr class="row-odd"><th class="head">对象所使用的底层数据结构</th>
 <th class="head">编码常量</th>
-<th class="head"><em class="xref std std-ref">OBJECT ENCODING</em> 命令输出</th>
+<th class="head"><span class="xref std std-ref">OBJECT ENCODING</span> 命令输出</th>
 </tr>
 </thead>
 <tbody valign="top">
@@ -465,7 +465,7 @@ Redis 使用压缩列表作为列表对象的底层实现：</p>
     </div>
     <div class="footer">
         &copy; Copyright 2015, 黄健宏（huangz）.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.
     </div>
   </body>
 </html>

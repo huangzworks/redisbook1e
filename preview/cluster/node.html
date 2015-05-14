@@ -58,19 +58,19 @@
 要组建一个真正可工作的集群，
 我们必须将各个独立的节点连接起来，
 构成一个包含多个节点的集群。</p>
-<p>连接各个节点的工作可以使用 <em class="xref std std-ref">CLUSTER MEET</em> 命令来完成，
+<p>连接各个节点的工作可以使用 <span class="xref std std-ref">CLUSTER MEET</span> 命令来完成，
 该命令的格式如下：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="n">CLUSTER</span> <span class="n">MEET</span> <span class="o">&lt;</span><span class="n">ip</span><span class="o">&gt;</span> <span class="o">&lt;</span><span class="n">port</span><span class="o">&gt;</span>
 </pre></div>
 </div>
-<p>向一个节点 <code class="docutils literal"><span class="pre">node</span></code> 发送 <em class="xref std std-ref">CLUSTER MEET</em> 命令，
+<p>向一个节点 <code class="docutils literal"><span class="pre">node</span></code> 发送 <span class="xref std std-ref">CLUSTER MEET</span> 命令，
 可以让 <code class="docutils literal"><span class="pre">node</span></code> 节点与 <code class="docutils literal"><span class="pre">ip</span></code> 和 <code class="docutils literal"><span class="pre">port</span></code> 所指定的节点进行握手（handshake），
 当握手成功时，
 <code class="docutils literal"><span class="pre">node</span></code> 节点就会将 <code class="docutils literal"><span class="pre">ip</span></code> 和 <code class="docutils literal"><span class="pre">port</span></code> 所指定的节点添加到 <code class="docutils literal"><span class="pre">node</span></code> 节点当前所在的集群中。</p>
 <p>举个例子，
 假设现在有三个独立的节点 <code class="docutils literal"><span class="pre">127.0.0.1:7000</span></code> 、 <code class="docutils literal"><span class="pre">127.0.0.1:7001</span></code> 、 <code class="docutils literal"><span class="pre">127.0.0.1:7002</span></code> （下文省略 IP 地址，直接使用端口号来区分各个节点），
 我们首先使用客户端连上节点 7000 ，
-通过发送 <em class="xref std std-ref">CLUSTER NODE</em> 命令可以看到，
+通过发送 <span class="xref std std-ref">CLUSTER NODE</span> 命令可以看到，
 集群目前只包含 7000 自己一个节点：</p>
 <div class="highlight-c"><div class="highlight"><pre>$ redis-cli -c -p 7000
 127.0.0.1:7000&gt; CLUSTER NODES
@@ -292,7 +292,7 @@
 </p>
 <p>本节接下来的内容将介绍启动节点的方法，
 和集群有关的数据结构，
-以及 <em class="xref std std-ref">CLUSTER MEET</em> 命令的实现原理。</p>
+以及 <span class="xref std std-ref">CLUSTER MEET</span> 命令的实现原理。</p>
 <div class="section" id="id2">
 <h2>启动节点<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
 <p>一个节点就是一个运行在集群模式下的 Redis 服务器，
@@ -338,7 +338,7 @@ Redis 服务器在启动时会根据 <code class="docutils literal"><span class=
 等等。</li>
 <li>节点会继续使用数据库来保存键值对数据，键值对依然会是各种不同类型的对象。</li>
 <li>节点会继续使用 RDB 持久化模块和 AOF 持久化模块来执行持久化工作。</li>
-<li>节点会继续使用发布与订阅模块来执行 <em class="xref std std-ref">PUBLISH</em> 、 <em class="xref std std-ref">SUBSCRIBE</em> 等命令。</li>
+<li>节点会继续使用发布与订阅模块来执行 <span class="xref std std-ref">PUBLISH</span> 、 <span class="xref std std-ref">SUBSCRIBE</span> 等命令。</li>
 <li>节点会继续使用复制模块来进行节点的复制工作。</li>
 <li>节点会继续使用 Lua 脚本环境来执行客户端输入的 Lua 脚本。</li>
 </ul>
@@ -517,7 +517,7 @@ Redis 服务器在启动时会根据 <code class="docutils literal"><span class=
 </div>
 <div class="section" id="cluster-meet">
 <h2>CLUSTER MEET 命令的实现<a class="headerlink" href="#cluster-meet" title="Permalink to this headline">¶</a></h2>
-<p>通过向节点 A 发送 <em class="xref std std-ref">CLUSTER MEET</em> 命令，
+<p>通过向节点 A 发送 <span class="xref std std-ref">CLUSTER MEET</span> 命令，
 客户端可以让接收命令的节点 A 将另一个节点 B 添加到节点 A 当前所在的集群里面：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="n">CLUSTER</span> <span class="n">MEET</span> <span class="o">&lt;</span><span class="n">ip</span><span class="o">&gt;</span> <span class="o">&lt;</span><span class="n">port</span><span class="o">&gt;</span>
 </pre></div>
@@ -529,7 +529,7 @@ Redis 服务器在启动时会根据 <code class="docutils literal"><span class=
 <li>节点 A 会为节点 B 创建一个 <code class="docutils literal"><span class="pre">clusterNode</span></code> 结构，
 并将该结构添加到自己的 <code class="docutils literal"><span class="pre">clusterState.nodes</span></code> 字典里面。</li>
 <li>之后，
-节点 A 将根据 <em class="xref std std-ref">CLUSTER MEET</em> 命令给定的 IP 地址和端口号，
+节点 A 将根据 <span class="xref std std-ref">CLUSTER MEET</span> 命令给定的 IP 地址和端口号，
 向节点 B 发送一条 <code class="docutils literal"><span class="pre">MEET</span></code> 消息（message）。</li>
 <li>如果一切顺利，
 节点 B 将接收到节点 A 发送的 <code class="docutils literal"><span class="pre">MEET</span></code> 消息，
@@ -627,7 +627,7 @@ Redis 服务器在启动时会根据 <code class="docutils literal"><span class=
     </div>
     <div class="footer">
         &copy; Copyright 2015, 黄健宏（huangz）.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.
     </div>
   </body>
 </html>

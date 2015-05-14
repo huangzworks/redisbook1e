@@ -128,7 +128,7 @@
 <li>调用命令执行器，
 执行客户端指定的命令。</li>
 </ol>
-<p>继续用上一个小节的 <em class="xref std std-ref">SET</em> 命令为例子，
+<p>继续用上一个小节的 <span class="xref std std-ref">SET</span> 命令为例子，
 图 14-2 展示了程序将命令请求保存到客户端状态的输入缓冲区之后，
 客户端状态的样子。</p>
 <p class="graphviz">
@@ -278,84 +278,84 @@
 <tbody valign="top">
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">w</span></code></td>
 <td>这是一个写入命令，可能会修改数据库。</td>
-<td><em class="xref std std-ref">SET</em> 、 <em class="xref std std-ref">RPUSH</em> 、 <em class="xref std std-ref">DEL</em>
+<td><span class="xref std std-ref">SET</span> 、 <span class="xref std std-ref">RPUSH</span> 、 <span class="xref std std-ref">DEL</span>
 ，等等。</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">r</span></code></td>
 <td>这是一个只读命令，不会修改数据库。</td>
-<td><em class="xref std std-ref">GET</em> 、 <em class="xref std std-ref">STRLEN</em> 、
-<em class="xref std std-ref">EXISTS</em> ，等等。</td>
+<td><span class="xref std std-ref">GET</span> 、 <span class="xref std std-ref">STRLEN</span> 、
+<span class="xref std std-ref">EXISTS</span> ，等等。</td>
 </tr>
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">m</span></code></td>
 <td>这个命令可能会占用大量内存，
 执行之前需要先检查服务器的内存使用情况，
 如果内存紧缺的话就禁止执行这个命令。</td>
-<td><em class="xref std std-ref">SET</em> 、 <em class="xref std std-ref">APPEND</em> 、
-<em class="xref std std-ref">RPUSH</em> 、 <em class="xref std std-ref">LPUSH</em> 、
-<em class="xref std std-ref">SADD</em> 、 <em class="xref std std-ref">SINTERSTORE</em> ，等等。</td>
+<td><span class="xref std std-ref">SET</span> 、 <span class="xref std std-ref">APPEND</span> 、
+<span class="xref std std-ref">RPUSH</span> 、 <span class="xref std std-ref">LPUSH</span> 、
+<span class="xref std std-ref">SADD</span> 、 <span class="xref std std-ref">SINTERSTORE</span> ，等等。</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">a</span></code></td>
 <td>这是一个管理命令。</td>
-<td><em class="xref std std-ref">SAVE</em> 、 <em class="xref std std-ref">BGSAVE</em> 、
-<em class="xref std std-ref">SHUTDOWN</em> ，等等。</td>
+<td><span class="xref std std-ref">SAVE</span> 、 <span class="xref std std-ref">BGSAVE</span> 、
+<span class="xref std std-ref">SHUTDOWN</span> ，等等。</td>
 </tr>
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">p</span></code></td>
 <td>这是一个发布与订阅功能方面的命令。</td>
-<td><em class="xref std std-ref">PUBLISH</em> 、 <em class="xref std std-ref">SUBSCRIBE</em> 、
-<em class="xref std std-ref">PUBSUB</em> ，等等。</td>
+<td><span class="xref std std-ref">PUBLISH</span> 、 <span class="xref std std-ref">SUBSCRIBE</span> 、
+<span class="xref std std-ref">PUBSUB</span> ，等等。</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">s</span></code></td>
 <td>这个命令不可以在 Lua 脚本中使用。</td>
-<td><em class="xref std std-ref">BRPOP</em> 、 <em class="xref std std-ref">BLPOP</em> 、
-<em class="xref std std-ref">BRPOPLPUSH</em> 、 <em class="xref std std-ref">SPOP</em> ，等等。</td>
+<td><span class="xref std std-ref">BRPOP</span> 、 <span class="xref std std-ref">BLPOP</span> 、
+<span class="xref std std-ref">BRPOPLPUSH</span> 、 <span class="xref std std-ref">SPOP</span> ，等等。</td>
 </tr>
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">R</span></code></td>
 <td>这是一个随机命令，
 对于相同的数据集和相同的参数，
 命令返回的结果可能不同。</td>
-<td><em class="xref std std-ref">SPOP</em> 、 <em class="xref std std-ref">SRANDMEMBER</em> 、
-<em class="xref std std-ref">SSCAN</em> 、
-<em class="xref std std-ref">RANDOMKEY</em> ，等等。</td>
+<td><span class="xref std std-ref">SPOP</span> 、 <span class="xref std std-ref">SRANDMEMBER</span> 、
+<span class="xref std std-ref">SSCAN</span> 、
+<span class="xref std std-ref">RANDOMKEY</span> ，等等。</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">S</span></code></td>
 <td>当在 Lua 脚本中使用这个命令时，
 对这个命令的输出结果进行一次排序，
 使得命令的结果有序。</td>
-<td><em class="xref std std-ref">SINTER</em> 、 <em class="xref std std-ref">SUNION</em> 、
-<em class="xref std std-ref">SDIFF</em> 、 <em class="xref std std-ref">SMEMBERS</em> 、
-<em class="xref std std-ref">KEYS</em> ，等等。</td>
+<td><span class="xref std std-ref">SINTER</span> 、 <span class="xref std std-ref">SUNION</span> 、
+<span class="xref std std-ref">SDIFF</span> 、 <span class="xref std std-ref">SMEMBERS</span> 、
+<span class="xref std std-ref">KEYS</span> ，等等。</td>
 </tr>
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">l</span></code></td>
 <td>这个命令可以在服务器载入数据的过程中使用。</td>
-<td><em class="xref std std-ref">INFO</em> 、 <em class="xref std std-ref">SHUTDOWN</em> 、
-<em class="xref std std-ref">PUBLISH</em> ，等等。</td>
+<td><span class="xref std std-ref">INFO</span> 、 <span class="xref std std-ref">SHUTDOWN</span> 、
+<span class="xref std std-ref">PUBLISH</span> ，等等。</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">t</span></code></td>
 <td>这是一个允许从服务器在带有过期数据时使用的命令。</td>
-<td><em class="xref std std-ref">SLAVEOF</em> 、 <em class="xref std std-ref">PING</em> 、
-<em class="xref std std-ref">INFO</em> ，等等。</td>
+<td><span class="xref std std-ref">SLAVEOF</span> 、 <span class="xref std std-ref">PING</span> 、
+<span class="xref std std-ref">INFO</span> ，等等。</td>
 </tr>
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">M</span></code></td>
 <td>这个命令在监视器（monitor）模式下不会自动被传播（propagate）。</td>
-<td><em class="xref std std-ref">EXEC</em></td>
+<td><span class="xref std std-ref">EXEC</span></td>
 </tr>
 </tbody>
 </table>
 <hr class="docutils" />
 <p>图 14-4 展示了命令表的样子，
-并且以 <em class="xref std std-ref">SET</em> 命令和 <em class="xref std std-ref">GET</em> 命令作为例子，
+并且以 <span class="xref std std-ref">SET</span> 命令和 <span class="xref std std-ref">GET</span> 命令作为例子，
 展示了 <code class="docutils literal"><span class="pre">redisCommand</span></code> 结构：</p>
 <ul class="simple">
-<li><em class="xref std std-ref">SET</em> 命令的名字为 <code class="docutils literal"><span class="pre">&quot;set&quot;</span></code> ，
+<li><span class="xref std std-ref">SET</span> 命令的名字为 <code class="docutils literal"><span class="pre">&quot;set&quot;</span></code> ，
 实现函数为 <code class="docutils literal"><span class="pre">setCommand</span></code> ；
 命令的参数个数为 <code class="docutils literal"><span class="pre">-3</span></code> ，
 表示命令接受三个或以上数量的参数；
 命令的标识为 <code class="docutils literal"><span class="pre">&quot;wm&quot;</span></code> ，
-表示 <em class="xref std std-ref">SET</em> 命令是一个写入命令，
+表示 <span class="xref std std-ref">SET</span> 命令是一个写入命令，
 并且在执行这个命令之前，
 服务器应该对占用内存状况进行检查，
 因为这个命令可能会占用大量内存。</li>
-<li><em class="xref std std-ref">GET</em> 命令的名字为 <code class="docutils literal"><span class="pre">&quot;get&quot;</span></code> ，
+<li><span class="xref std std-ref">GET</span> 命令的名字为 <code class="docutils literal"><span class="pre">&quot;get&quot;</span></code> ，
 实现函数为 <code class="docutils literal"><span class="pre">getCommand</span></code> 函数；
 命令的参数个数为 <code class="docutils literal"><span class="pre">2</span></code> ，
 表示命令只接受两个参数；
@@ -399,7 +399,7 @@
 
 }" />
 </p>
-<p>继续之前 <em class="xref std std-ref">SET</em> 命令的例子，
+<p>继续之前 <span class="xref std std-ref">SET</span> 命令的例子，
 当程序以图 14-3 中的 <code class="docutils literal"><span class="pre">argv[0]</span></code> 作为输入，
 在命令表中进行查找时，
 命令表将返回 <code class="docutils literal"><span class="pre">&quot;set&quot;</span></code> 键所对应的 <code class="docutils literal"><span class="pre">redisCommand</span></code> 结构，
@@ -484,8 +484,8 @@
 如果 <code class="docutils literal"><span class="pre">redisCommand</span></code> 结构的 <code class="docutils literal"><span class="pre">arity</span></code> 属性的值为 <code class="docutils literal"><span class="pre">-3</span></code> ，
 那么用户输入的命令参数个数必须大于等于 <code class="docutils literal"><span class="pre">3</span></code> 个才行。</li>
 <li>检查客户端是否已经通过了身份验证，
-未通过身份验证的客户端只能执行 <em class="xref std std-ref">AUTH</em> 命令，
-如果未通过身份验证的客户端试图执行除 <em class="xref std std-ref">AUTH</em> 命令之外的其他命令，
+未通过身份验证的客户端只能执行 <span class="xref std std-ref">AUTH</span> 命令，
+如果未通过身份验证的客户端试图执行除 <span class="xref std std-ref">AUTH</span> 命令之外的其他命令，
 那么服务器将向客户端返回一个错误。</li>
 <li>如果服务器打开了 <code class="docutils literal"><span class="pre">maxmemory</span></code> 功能，
 那么在执行命令之前，
@@ -495,23 +495,23 @@
 如果内存回收失败，
 那么不再执行后续步骤，
 向客户端返回一个错误。</li>
-<li>如果服务器上一次执行 <em class="xref std std-ref">BGSAVE</em> 命令时出错，
+<li>如果服务器上一次执行 <span class="xref std std-ref">BGSAVE</span> 命令时出错，
 并且服务器打开了 <code class="docutils literal"><span class="pre">stop-writes-on-bgsave-error</span></code> 功能，
 而且服务器即将要执行的命令是一个写命令，
 那么服务器将拒绝执行这个命令，
 并向客户端返回一个错误。</li>
-<li>如果客户端当前正在用 <em class="xref std std-ref">SUBSCRIBE</em> 命令订阅频道，
-或者正在用 <em class="xref std std-ref">PSUBSCRIBE</em> 命令订阅模式，
-那么服务器只会执行客户端发来的 <em class="xref std std-ref">SUBSCRIBE</em> 、 <em class="xref std std-ref">PSUBSCRIBE</em> 、 <em class="xref std std-ref">UNSUBSCRIBE</em> 、 <em class="xref std std-ref">PUNSUBSCRIBE</em> 四个命令，
+<li>如果客户端当前正在用 <span class="xref std std-ref">SUBSCRIBE</span> 命令订阅频道，
+或者正在用 <span class="xref std std-ref">PSUBSCRIBE</span> 命令订阅模式，
+那么服务器只会执行客户端发来的 <span class="xref std std-ref">SUBSCRIBE</span> 、 <span class="xref std std-ref">PSUBSCRIBE</span> 、 <span class="xref std std-ref">UNSUBSCRIBE</span> 、 <span class="xref std std-ref">PUNSUBSCRIBE</span> 四个命令，
 其他别的命令都会被服务器拒绝。</li>
 <li>如果服务器正在进行数据载入，
-那么客户端发送的命令必须带有 <code class="docutils literal"><span class="pre">l</span></code> 标识（比如 <em class="xref std std-ref">INFO</em> 、 <em class="xref std std-ref">SHUTDOWN</em> 、 <em class="xref std std-ref">PUBLISH</em> ，等等）才会被服务器执行，
+那么客户端发送的命令必须带有 <code class="docutils literal"><span class="pre">l</span></code> 标识（比如 <span class="xref std std-ref">INFO</span> 、 <span class="xref std std-ref">SHUTDOWN</span> 、 <span class="xref std std-ref">PUBLISH</span> ，等等）才会被服务器执行，
 其他别的命令都会被服务器拒绝。</li>
 <li>如果服务器因为执行 Lua 脚本而超时并进入阻塞状态，
-那么服务器只会执行客户端发来的 <em class="xref std std-ref">SHUTDOWN nosave</em> 命令和 <em class="xref std std-ref">SCRIPT KILL</em> 命令，
+那么服务器只会执行客户端发来的 <span class="xref std std-ref">SHUTDOWN nosave</span> 命令和 <span class="xref std std-ref">SCRIPT KILL</span> 命令，
 其他别的命令都会被服务器拒绝。</li>
 <li>如果客户端正在执行事务，
-那么服务器只会执行客户端发来的 <em class="xref std std-ref">EXEC</em> 、 <em class="xref std std-ref">DISCARD</em> 、 <em class="xref std std-ref">MULTI</em> 、 <em class="xref std std-ref">WATCH</em> 四个命令，
+那么服务器只会执行客户端发来的 <span class="xref std std-ref">EXEC</span> 、 <span class="xref std std-ref">DISCARD</span> 、 <span class="xref std std-ref">MULTI</span> 、 <span class="xref std std-ref">WATCH</span> 四个命令，
 其他命令都会被放进事务队列中。</li>
 <li>如果服务器打开了监视器功能，
 那么服务器会将要执行的命令和参数等信息发送给监视器。</li>
@@ -539,7 +539,7 @@
 </div>
 <p>因为执行命令所需的实际参数都已经保存到客户端状态的 <code class="docutils literal"><span class="pre">argv</span></code> 属性里面了，
 所以命令的实现函数只需要一个指向客户端状态的指针作为参数即可。</p>
-<p>继续以之前的 <em class="xref std std-ref">SET</em> 命令为例子，
+<p>继续以之前的 <span class="xref std std-ref">SET</span> 命令为例子，
 图 14-6 展示了客户端包含了命令实现、参数和参数个数的样子。</p>
 <p class="graphviz">
 <img src="../../_images/graphviz-434161d675049e28c3944279dface7d66d462425.png" alt="digraph {
@@ -581,7 +581,7 @@
 这些回复会被保存在客户端状态的输出缓冲区里面（<code class="docutils literal"><span class="pre">buf</span></code> 属性和 <code class="docutils literal"><span class="pre">reply</span></code> 属性），
 之后实现函数还会为客户端的套接字关联命令回复处理器，
 这个处理器负责将命令回复返回给客户端。</p>
-<p>对于前面 <em class="xref std std-ref">SET</em> 命令的例子来说，
+<p>对于前面 <span class="xref std std-ref">SET</span> 命令的例子来说，
 函数调用 <code class="docutils literal"><span class="pre">setCommand(client);</span></code> 将产生一个 <code class="docutils literal"><span class="pre">&quot;+OK\r\n&quot;</span></code> 回复，
 这个回复会被保存到客户端状态的 <code class="docutils literal"><span class="pre">buf</span></code> 属性里面，
 如图 14-7 所示。</p>
@@ -666,7 +666,7 @@
 
 }" />
 </p>
-<p>继续以之前的 <em class="xref std std-ref">SET</em> 命令为例子，
+<p>继续以之前的 <span class="xref std std-ref">SET</span> 命令为例子，
 当客户端接到服务器发来的 <code class="docutils literal"><span class="pre">&quot;+OK\r\n&quot;</span></code> 协议回复时，
 它会将这个回复转换成 <code class="docutils literal"><span class="pre">&quot;OK\n&quot;</span></code> ，
 然后打印给用户看：</p>
@@ -717,7 +717,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2015, 黄健宏（huangz）.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.
     </div>
   </body>
 </html>

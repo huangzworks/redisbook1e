@@ -249,9 +249,9 @@ Redis 将获取字符串长度所需的复杂度从 <img class="math" src="../..
 这确保了获取字符串长度的工作不会成为 Redis 的性能瓶颈。</p>
 <p>比如说，
 因为字符串键在底层使用 SDS 来实现，
-所以即使我们对一个非常长的字符串键反复执行 <em class="xref std std-ref">STRLEN</em> 命令，
+所以即使我们对一个非常长的字符串键反复执行 <span class="xref std std-ref">STRLEN</span> 命令，
 也不会对系统性能造成任何影响，
-因为 <em class="xref std std-ref">STRLEN</em> 命令的复杂度仅为 <img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</p>
+因为 <span class="xref std std-ref">STRLEN</span> 命令的复杂度仅为 <img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</p>
 </div>
 <div class="section" id="id2">
 <h2>杜绝缓冲区溢出<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
@@ -880,7 +880,7 @@ SDS 可以在有需要时重用 <code class="docutils literal"><span class="pre"
     </div>
     <div class="footer">
         &copy; Copyright 2015, 黄健宏（huangz）.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.
     </div>
   </body>
 </html>

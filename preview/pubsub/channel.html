@@ -51,7 +51,7 @@
             
   <div class="section" id="id1">
 <h1>频道的订阅与退订<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
-<p>当一个客户端执行 <em class="xref std std-ref">SUBSCRIBE</em> 命令，
+<p>当一个客户端执行 <span class="xref std std-ref">SUBSCRIBE</span> 命令，
 订阅某个或某些频道的时候，
 这个客户端与被订阅频道之间就建立起了一种订阅关系。</p>
 <p>Redis 将所有频道的订阅关系都保存在服务器状态的 <code class="docutils literal"><span class="pre">pubsub_channels</span></code> 字典里面，
@@ -110,7 +110,7 @@
 </p>
 <div class="section" id="id2">
 <h2>订阅频道<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
-<p>每当客户端执行 <em class="xref std std-ref">SUBSCRIBE</em> 命令，
+<p>每当客户端执行 <span class="xref std std-ref">SUBSCRIBE</span> 命令，
 订阅某个或某些频道的时候，
 服务器都会将客户端与被订阅的频道在 <code class="docutils literal"><span class="pre">pubsub_channels</span></code> 字典中进行关联。</p>
 <p>根据频道是否已经有其他订阅者，
@@ -177,7 +177,7 @@
 
 }" />
 </p>
-<p><em class="xref std std-ref">SUBSCRIBE</em> 命令的实现可以用以下伪代码来描述：</p>
+<p><span class="xref std std-ref">SUBSCRIBE</span> 命令的实现可以用以下伪代码来描述：</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">subscribe</span><span class="p">(</span><span class="o">*</span><span class="n">all_input_channels</span><span class="p">):</span>
 
     <span class="c"># 遍历输入的所有频道</span>
@@ -195,7 +195,7 @@
 </div>
 <div class="section" id="id3">
 <h2>退订频道<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
-<p><em class="xref std std-ref">UNSUBSCRIBE</em> 命令的行为和 <em class="xref std std-ref">SUBSCRIBE</em> 命令的行为正好相反 ——
+<p><span class="xref std std-ref">UNSUBSCRIBE</span> 命令的行为和 <span class="xref std std-ref">SUBSCRIBE</span> 命令的行为正好相反 ——
 当一个客户端退订某个或某些频道的时候，
 服务器将从 <code class="docutils literal"><span class="pre">pubsub_channels</span></code> 中解除客户端与被退订频道之间的关联：</p>
 <ul class="simple">
@@ -288,7 +288,7 @@
 
 }" />
 </p>
-<p><em class="xref std std-ref">UNSUBSCRIBE</em> 命令的实现可以用以下伪代码来描述：</p>
+<p><span class="xref std std-ref">UNSUBSCRIBE</span> 命令的实现可以用以下伪代码来描述：</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">unsubscribe</span><span class="p">(</span><span class="o">*</span><span class="n">all_input_channels</span><span class="p">):</span>
 
     <span class="c"># 遍历要退订的所有频道</span>
@@ -345,7 +345,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2015, 黄健宏（huangz）.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.
     </div>
   </body>
 </html>

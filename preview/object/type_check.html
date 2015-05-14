@@ -53,10 +53,10 @@
 <h1>类型检查与命令多态<a class="headerlink" href="#id1" title="Permalink to this headline">¶</a></h1>
 <p>Redis 中用于操作键的命令基本上可以分为两种类型。</p>
 <p>其中一种命令可以对任何类型的键执行，
-比如说 <em class="xref std std-ref">DEL</em> 命令、 <em class="xref std std-ref">EXPIRE</em> 命令、 <em class="xref std std-ref">RENAME</em> 命令、 <em class="xref std std-ref">TYPE</em> 命令、 <em class="xref std std-ref">OBJECT</em> 命令，
+比如说 <span class="xref std std-ref">DEL</span> 命令、 <span class="xref std std-ref">EXPIRE</span> 命令、 <span class="xref std std-ref">RENAME</span> 命令、 <span class="xref std std-ref">TYPE</span> 命令、 <span class="xref std std-ref">OBJECT</span> 命令，
 等等。</p>
 <p>举个例子，
-以下代码就展示了使用 <em class="xref std std-ref">DEL</em> 命令来删除三种不同类型的键：</p>
+以下代码就展示了使用 <span class="xref std std-ref">DEL</span> 命令来删除三种不同类型的键：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="cp"># 字符串键</span>
 <span class="n">redis</span><span class="o">&gt;</span> <span class="n">SET</span> <span class="n">msg</span> <span class="s">&quot;hello&quot;</span>
 <span class="n">OK</span>
@@ -82,17 +82,17 @@
 <p>而另一种命令只能对特定类型的键执行，
 比如说：</p>
 <ul class="simple">
-<li><em class="xref std std-ref">SET</em> 、 <em class="xref std std-ref">GET</em> 、 <em class="xref std std-ref">APPEND</em> 、 <em class="xref std std-ref">STRLEN</em> 等命令只能对字符串键执行；</li>
-<li><em class="xref std std-ref">HDEL</em> 、 <em class="xref std std-ref">HSET</em> 、 <em class="xref std std-ref">HGET</em> 、 <em class="xref std std-ref">HLEN</em> 等命令只能对哈希键执行；</li>
-<li><em class="xref std std-ref">RPUSH</em> 、 <em class="xref std std-ref">LPOP</em> 、 <em class="xref std std-ref">LINSERT</em> 、 <em class="xref std std-ref">LLEN</em> 等命令只能对列表键执行；</li>
-<li><em class="xref std std-ref">SADD</em> 、 <em class="xref std std-ref">SPOP</em> 、 <em class="xref std std-ref">SINTER</em> 、 <em class="xref std std-ref">SCARD</em> 等命令只能对集合键执行；</li>
-<li><em class="xref std std-ref">ZADD</em> 、 <em class="xref std std-ref">ZCARD</em> 、 <em class="xref std std-ref">ZRANK</em> 、 <em class="xref std std-ref">ZSCORE</em> 等命令只能对有序集合键执行；</li>
+<li><span class="xref std std-ref">SET</span> 、 <span class="xref std std-ref">GET</span> 、 <span class="xref std std-ref">APPEND</span> 、 <span class="xref std std-ref">STRLEN</span> 等命令只能对字符串键执行；</li>
+<li><span class="xref std std-ref">HDEL</span> 、 <span class="xref std std-ref">HSET</span> 、 <span class="xref std std-ref">HGET</span> 、 <span class="xref std std-ref">HLEN</span> 等命令只能对哈希键执行；</li>
+<li><span class="xref std std-ref">RPUSH</span> 、 <span class="xref std std-ref">LPOP</span> 、 <span class="xref std std-ref">LINSERT</span> 、 <span class="xref std std-ref">LLEN</span> 等命令只能对列表键执行；</li>
+<li><span class="xref std std-ref">SADD</span> 、 <span class="xref std std-ref">SPOP</span> 、 <span class="xref std std-ref">SINTER</span> 、 <span class="xref std std-ref">SCARD</span> 等命令只能对集合键执行；</li>
+<li><span class="xref std std-ref">ZADD</span> 、 <span class="xref std std-ref">ZCARD</span> 、 <span class="xref std std-ref">ZRANK</span> 、 <span class="xref std std-ref">ZSCORE</span> 等命令只能对有序集合键执行；</li>
 </ul>
 <p>诸如此类。</p>
 <p>举个例子，
-我们可以用 <em class="xref std std-ref">SET</em> 命令创建一个字符串键，
-然后用 <em class="xref std std-ref">GET</em> 命令和 <em class="xref std std-ref">APPEND</em> 命令操作这个键，
-但如果我们试图对这个字符串键执行只有列表键才能执行的 <em class="xref std std-ref">LLEN</em> 命令，
+我们可以用 <span class="xref std std-ref">SET</span> 命令创建一个字符串键，
+然后用 <span class="xref std std-ref">GET</span> 命令和 <span class="xref std std-ref">APPEND</span> 命令操作这个键，
+但如果我们试图对这个字符串键执行只有列表键才能执行的 <span class="xref std std-ref">LLEN</span> 命令，
 那么 Redis 将向我们返回一个类型错误：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">SET</span> <span class="n">msg</span> <span class="s">&quot;hello world&quot;</span>
 <span class="n">OK</span>
@@ -128,14 +128,14 @@ Redis 会先检查输入键的类型是否正确，
 并向客户端返回一个类型错误。</li>
 </ul>
 <p>举个例子，
-对于 <em class="xref std std-ref">LLEN</em> 命令来说：</p>
+对于 <span class="xref std std-ref">LLEN</span> 命令来说：</p>
 <ul class="simple">
-<li>在执行 <em class="xref std std-ref">LLEN</em> 命令之前，
+<li>在执行 <span class="xref std std-ref">LLEN</span> 命令之前，
 服务器会先检查输入数据库键的值对象是否为列表类型，
 也即是，
 检查值对象 <code class="docutils literal"><span class="pre">redisObject</span></code> 结构 <code class="docutils literal"><span class="pre">type</span></code> 属性的值是否为 <code class="docutils literal"><span class="pre">REDIS_LIST</span></code> ，
 如果是的话，
-服务器就对键执行 <em class="xref std std-ref">LLEN</em> 命令；</li>
+服务器就对键执行 <span class="xref std std-ref">LLEN</span> 命令；</li>
 <li>否则的话，
 服务器就拒绝执行命令并向客户端返回一个类型错误；</li>
 </ul>
@@ -165,7 +165,7 @@ Redis 会先检查输入键的类型是否正确，
 
 }" />
 </p>
-<p>其他类型特定命令的类型检查过程也和这里展示的 <em class="xref std std-ref">LLEN</em> 命令的类型检查过程类似。</p>
+<p>其他类型特定命令的类型检查过程也和这里展示的 <span class="xref std std-ref">LLEN</span> 命令的类型检查过程类似。</p>
 </div>
 <div class="section" id="id3">
 <h2>多态命令的实现<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
@@ -179,9 +179,9 @@ Redis 会先检查输入键的类型是否正确，
 而后者则使用双端链表 API 来实现列表命令。</p>
 <p>现在，
 考虑这样一个情况，
-如果我们对一个键执行 <em class="xref std std-ref">LLEN</em> 命令，
+如果我们对一个键执行 <span class="xref std std-ref">LLEN</span> 命令，
 那么服务器除了要确保执行命令的是列表键之外，
-还需要根据键的值对象所使用的编码来选择正确的 <em class="xref std std-ref">LLEN</em> 命令实现：</p>
+还需要根据键的值对象所使用的编码来选择正确的 <span class="xref std std-ref">LLEN</span> 命令实现：</p>
 <ul class="simple">
 <li>如果列表对象的编码为 <code class="docutils literal"><span class="pre">ziplist</span></code> ，
 那么说明列表对象的实现为压缩列表，
@@ -191,11 +191,11 @@ Redis 会先检查输入键的类型是否正确，
 程序将使用 <code class="docutils literal"><span class="pre">listLength</span></code> 函数来返回双端链表的长度；</li>
 </ul>
 <p>借用面向对象方面的术语来说，
-我们可以认为 <em class="xref std std-ref">LLEN</em> 命令是多态（<a class="reference external" href="http://en.wikipedia.org/wiki/Polymorphism_(computer_science)">polymorphism</a>）的：
-只要执行 <em class="xref std std-ref">LLEN</em> 命令的是列表键，
+我们可以认为 <span class="xref std std-ref">LLEN</span> 命令是多态（<a class="reference external" href="http://en.wikipedia.org/wiki/Polymorphism_(computer_science)">polymorphism</a>）的：
+只要执行 <span class="xref std std-ref">LLEN</span> 命令的是列表键，
 那么无论值对象使用的是 <code class="docutils literal"><span class="pre">ziplist</span></code> 编码还是 <code class="docutils literal"><span class="pre">linkedlist</span></code> 编码，
 命令都可以正常执行。</p>
-<p>图 8-19 展示了 <em class="xref std std-ref">LLEN</em> 命令从类型检查到根据编码选择实现函数的整个执行过程，
+<p>图 8-19 展示了 <span class="xref std std-ref">LLEN</span> 命令从类型检查到根据编码选择实现函数的整个执行过程，
 其他类型特定命令的执行过程也是类似的。</p>
 <p class="graphviz">
 <img src="../../_images/graphviz-6968058778bf21d6e975a903e47b232c72fdadd1.png" alt="digraph {
@@ -239,10 +239,10 @@ Redis 会先检查输入键的类型是否正确，
 }" />
 </p>
 <p>实际上，
-我们可以将 <em class="xref std std-ref">DEL</em> 、 <em class="xref std std-ref">EXPIRE</em> 、 <em class="xref std std-ref">TYPE</em> 等命令也称为多态命令，
+我们可以将 <span class="xref std std-ref">DEL</span> 、 <span class="xref std std-ref">EXPIRE</span> 、 <span class="xref std std-ref">TYPE</span> 等命令也称为多态命令，
 因为无论输入的键是什么类型，
 这些命令都可以正确地执行。</p>
-<p><em class="xref std std-ref">DEL</em> 、 <em class="xref std std-ref">EXPIRE</em> 等命令和 <em class="xref std std-ref">LLEN</em> 等命令的区别在于，
+<p><span class="xref std std-ref">DEL</span> 、 <span class="xref std std-ref">EXPIRE</span> 等命令和 <span class="xref std std-ref">LLEN</span> 等命令的区别在于，
 前者是基于类型的多态 —— 一个命令可以同时用于处理多种不同类型的键，
 而后者是基于编码的多态 —— 一个命令可以同时用于处理多种不同编码。</p>
 </div>
@@ -287,7 +287,7 @@ Redis 会先检查输入键的类型是否正确，
     </div>
     <div class="footer">
         &copy; Copyright 2015, 黄健宏（huangz）.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.
     </div>
   </body>
 </html>

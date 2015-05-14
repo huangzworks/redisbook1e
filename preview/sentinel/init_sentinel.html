@@ -101,32 +101,32 @@
 </thead>
 <tbody valign="top">
 <tr class="row-even"><td>数据库和键值对方面的命令，
-比如 <em class="xref std std-ref">SET</em> 、 <em class="xref std std-ref">DEL</em> 、 <em class="xref std std-ref">FLUSHDB</em> 。</td>
+比如 <span class="xref std std-ref">SET</span> 、 <span class="xref std std-ref">DEL</span> 、 <span class="xref std std-ref">FLUSHDB</span> 。</td>
 <td>不使用。</td>
 </tr>
 <tr class="row-odd"><td>事务命令，
-比如 <em class="xref std std-ref">MULTI</em> 和 <em class="xref std std-ref">WATCH</em> 。</td>
+比如 <span class="xref std std-ref">MULTI</span> 和 <span class="xref std std-ref">WATCH</span> 。</td>
 <td>不使用。</td>
 </tr>
-<tr class="row-even"><td>脚本命令，比如 <em class="xref std std-ref">EVAL</em> 。</td>
+<tr class="row-even"><td>脚本命令，比如 <span class="xref std std-ref">EVAL</span> 。</td>
 <td>不使用。</td>
 </tr>
 <tr class="row-odd"><td>RDB 持久化命令，
-比如 <em class="xref std std-ref">SAVE</em> 和 <em class="xref std std-ref">BGSAVE</em> 。</td>
+比如 <span class="xref std std-ref">SAVE</span> 和 <span class="xref std std-ref">BGSAVE</span> 。</td>
 <td>不使用。</td>
 </tr>
 <tr class="row-even"><td>AOF 持久化命令，
-比如 <em class="xref std std-ref">BGREWRITEAOF</em> 。</td>
+比如 <span class="xref std std-ref">BGREWRITEAOF</span> 。</td>
 <td>不使用。</td>
 </tr>
-<tr class="row-odd"><td>复制命令，比如 <em class="xref std std-ref">SLAVEOF</em> 。</td>
+<tr class="row-odd"><td>复制命令，比如 <span class="xref std std-ref">SLAVEOF</span> 。</td>
 <td>Sentinel 内部可以使用，但客户端不可以使用。</td>
 </tr>
 <tr class="row-even"><td>发布与订阅命令，
-比如 <em class="xref std std-ref">PUBLISH</em> 和 <em class="xref std std-ref">SUBSCRIBE</em> 。</td>
-<td><em class="xref std std-ref">SUBSCRIBE</em> 、 <em class="xref std std-ref">PSUBSCRIBE</em> 、 <em class="xref std std-ref">UNSUBSCRIBE</em>
-<em class="xref std std-ref">PUNSUBSCRIBE</em> 四个命令在 Sentinel 内部和客户端都可以使用，
-但 <em class="xref std std-ref">PUBLISH</em> 命令只能在 Sentinel 内部使用。</td>
+比如 <span class="xref std std-ref">PUBLISH</span> 和 <span class="xref std std-ref">SUBSCRIBE</span> 。</td>
+<td><span class="xref std std-ref">SUBSCRIBE</span> 、 <span class="xref std std-ref">PSUBSCRIBE</span> 、 <span class="xref std std-ref">UNSUBSCRIBE</span>
+<span class="xref std std-ref">PUNSUBSCRIBE</span> 四个命令在 Sentinel 内部和客户端都可以使用，
+但 <span class="xref std std-ref">PUBLISH</span> 命令只能在 Sentinel 内部使用。</td>
 </tr>
 <tr class="row-odd"><td>文件事件处理器（负责发送命令请求、处理命令回复）。</td>
 <td>Sentinel 内部使用，
@@ -169,7 +169,7 @@
 </pre></div>
 </div>
 <p>而 Sentinel 则使用 <code class="docutils literal"><span class="pre">sentinel.c/sentinelcmds</span></code> 作为服务器的命令表，
-并且其中的 <em class="xref std std-ref">INFO</em> 命令会使用 Sentinel 模式下的专用实现 <code class="docutils literal"><span class="pre">sentinel.c/sentinelInfoCommand</span></code> 函数，
+并且其中的 <span class="xref std std-ref">INFO</span> 命令会使用 Sentinel 模式下的专用实现 <code class="docutils literal"><span class="pre">sentinel.c/sentinelInfoCommand</span></code> 函数，
 而不是普通 Redis 服务器使用的实现 <code class="docutils literal"><span class="pre">redis.c/infoCommand</span></code> 函数：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="k">struct</span> <span class="n">redisCommand</span> <span class="n">sentinelcmds</span><span class="p">[]</span> <span class="o">=</span> <span class="p">{</span>
     <span class="p">{</span><span class="s">&quot;ping&quot;</span><span class="p">,</span><span class="n">pingCommand</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="s">&quot;&quot;</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="nb">NULL</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">},</span>
@@ -183,9 +183,9 @@
 </pre></div>
 </div>
 <p><code class="docutils literal"><span class="pre">sentinelcmds</span></code> 命令表也解释了为什么在 Sentinel 模式下，
-Redis 服务器不能执行诸如 <em class="xref std std-ref">SET</em> 、 <em class="xref std std-ref">DBSIZE</em> 、 <em class="xref std std-ref">EVAL</em> 等等这些命令 ——
+Redis 服务器不能执行诸如 <span class="xref std std-ref">SET</span> 、 <span class="xref std std-ref">DBSIZE</span> 、 <span class="xref std std-ref">EVAL</span> 等等这些命令 ——
 因为服务器根本没有在命令表中载入这些命令：
-<em class="xref std std-ref">PING</em> 、 <em class="xref std std-ref">SENTINEL</em> 、 <em class="xref std std-ref">INFO</em> 、 <em class="xref std std-ref">SUBSCRIBE</em> 、 <em class="xref std std-ref">UNSUBSCRIBE</em> 、 <em class="xref std std-ref">PSUBSCRIBE</em> 和 <em class="xref std std-ref">PUNSUBSCRIBE</em> 这七个命令就是客户端可以对 Sentinel 执行的全部命令了。</p>
+<span class="xref std std-ref">PING</span> 、 <span class="xref std std-ref">SENTINEL</span> 、 <span class="xref std std-ref">INFO</span> 、 <span class="xref std std-ref">SUBSCRIBE</span> 、 <span class="xref std std-ref">UNSUBSCRIBE</span> 、 <span class="xref std std-ref">PSUBSCRIBE</span> 和 <span class="xref std std-ref">PUNSUBSCRIBE</span> 这七个命令就是客户端可以对 Sentinel 执行的全部命令了。</p>
 </div>
 <div class="section" id="id3">
 <h2>初始化 Sentinel 状态<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
@@ -509,7 +509,7 @@ Sentinel 还又必须向主服务器发送命令，
     </div>
     <div class="footer">
         &copy; Copyright 2015, 黄健宏（huangz）.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.
     </div>
   </body>
 </html>

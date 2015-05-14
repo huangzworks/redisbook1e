@@ -255,17 +255,17 @@ Redis 对 <code class="docutils literal"><span class="pre">math</span></code> �
 </div>
 <p>这个例子中的 <code class="docutils literal"><span class="pre">fruit</span></code> 集合和 <code class="docutils literal"><span class="pre">another-fruit</span></code> 集合包含的元素是完全相同的，
 只是因为集合添加元素的顺序不同，
-<em class="xref std std-ref">SMEMBERS</em> 命令的输出就产生了不同的结果。</p>
-<p>Redis 将 <em class="xref std std-ref">SMEMBERS</em> 这种在相同数据集上可能会产生不同输出的命令称为“带有不确定性的命令”，
+<span class="xref std std-ref">SMEMBERS</span> 命令的输出就产生了不同的结果。</p>
+<p>Redis 将 <span class="xref std std-ref">SMEMBERS</span> 这种在相同数据集上可能会产生不同输出的命令称为“带有不确定性的命令”，
 这些命令包括：</p>
 <ul class="simple">
-<li><em class="xref std std-ref">SINTER</em></li>
-<li><em class="xref std std-ref">SUNION</em></li>
-<li><em class="xref std std-ref">SDIFF</em></li>
-<li><em class="xref std std-ref">SMEMBERS</em></li>
-<li><em class="xref std std-ref">HKEYS</em></li>
-<li><em class="xref std std-ref">HVALS</em></li>
-<li><em class="xref std std-ref">KEYS</em></li>
+<li><span class="xref std std-ref">SINTER</span></li>
+<li><span class="xref std std-ref">SUNION</span></li>
+<li><span class="xref std std-ref">SDIFF</span></li>
+<li><span class="xref std std-ref">SMEMBERS</span></li>
+<li><span class="xref std std-ref">HKEYS</span></li>
+<li><span class="xref std std-ref">HVALS</span></li>
+<li><span class="xref std std-ref">KEYS</span></li>
 </ul>
 <p>为了消除这些命令带来的不确定性，
 服务器会为 Lua 环境创建一个排序辅助函数 <code class="docutils literal"><span class="pre">__redis__compare_helper</span></code> ，
@@ -274,9 +274,9 @@ Redis 对 <code class="docutils literal"><span class="pre">math</span></code> �
 自动调用 <code class="docutils literal"><span class="pre">table.sort</span></code> 函数对命令的返回值做一次排序，
 以此来保证相同的数据集总是产生相同的输出。</p>
 <p>举个例子，
-如果我们在 Lua 脚本中对 <code class="docutils literal"><span class="pre">fruit</span></code> 集合和 <code class="docutils literal"><span class="pre">another-fruit</span></code> 集合执行 <em class="xref std std-ref">SMEMBERS</em> 命令，
+如果我们在 Lua 脚本中对 <code class="docutils literal"><span class="pre">fruit</span></code> 集合和 <code class="docutils literal"><span class="pre">another-fruit</span></code> 集合执行 <span class="xref std std-ref">SMEMBERS</span> 命令，
 那么两个脚本将得出相同的结果 ——
-因为脚本已经对 <em class="xref std std-ref">SMEMBERS</em> 命令的输出进行过排序了：</p>
+因为脚本已经对 <span class="xref std std-ref">SMEMBERS</span> 命令的输出进行过排序了：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">EVAL</span> <span class="s">&quot;return redis.call(&#39;SMEMBERS&#39;, KEYS[1])&quot;</span> <span class="mi">1</span> <span class="n">fruit</span>
 <span class="mi">1</span><span class="p">)</span> <span class="s">&quot;apple&quot;</span>
 <span class="mi">2</span><span class="p">)</span> <span class="s">&quot;banana&quot;</span>
@@ -411,7 +411,7 @@ Redis 服务器对 Lua 环境的修改工作到此就结束了，
     </div>
     <div class="footer">
         &copy; Copyright 2015, 黄健宏（huangz）.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.
     </div>
   </body>
 </html>

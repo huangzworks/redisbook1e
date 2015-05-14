@@ -56,32 +56,32 @@
 会对内嵌的 Lua 环境执行一系列修改操作，
 从而确保内嵌的 Lua 环境可以满足 Redis 在功能性、安全性等方面的需要。</li>
 <li>Redis 服务器专门使用一个伪客户端来执行 Lua 脚本中包含的 Redis 命令。</li>
-<li>Redis 使用脚本字典来保存所有被 <em class="xref std std-ref">EVAL</em> 命令执行过，
-或者被 <em class="xref std std-ref">SCRIPT_LOAD</em> 命令载入过的 Lua 脚本，
-这些脚本可以用于实现 <em class="xref std std-ref">SCRIPT_EXISTS</em> 命令，
+<li>Redis 使用脚本字典来保存所有被 <span class="xref std std-ref">EVAL</span> 命令执行过，
+或者被 <span class="xref std std-ref">SCRIPT_LOAD</span> 命令载入过的 Lua 脚本，
+这些脚本可以用于实现 <span class="xref std std-ref">SCRIPT_EXISTS</span> 命令，
 以及实现脚本复制功能。</li>
-<li><em class="xref std std-ref">EVAL</em> 命令为客户端输入的脚本在 Lua 环境中定义一个函数，
+<li><span class="xref std std-ref">EVAL</span> 命令为客户端输入的脚本在 Lua 环境中定义一个函数，
 并通过调用这个函数来执行脚本。</li>
-<li><em class="xref std std-ref">EVALSHA</em> 命令通过直接调用 Lua 环境中已定义的函数来执行脚本。</li>
-<li><em class="xref std std-ref">SCRIPT_FLUSH</em> 命令会清空服务器 <code class="docutils literal"><span class="pre">lua_scripts</span></code> 字典中保存的脚本，
+<li><span class="xref std std-ref">EVALSHA</span> 命令通过直接调用 Lua 环境中已定义的函数来执行脚本。</li>
+<li><span class="xref std std-ref">SCRIPT_FLUSH</span> 命令会清空服务器 <code class="docutils literal"><span class="pre">lua_scripts</span></code> 字典中保存的脚本，
 并重置 Lua 环境。</li>
-<li><em class="xref std std-ref">SCRIPT_EXISTS</em> 命令接受一个或多个 SHA1 校验和为参数，
+<li><span class="xref std std-ref">SCRIPT_EXISTS</span> 命令接受一个或多个 SHA1 校验和为参数，
 并通过检查 <code class="docutils literal"><span class="pre">lua_scripts</span></code> 字典来确认校验和对应的脚本是否存在。</li>
-<li><em class="xref std std-ref">SCRIPT_LOAD</em> 命令接受一个 Lua 脚本为参数，
+<li><span class="xref std std-ref">SCRIPT_LOAD</span> 命令接受一个 Lua 脚本为参数，
 为该脚本在 Lua 环境中创建函数，
 并将脚本保存到 <code class="docutils literal"><span class="pre">lua_scripts</span></code> 字典中。</li>
 <li>服务器在执行脚本之前，
 会为 Lua 环境设置一个超时处理钩子，
 当脚本出现超时运行情况时，
-客户端可以通过向服务器发送 <em class="xref std std-ref">SCRIPT_KILL</em> 命令来让钩子停止正在执行的脚本，
-或者发送 <em class="xref std std-ref">SHUTDOWN nosave</em> 命令来让钩子关闭整个服务器。</li>
-<li>主服务器复制 <em class="xref std std-ref">EVAL</em> 、 <em class="xref std std-ref">SCRIPT_FLUSH</em> 、 <em class="xref std std-ref">SCRIPT_LOAD</em> 三个命令的方法和复制普通 Redis 命令一样 ——
+客户端可以通过向服务器发送 <span class="xref std std-ref">SCRIPT_KILL</span> 命令来让钩子停止正在执行的脚本，
+或者发送 <span class="xref std std-ref">SHUTDOWN nosave</span> 命令来让钩子关闭整个服务器。</li>
+<li>主服务器复制 <span class="xref std std-ref">EVAL</span> 、 <span class="xref std std-ref">SCRIPT_FLUSH</span> 、 <span class="xref std std-ref">SCRIPT_LOAD</span> 三个命令的方法和复制普通 Redis 命令一样 ——
 只要将相同的命令传播给从服务器就可以了。</li>
-<li>主服务器在复制 <em class="xref std std-ref">EVALSHA</em> 命令时，
-必须确保所有从服务器都已经载入了 <em class="xref std std-ref">EVALSHA</em> 命令指定的 SHA1 校验和所对应的 Lua 脚本，
+<li>主服务器在复制 <span class="xref std std-ref">EVALSHA</span> 命令时，
+必须确保所有从服务器都已经载入了 <span class="xref std std-ref">EVALSHA</span> 命令指定的 SHA1 校验和所对应的 Lua 脚本，
 如果不能确保这一点的话，
-主服务器会将 <em class="xref std std-ref">EVALSHA</em> 命令转换成等效的 <em class="xref std std-ref">EVAL</em> 命令，
-并通过传播 <em class="xref std std-ref">EVAL</em> 命令来获得相同的脚本执行效果。</li>
+主服务器会将 <span class="xref std std-ref">EVALSHA</span> 命令转换成等效的 <span class="xref std std-ref">EVAL</span> 命令，
+并通过传播 <span class="xref std std-ref">EVAL</span> 命令来获得相同的脚本执行效果。</li>
 </ul>
 </div>
 
@@ -124,7 +124,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2015, 黄健宏（huangz）.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.
     </div>
   </body>
 </html>

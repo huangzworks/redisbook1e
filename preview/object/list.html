@@ -55,7 +55,7 @@
 <p><code class="docutils literal"><span class="pre">ziplist</span></code> 编码的列表对象使用压缩列表作为底层实现，
 每个压缩列表节点（entry）保存了一个列表元素。</p>
 <p>举个例子，
-如果我们执行以下 <em class="xref std std-ref">RPUSH</em> 命令，
+如果我们执行以下 <span class="xref std std-ref">RPUSH</span> 命令，
 那么服务器将创建一个列表对象作为 <code class="docutils literal"><span class="pre">numbers</span></code> 键的值：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">RPUSH</span> <span class="n">numbers</span> <span class="mi">1</span> <span class="s">&quot;three&quot;</span> <span class="mi">5</span>
 <span class="p">(</span><span class="n">integer</span><span class="p">)</span> <span class="mi">3</span>
@@ -234,19 +234,19 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><em class="xref std std-ref">LPUSH</em></td>
+<tr class="row-even"><td><span class="xref std std-ref">LPUSH</span></td>
 <td>调用 <code class="docutils literal"><span class="pre">ziplistPush</span></code> 函数，
 将新元素推入到压缩列表的表头。</td>
 <td>调用 <code class="docutils literal"><span class="pre">listAddNodeHead</span></code> 函数，
 将新元素推入到双端链表的表头。</td>
 </tr>
-<tr class="row-odd"><td><em class="xref std std-ref">RPUSH</em></td>
+<tr class="row-odd"><td><span class="xref std std-ref">RPUSH</span></td>
 <td>调用 <code class="docutils literal"><span class="pre">ziplistPush</span></code> 函数，
 将新元素推入到压缩列表的表尾。</td>
 <td>调用 <code class="docutils literal"><span class="pre">listAddNodeTail</span></code> 函数，
 将新元素推入到双端链表的表尾。</td>
 </tr>
-<tr class="row-even"><td><em class="xref std std-ref">LPOP</em></td>
+<tr class="row-even"><td><span class="xref std std-ref">LPOP</span></td>
 <td>调用 <code class="docutils literal"><span class="pre">ziplistIndex</span></code> 函数定位压缩列表的表头节点，
 在向用户返回节点所保存的元素之后，
 调用 <code class="docutils literal"><span class="pre">ziplistDelete</span></code> 函数删除表头节点。</td>
@@ -254,7 +254,7 @@
 在向用户返回节点所保存的元素之后，
 调用 <code class="docutils literal"><span class="pre">listDelNode</span></code> 函数删除表头节点。</td>
 </tr>
-<tr class="row-odd"><td><em class="xref std std-ref">RPOP</em></td>
+<tr class="row-odd"><td><span class="xref std std-ref">RPOP</span></td>
 <td>调用 <code class="docutils literal"><span class="pre">ziplistIndex</span></code> 函数定位压缩列表的表尾节点，
 在向用户返回节点所保存的元素之后，
 调用 <code class="docutils literal"><span class="pre">ziplistDelete</span></code> 函数删除表尾节点。</td>
@@ -262,17 +262,17 @@
 在向用户返回节点所保存的元素之后，
 调用 <code class="docutils literal"><span class="pre">listDelNode</span></code> 函数删除表尾节点。</td>
 </tr>
-<tr class="row-even"><td><em class="xref std std-ref">LINDEX</em></td>
+<tr class="row-even"><td><span class="xref std std-ref">LINDEX</span></td>
 <td>调用 <code class="docutils literal"><span class="pre">ziplistIndex</span></code> 函数定位压缩列表中的指定节点，
 然后返回节点所保存的元素。</td>
 <td>调用 <code class="docutils literal"><span class="pre">listIndex</span></code> 函数定位双端链表中的指定节点，
 然后返回节点所保存的元素。</td>
 </tr>
-<tr class="row-odd"><td><em class="xref std std-ref">LLEN</em></td>
+<tr class="row-odd"><td><span class="xref std std-ref">LLEN</span></td>
 <td>调用 <code class="docutils literal"><span class="pre">ziplistLen</span></code> 函数返回压缩列表的长度。</td>
 <td>调用 <code class="docutils literal"><span class="pre">listLength</span></code> 函数返回双端链表的长度。</td>
 </tr>
-<tr class="row-even"><td><em class="xref std std-ref">LINSERT</em></td>
+<tr class="row-even"><td><span class="xref std std-ref">LINSERT</span></td>
 <td>插入新节点到压缩列表的表头或者表尾时，
 使用 <code class="docutils literal"><span class="pre">ziplistPush</span></code> 函数；
 插入新节点到压缩列表的其他位置时，
@@ -280,19 +280,19 @@
 <td>调用 <code class="docutils literal"><span class="pre">listInsertNode</span></code>  函数，
 将新节点插入到双端链表的指定位置。</td>
 </tr>
-<tr class="row-odd"><td><em class="xref std std-ref">LREM</em></td>
+<tr class="row-odd"><td><span class="xref std std-ref">LREM</span></td>
 <td>遍历压缩列表节点，
 并调用 <code class="docutils literal"><span class="pre">ziplistDelete</span></code> 函数删除包含了给定元素的节点。</td>
 <td>遍历双端链表节点，
 并调用 <code class="docutils literal"><span class="pre">listDelNode</span></code> 函数删除包含了给定元素的节点。</td>
 </tr>
-<tr class="row-even"><td><em class="xref std std-ref">LTRIM</em></td>
+<tr class="row-even"><td><span class="xref std std-ref">LTRIM</span></td>
 <td>调用 <code class="docutils literal"><span class="pre">ziplistDeleteRange</span></code> 函数，
 删除压缩列表中所有不在指定索引范围内的节点。</td>
 <td>遍历双端链表节点，
 并调用 <code class="docutils literal"><span class="pre">listDelNode</span></code> 函数删除链表中所有不在指定索引范围内的节点。</td>
 </tr>
-<tr class="row-odd"><td><em class="xref std std-ref">LSET</em></td>
+<tr class="row-odd"><td><span class="xref std std-ref">LSET</span></td>
 <td>调用 <code class="docutils literal"><span class="pre">ziplistDelete</span></code> 函数，
 先删除压缩列表指定索引上的现有节点，
 然后调用 <code class="docutils literal"><span class="pre">ziplistInsert</span></code> 函数，
@@ -345,7 +345,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2015, 黄健宏（huangz）.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.
     </div>
   </body>
 </html>

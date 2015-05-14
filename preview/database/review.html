@@ -72,17 +72,17 @@
 惰性删除策略只在碰到过期键时才进行删除操作，
 定期删除策略则每隔一段时间，
 主动查找并删除过期键。</li>
-<li>执行 <em class="xref std std-ref">SAVE</em> 命令或者 <em class="xref std std-ref">BGSAVE</em> 命令所产生的新 RDB 文件不会包含已经过期的键。</li>
-<li>执行 <em class="xref std std-ref">BGREWRITEAOF</em> 命令所产生的重写 AOF 文件不会包含已经过期的键。</li>
+<li>执行 <span class="xref std std-ref">SAVE</span> 命令或者 <span class="xref std std-ref">BGSAVE</span> 命令所产生的新 RDB 文件不会包含已经过期的键。</li>
+<li>执行 <span class="xref std std-ref">BGREWRITEAOF</span> 命令所产生的重写 AOF 文件不会包含已经过期的键。</li>
 <li>当一个过期键被删除之后，
-服务器会追加一条 <em class="xref std std-ref">DEL</em> 命令到现有 AOF 文件的末尾，
+服务器会追加一条 <span class="xref std std-ref">DEL</span> 命令到现有 AOF 文件的末尾，
 显式地删除过期键。</li>
 <li>当主服务器删除一个过期键之后，
-它会向所有从服务器发送一条 <em class="xref std std-ref">DEL</em> 命令，
+它会向所有从服务器发送一条 <span class="xref std std-ref">DEL</span> 命令，
 显式地删除过期键。</li>
 <li>从服务器即使发现过期键，
 也不会自作主张地删除它，
-而是等待主节点发来 <em class="xref std std-ref">DEL</em> 命令，
+而是等待主节点发来 <span class="xref std std-ref">DEL</span> 命令，
 这种统一、中心化的过期键删除策略可以保证主从服务器数据的一致性。</li>
 <li>当 Redis 命令对数据库进行修改之后，
 服务器会根据配置，
@@ -129,7 +129,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2015, 黄健宏（huangz）.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.
     </div>
   </body>
 </html>

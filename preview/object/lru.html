@@ -65,7 +65,7 @@
 <span class="p">}</span> <span class="n">robj</span><span class="p">;</span>
 </pre></div>
 </div>
-<p><em class="xref std std-ref">OBJECT IDLETIME</em> 命令可以打印出给定键的空转时长，
+<p><span class="xref std std-ref">OBJECT IDLETIME</span> 命令可以打印出给定键的空转时长，
 这一空转时长就是通过将当前时间减去键的值对象的 <code class="docutils literal"><span class="pre">lru</span></code> 时间计算得出的：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">SET</span> <span class="n">msg</span> <span class="s">&quot;hello world&quot;</span>
 <span class="n">OK</span>
@@ -89,11 +89,11 @@
 </div>
 <div class="topic">
 <p class="topic-title first">注意</p>
-<p><em class="xref std std-ref">OBJECT IDLETIME</em> 命令的实现是特殊的，
+<p><span class="xref std std-ref">OBJECT IDLETIME</span> 命令的实现是特殊的，
 这个命令在访问键的值对象时，
 不会修改值对象的 <code class="docutils literal"><span class="pre">lru</span></code> 属性。</p>
 </div>
-<p>除了可以被 <em class="xref std std-ref">OBJECT IDLETIME</em> 命令打印出来之外，
+<p>除了可以被 <span class="xref std std-ref">OBJECT IDLETIME</span> 命令打印出来之外，
 键的空转时长还有另外一项作用：
 如果服务器打开了 <code class="docutils literal"><span class="pre">maxmemory</span></code> 选项，
 并且服务器用于回收内存的算法为 <code class="docutils literal"><span class="pre">volatile-lru</span></code> 或者 <code class="docutils literal"><span class="pre">allkeys-lru</span></code> ，
@@ -142,7 +142,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2015, 黄健宏（huangz）.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.
     </div>
   </body>
 </html>

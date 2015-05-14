@@ -201,14 +201,14 @@
 </tr>
 </thead>
 <tbody valign="top">
-<tr class="row-even"><td><em class="xref std std-ref">SADD</em></td>
+<tr class="row-even"><td><span class="xref std std-ref">SADD</span></td>
 <td>调用 <code class="docutils literal"><span class="pre">intsetAdd</span></code> 函数，
 将所有新元素添加到整数集合里面。</td>
 <td>调用 <code class="docutils literal"><span class="pre">dictAdd</span></code> ，
 以新元素为键， <code class="docutils literal"><span class="pre">NULL</span></code> 为值，
 将键值对添加到字典里面。</td>
 </tr>
-<tr class="row-odd"><td><em class="xref std std-ref">SCARD</em></td>
+<tr class="row-odd"><td><span class="xref std std-ref">SCARD</span></td>
 <td>调用 <code class="docutils literal"><span class="pre">intsetLen</span></code> 函数，
 返回整数集合所包含的元素数量，
 这个数量就是集合对象所包含的元素数量。</td>
@@ -216,7 +216,7 @@
 返回字典所包含的键值对数量，
 这个数量就是集合对象所包含的元素数量。</td>
 </tr>
-<tr class="row-even"><td><em class="xref std std-ref">SISMEMBER</em></td>
+<tr class="row-even"><td><span class="xref std std-ref">SISMEMBER</span></td>
 <td>调用 <code class="docutils literal"><span class="pre">intsetFind</span></code> 函数，
 在整数集合中查找给定的元素，
 如果找到了说明元素存在于集合，
@@ -226,19 +226,19 @@
 如果找到了说明元素存在于集合，
 没找到则说明元素不存在于集合。</td>
 </tr>
-<tr class="row-odd"><td><em class="xref std std-ref">SMEMBERS</em></td>
+<tr class="row-odd"><td><span class="xref std std-ref">SMEMBERS</span></td>
 <td>遍历整个整数集合，
 使用 <code class="docutils literal"><span class="pre">intsetGet</span></code> 函数返回集合元素。</td>
 <td>遍历整个字典，
 使用 <code class="docutils literal"><span class="pre">dictGetKey</span></code> 函数返回字典的键作为集合元素。</td>
 </tr>
-<tr class="row-even"><td><em class="xref std std-ref">SRANDMEMBER</em></td>
+<tr class="row-even"><td><span class="xref std std-ref">SRANDMEMBER</span></td>
 <td>调用 <code class="docutils literal"><span class="pre">intsetRandom</span></code> 函数，
 从整数集合中随机返回一个元素。</td>
 <td>调用 <code class="docutils literal"><span class="pre">dictGetRandomKey</span></code> 函数，
 从字典中随机返回一个字典键。</td>
 </tr>
-<tr class="row-odd"><td><em class="xref std std-ref">SPOP</em></td>
+<tr class="row-odd"><td><span class="xref std std-ref">SPOP</span></td>
 <td>调用 <code class="docutils literal"><span class="pre">intsetRandom</span></code> 函数，
 从整数集合中随机取出一个元素，
 在将这个随机元素返回给客户端之后，
@@ -250,7 +250,7 @@
 调用 <code class="docutils literal"><span class="pre">dictDelete</span></code> 函数，
 从字典中删除随机字典键所对应的键值对。</td>
 </tr>
-<tr class="row-even"><td><em class="xref std std-ref">SREM</em></td>
+<tr class="row-even"><td><span class="xref std std-ref">SREM</span></td>
 <td>调用 <code class="docutils literal"><span class="pre">intsetRemove</span></code> 函数，
 从整数集合中删除所有给定的元素。</td>
 <td>调用 <code class="docutils literal"><span class="pre">dictDelete</span></code> 函数，
@@ -300,7 +300,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2015, 黄健宏（huangz）.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.
     </div>
   </body>
 </html>

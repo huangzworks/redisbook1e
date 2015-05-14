@@ -51,11 +51,11 @@
             
   <div class="section" id="getbit">
 <h1>GETBIT 命令的实现<a class="headerlink" href="#getbit" title="Permalink to this headline">¶</a></h1>
-<p><em class="xref std std-ref">GETBIT</em> 命令用于返回位数组 <code class="docutils literal"><span class="pre">bitarray</span></code> 在 <code class="docutils literal"><span class="pre">offset</span></code> 偏移量上的二进制位的值：</p>
+<p><span class="xref std std-ref">GETBIT</span> 命令用于返回位数组 <code class="docutils literal"><span class="pre">bitarray</span></code> 在 <code class="docutils literal"><span class="pre">offset</span></code> 偏移量上的二进制位的值：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="n">GETBIT</span> <span class="o">&lt;</span><span class="n">bitarray</span><span class="o">&gt;</span> <span class="o">&lt;</span><span class="n">offset</span><span class="o">&gt;</span>
 </pre></div>
 </div>
-<p><em class="xref std std-ref">GETBIT</em> 命令的执行过程如下：</p>
+<p><span class="xref std std-ref">GETBIT</span> 命令的执行过程如下：</p>
 <ol class="arabic simple">
 <li>计算 <img class="math" src="../../_images/math/0528efecd54859d8bd81ed6d2f5d0f8bef759dd1.png" alt="byte = \lfloor offset \div 8 \rfloor"/> ，
 <code class="docutils literal"><span class="pre">byte</span></code> 值记录了 <code class="docutils literal"><span class="pre">offset</span></code> 偏移量指定的二进制位保存在位数组的哪个字节。</li>
@@ -145,7 +145,7 @@
 
 }" />
 </p>
-<p>因为 <em class="xref std std-ref">GETBIT</em> 命令执行的所有操作都可以在常数时间内完成，
+<p>因为 <span class="xref std std-ref">GETBIT</span> 命令执行的所有操作都可以在常数时间内完成，
 所以该命令的算法复杂度为 <img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</p>
 </div>
 
@@ -188,7 +188,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2015, 黄健宏（huangz）.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.
     </div>
   </body>
 </html>

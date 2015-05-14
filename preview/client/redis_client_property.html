@@ -60,7 +60,7 @@
 <li>另外一类是和特定功能相关的属性，
 比如操作数据库时需要用到的 <code class="docutils literal"><span class="pre">db</span></code> 属性和 <code class="docutils literal"><span class="pre">dictid</span></code> 属性，
 执行事务时需要用到的 <code class="docutils literal"><span class="pre">mstate</span></code> 属性，
-以及执行 <em class="xref std std-ref">WATCH</em> 命令时需要用到的 <code class="docutils literal"><span class="pre">watched_keys</span></code> 属性，
+以及执行 <span class="xref std std-ref">WATCH</span> 命令时需要用到的 <code class="docutils literal"><span class="pre">watched_keys</span></code> 属性，
 等等。</li>
 </ul>
 <p>本章将对客户端状态中比较通用的那部分属性进行介绍，
@@ -97,7 +97,7 @@
 因为合法的套接字描述符不能是 <code class="docutils literal"><span class="pre">-1</span></code> ，
 所以普通客户端的套接字描述符的值必然是大于 <code class="docutils literal"><span class="pre">-1</span></code> 的整数。</li>
 </ul>
-<p>执行 <em class="xref std std-ref">CLIENT_LIST</em> 命令可以列出目前所有连接到服务器的普通客户端，
+<p>执行 <span class="xref std std-ref">CLIENT_LIST</span> 命令可以列出目前所有连接到服务器的普通客户端，
 命令输出中的 <code class="docutils literal"><span class="pre">fd</span></code> 域显示了服务器连接客户端所使用的套接字描述符：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">CLIENT</span> <span class="n">list</span>
 
@@ -110,7 +110,7 @@
 <h2>名字<a class="headerlink" href="#id3" title="Permalink to this headline">¶</a></h2>
 <p>在默认情况下，
 一个连接到服务器的客户端是没有名字的。</p>
-<p>比如在下面展示的 <em class="xref std std-ref">CLIENT_LIST</em> 命令示例中，
+<p>比如在下面展示的 <span class="xref std std-ref">CLIENT_LIST</span> 命令示例中，
 两个客户端的 <code class="docutils literal"><span class="pre">name</span></code> 域都是空白的：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">CLIENT</span> <span class="n">list</span>
 
@@ -118,9 +118,9 @@
 <span class="n">addr</span><span class="o">=</span><span class="mf">127.0.0.1</span><span class="o">:</span><span class="mi">53469</span> <span class="n">fd</span><span class="o">=</span><span class="mi">7</span> <span class="n">name</span><span class="o">=</span> <span class="n">age</span><span class="o">=</span><span class="mi">4</span> <span class="n">idle</span><span class="o">=</span><span class="mi">4</span> <span class="p">...</span>
 </pre></div>
 </div>
-<p>使用 <em class="xref std std-ref">CLIENT_SETNAME</em> 命令可以为客户端设置一个名字，
+<p>使用 <span class="xref std std-ref">CLIENT_SETNAME</span> 命令可以为客户端设置一个名字，
 让客户端的身份变得更清晰。</p>
-<p>以下展示的是客户端执行 <em class="xref std std-ref">CLIENT_SETNAME</em> 命令之后的客户端列表：</p>
+<p>以下展示的是客户端执行 <span class="xref std std-ref">CLIENT_SETNAME</span> 命令之后的客户端列表：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">CLIENT</span> <span class="n">list</span>
 
 <span class="n">addr</span><span class="o">=</span><span class="mf">127.0.0.1</span><span class="o">:</span><span class="mi">53428</span> <span class="n">fd</span><span class="o">=</span><span class="mi">6</span> <span class="n">name</span><span class="o">=</span><span class="n">message_queue</span> <span class="n">age</span><span class="o">=</span><span class="mi">2093</span> <span class="n">idle</span><span class="o">=</span><span class="mi">0</span> <span class="p">...</span>
@@ -206,41 +206,41 @@
 <code class="docutils literal"><span class="pre">REDIS_MASTER</span></code> 标志表示客户端代表的是一个主服务器，
 <code class="docutils literal"><span class="pre">REDIS_SLAVE</span></code> 标志表示客户端代表的是一个从服务器。</li>
 <li><code class="docutils literal"><span class="pre">REDIS_PRE_PSYNC</span></code> 标志表示客户端代表的是一个版本低于 Redis 2.8 的从服务器，
-主服务器不能使用 <em class="xref std std-ref">PSYNC</em> 命令与这个从服务器进行同步。
+主服务器不能使用 <span class="xref std std-ref">PSYNC</span> 命令与这个从服务器进行同步。
 这个标志只能在 <code class="docutils literal"><span class="pre">REDIS_SLAVE</span></code> 标志处于打开状态时使用。</li>
 <li><code class="docutils literal"><span class="pre">REDIS_LUA_CLIENT</span></code> 标识表示客户端是专门用于处理 Lua 脚本里面包含的 Redis 命令的伪客户端。</li>
 </ul>
 <p>而另外一部分标志则记录了客户端目前所处的状态：</p>
 <ul class="simple">
-<li><code class="docutils literal"><span class="pre">REDIS_MONITOR</span></code> 标志表示客户端正在执行 <em class="xref std std-ref">MONITOR</em> 命令。</li>
+<li><code class="docutils literal"><span class="pre">REDIS_MONITOR</span></code> 标志表示客户端正在执行 <span class="xref std std-ref">MONITOR</span> 命令。</li>
 <li><code class="docutils literal"><span class="pre">REDIS_UNIX_SOCKET</span></code> 标志表示服务器使用 UNIX 套接字来连接客户端。</li>
-<li><code class="docutils literal"><span class="pre">REDIS_BLOCKED</span></code> 标志表示客户端正在被 <em class="xref std std-ref">BRPOP</em> 、 <em class="xref std std-ref">BLPOP</em> 等命令阻塞。</li>
+<li><code class="docutils literal"><span class="pre">REDIS_BLOCKED</span></code> 标志表示客户端正在被 <span class="xref std std-ref">BRPOP</span> 、 <span class="xref std std-ref">BLPOP</span> 等命令阻塞。</li>
 <li><code class="docutils literal"><span class="pre">REDIS_UNBLOCKED</span></code> 标志表示客户端已经从 <code class="docutils literal"><span class="pre">REDIS_BLOCKED</span></code> 标志所表示的阻塞状态中脱离出来，
 不再阻塞。
 <code class="docutils literal"><span class="pre">REDIS_UNBLOCKED</span></code> 标志只能在 <code class="docutils literal"><span class="pre">REDIS_BLOCKED</span></code> 标志已经打开的情况下使用。</li>
 <li><code class="docutils literal"><span class="pre">REDIS_MULTI</span></code> 标志表示客户端正在执行事务。</li>
-<li><code class="docutils literal"><span class="pre">REDIS_DIRTY_CAS</span></code> 标志表示事务使用 <em class="xref std std-ref">WATCH</em> 命令监视的数据库键已经被修改，
+<li><code class="docutils literal"><span class="pre">REDIS_DIRTY_CAS</span></code> 标志表示事务使用 <span class="xref std std-ref">WATCH</span> 命令监视的数据库键已经被修改，
 <code class="docutils literal"><span class="pre">REDIS_DIRTY_EXEC</span></code> 标志表示事务在命令入队时出现了错误，
 以上两个标志都表示事务的安全性已经被破坏，
 只要这两个标记中的任意一个被打开，
-<em class="xref std std-ref">EXEC</em> 命令必然会执行失败。
+<span class="xref std std-ref">EXEC</span> 命令必然会执行失败。
 这两个标志只能在客户端打开了 <code class="docutils literal"><span class="pre">REDIS_MULTI</span></code> 标志的情况下使用。</li>
 <li><code class="docutils literal"><span class="pre">REDIS_CLOSE_ASAP</span></code> 标志表示客户端的输出缓冲区大小超出了服务器允许的范围，
 服务器会在下一次执行 <code class="docutils literal"><span class="pre">serverCron</span></code> 函数时关闭这个客户端，
 以免服务器的稳定性受到这个客户端影响。
 积存在输出缓冲区中的所有内容会直接被释放，
 不会返回给客户端。</li>
-<li><code class="docutils literal"><span class="pre">REDIS_CLOSE_AFTER_REPLY</span></code> 标志表示有用户对这个客户端执行了 <em class="xref std std-ref">CLIENT_KILL</em> 命令，
+<li><code class="docutils literal"><span class="pre">REDIS_CLOSE_AFTER_REPLY</span></code> 标志表示有用户对这个客户端执行了 <span class="xref std std-ref">CLIENT_KILL</span> 命令，
 或者客户端发送给服务器的命令请求中包含了错误的协议内容。
 服务器会将客户端积存在输出缓冲区中的所有内容发送给客户端，
 然后关闭客户端。</li>
-<li><code class="docutils literal"><span class="pre">REDIS_ASKING</span></code> 标志表示客户端向集群节点（运行在集群模式下的服务器）发送了 <em class="xref std std-ref">ASKING</em> 命令。</li>
+<li><code class="docutils literal"><span class="pre">REDIS_ASKING</span></code> 标志表示客户端向集群节点（运行在集群模式下的服务器）发送了 <span class="xref std std-ref">ASKING</span> 命令。</li>
 <li><code class="docutils literal"><span class="pre">REDIS_FORCE_AOF</span></code> 标志强制服务器将当前执行的命令写入到 AOF 文件里面，
 <code class="docutils literal"><span class="pre">REDIS_FORCE_REPL</span></code> 标志强制主服务器将当前执行的命令复制给所有从服务器。
-执行 <em class="xref std std-ref">PUBSUB</em> 命令会使客户端打开 <code class="docutils literal"><span class="pre">REDIS_FORCE_AOF</span></code> 标志，
-执行 <em class="xref std std-ref">SCRIPT_LOAD</em> 命令会使客户端打开 <code class="docutils literal"><span class="pre">REDIS_FORCE_AOF</span></code> 标志和 <code class="docutils literal"><span class="pre">REDIS_FORCE_REPL</span></code> 标志。</li>
+执行 <span class="xref std std-ref">PUBSUB</span> 命令会使客户端打开 <code class="docutils literal"><span class="pre">REDIS_FORCE_AOF</span></code> 标志，
+执行 <span class="xref std std-ref">SCRIPT_LOAD</span> 命令会使客户端打开 <code class="docutils literal"><span class="pre">REDIS_FORCE_AOF</span></code> 标志和 <code class="docutils literal"><span class="pre">REDIS_FORCE_REPL</span></code> 标志。</li>
 <li>在主从服务器进行命令传播期间，
-从服务器需要向主服务器发送 <em class="xref std std-ref">REPLICATION ACK</em> 命令，
+从服务器需要向主服务器发送 <span class="xref std std-ref">REPLICATION ACK</span> 命令，
 在发送这个命令之前，
 从服务器必须打开主服务器对应的客户端的 <code class="docutils literal"><span class="pre">REDIS_MASTER_FORCE_REPLY</span></code> 标志，
 否则发送操作会被拒绝执行。</li>
@@ -256,18 +256,18 @@ Redis 只会将那些对数据库进行了修改的命令写入到 AOF 文件，
 这个命令不会被写入到 AOF 文件，
 也不会被复制到从服务器。</p>
 <p>以上规则适用于绝大部分 Redis 命令，
-但 <em class="xref std std-ref">PUBSUB</em> 命令和 <em class="xref std std-ref">SCRIPT_LOAD</em> 命令是其中的例外。</p>
-<p><em class="xref std std-ref">PUBSUB</em> 命令虽然没有修改数据库，
-但 <em class="xref std std-ref">PUBSUB</em> 命令向频道的所有订阅者发送消息这一行为带有副作用，
+但 <span class="xref std std-ref">PUBSUB</span> 命令和 <span class="xref std std-ref">SCRIPT_LOAD</span> 命令是其中的例外。</p>
+<p><span class="xref std std-ref">PUBSUB</span> 命令虽然没有修改数据库，
+但 <span class="xref std std-ref">PUBSUB</span> 命令向频道的所有订阅者发送消息这一行为带有副作用，
 接收到消息的所有客户端的状态都会因为这个命令而改变。
 因此，
 服务器需要使用 <code class="docutils literal"><span class="pre">REDIS_FORCE_AOF</span></code> 标志，
 强制将这个命令写入 AOF 文件，
 这样在将来载入 AOF 文件时，
-服务器就可以再次执行相同的 <em class="xref std std-ref">PUBSUB</em> 命令，
+服务器就可以再次执行相同的 <span class="xref std std-ref">PUBSUB</span> 命令，
 并产生相同的副作用。</p>
-<p><em class="xref std std-ref">SCRIPT_LOAD</em> 命令的情况与 <em class="xref std std-ref">PUBSUB</em> 命令类似：
-虽然 <em class="xref std std-ref">SCRIPT_LOAD</em> 命令没有修改数据库，
+<p><span class="xref std std-ref">SCRIPT_LOAD</span> 命令的情况与 <span class="xref std std-ref">PUBSUB</span> 命令类似：
+虽然 <span class="xref std std-ref">SCRIPT_LOAD</span> 命令没有修改数据库，
 但它修改了服务器状态，
 所以它是一个带有副作用的命令，
 服务器需要使用 <code class="docutils literal"><span class="pre">REDIS_FORCE_AOF</span></code> 标志，
@@ -275,9 +275,9 @@ Redis 只会将那些对数据库进行了修改的命令写入到 AOF 文件，
 使得将来在载入 AOF 文件时，
 服务器可以产生相同的副作用。</p>
 <p>另外，
-为了让主服务器和从服务器都可以正确地载入 <em class="xref std std-ref">SCRIPT_LOAD</em> 命令指定的脚本，
+为了让主服务器和从服务器都可以正确地载入 <span class="xref std std-ref">SCRIPT_LOAD</span> 命令指定的脚本，
 服务器需要使用 <code class="docutils literal"><span class="pre">REDIS_FORCE_REPL</span></code> 标志，
-强制将 <em class="xref std std-ref">SCRIPT_LOAD</em> 命令复制给所有从服务器。</p>
+强制将 <span class="xref std std-ref">SCRIPT_LOAD</span> 命令复制给所有从服务器。</p>
 </div>
 <p>以下是一些 <code class="docutils literal"><span class="pre">flags</span></code> 属性的例子：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="cp"># 客户端是一个主服务器</span>
@@ -609,7 +609,7 @@ Redis 只会将那些对数据库进行了修改的命令写入到 AOF 文件，
 }" />
 </p>
 <p>当客户端 <code class="docutils literal"><span class="pre">authenticated</span></code> 属性的值为 <code class="docutils literal"><span class="pre">0</span></code> 时，
-除了 <em class="xref std std-ref">AUTH</em> 命令之外，
+除了 <span class="xref std std-ref">AUTH</span> 命令之外，
 客户端发送的所有其他命令都会被服务器拒绝执行：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">PING</span>
 <span class="p">(</span><span class="n">error</span><span class="p">)</span> <span class="n">NOAUTH</span> <span class="n">Authentication</span> <span class="n">required</span><span class="p">.</span>
@@ -631,7 +631,7 @@ Redis 只会将那些对数据库进行了修改的命令写入到 AOF 文件，
 
 }" />
 </p>
-<p>当客户端通过 <em class="xref std std-ref">AUTH</em> 命令成功进行身份验证之后，
+<p>当客户端通过 <span class="xref std std-ref">AUTH</span> 命令成功进行身份验证之后，
 客户端状态 <code class="docutils literal"><span class="pre">authenticated</span></code> 属性的值就会从 <code class="docutils literal"><span class="pre">0</span></code> 变为 <code class="docutils literal"><span class="pre">1</span></code> ，
 如图 13-11 所示，
 这时客户端就可以像往常一样向服务器发送命令请求了：</p>
@@ -673,7 +673,7 @@ Redis 只会将那些对数据库进行了修改的命令写入到 AOF 文件，
 </div>
 <p><code class="docutils literal"><span class="pre">ctime</span></code> 属性记录了创建客户端的时间，
 这个时间可以用来计算客户端与服务器已经连接了多少秒 ——
-<em class="xref std std-ref">CLIENT_LIST</em> 命令的 <code class="docutils literal"><span class="pre">age</span></code> 域记录了这个秒数：</p>
+<span class="xref std std-ref">CLIENT_LIST</span> 命令的 <code class="docutils literal"><span class="pre">age</span></code> 域记录了这个秒数：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">CLIENT</span> <span class="n">list</span>
 
 <span class="n">addr</span><span class="o">=</span><span class="mf">127.0.0.1</span><span class="o">:</span><span class="mi">53428</span> <span class="p">...</span> <span class="n">age</span><span class="o">=</span><span class="mi">1242</span> <span class="p">...</span>
@@ -686,7 +686,7 @@ Redis 只会将那些对数据库进行了修改的命令写入到 AOF 文件，
 也即是，
 距离客户端与服务器最后一次进行互动以来，
 已经过去了多少秒 ——
-<em class="xref std std-ref">CLIENT_LIST</em> 命令的 <code class="docutils literal"><span class="pre">idle</span></code> 域记录了这个秒数：</p>
+<span class="xref std std-ref">CLIENT_LIST</span> 命令的 <code class="docutils literal"><span class="pre">idle</span></code> 域记录了这个秒数：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">CLIENT</span> <span class="n">list</span>
 
 <span class="n">addr</span><span class="o">=</span><span class="mf">127.0.0.1</span><span class="o">:</span><span class="mi">53428</span> <span class="p">...</span> <span class="n">idle</span><span class="o">=</span><span class="mi">12</span> <span class="p">...</span>
@@ -736,7 +736,7 @@ Redis 只会将那些对数据库进行了修改的命令写入到 AOF 文件，
     </div>
     <div class="footer">
         &copy; Copyright 2015, 黄健宏（huangz）.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.
     </div>
   </body>
 </html>

@@ -61,14 +61,14 @@
 说明一个事务从开始到结束的整个过程。</p>
 <div class="section" id="id2">
 <h2>事务开始<a class="headerlink" href="#id2" title="Permalink to this headline">¶</a></h2>
-<p><em class="xref std std-ref">MULTI</em> 命令的执行标志着事务的开始：</p>
+<p><span class="xref std std-ref">MULTI</span> 命令的执行标志着事务的开始：</p>
 <div class="highlight-c"><div class="highlight"><pre><span class="n">redis</span><span class="o">&gt;</span> <span class="n">MULTI</span>
 <span class="n">OK</span>
 </pre></div>
 </div>
-<p><em class="xref std std-ref">MULTI</em> 命令可以将执行该命令的客户端从非事务状态切换至事务状态，
+<p><span class="xref std std-ref">MULTI</span> 命令可以将执行该命令的客户端从非事务状态切换至事务状态，
 这一切换是通过在客户端状态的 <code class="docutils literal"><span class="pre">flags</span></code> 属性中打开 <code class="docutils literal"><span class="pre">REDIS_MULTI</span></code> 标识来完成的，
-<em class="xref std std-ref">MULTI</em> 命令的实现可以用以下伪代码来表示：</p>
+<span class="xref std std-ref">MULTI</span> 命令的实现可以用以下伪代码来表示：</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">MULTI</span><span class="p">():</span>
 
     <span class="c"># 打开事务标识</span>
@@ -100,10 +100,10 @@
 当一个客户端切换到事务状态之后，
 服务器会根据这个客户端发来的不同命令执行不同的操作：</p>
 <ul class="simple">
-<li>如果客户端发送的命令为 <em class="xref std std-ref">EXEC</em> 、 <em class="xref std std-ref">DISCARD</em> 、 <em class="xref std std-ref">WATCH</em> 、 <em class="xref std std-ref">MULTI</em> 四个命令的其中一个，
+<li>如果客户端发送的命令为 <span class="xref std std-ref">EXEC</span> 、 <span class="xref std std-ref">DISCARD</span> 、 <span class="xref std std-ref">WATCH</span> 、 <span class="xref std std-ref">MULTI</span> 四个命令的其中一个，
 那么服务器立即执行这个命令。</li>
 <li>与此相反，
-如果客户端发送的命令是 <em class="xref std std-ref">EXEC</em> 、 <em class="xref std std-ref">DISCARD</em> 、 <em class="xref std std-ref">WATCH</em> 、 <em class="xref std std-ref">MULTI</em> 四个命令以外的其他命令，
+如果客户端发送的命令是 <span class="xref std std-ref">EXEC</span> 、 <span class="xref std std-ref">DISCARD</span> 、 <span class="xref std std-ref">WATCH</span> 、 <span class="xref std std-ref">MULTI</span> 四个命令以外的其他命令，
 那么服务器并不立即执行这个命令，
 而是将这个命令放入一个事务队列里面，
 然后向客户端返回 <code class="docutils literal"><span class="pre">QUEUED</span></code> 回复。</li>
@@ -222,10 +222,10 @@
 </div>
 <p>那么服务器将为客户端创建图 IMAGE_TRANSACTION_STATE 所示的事务状态：</p>
 <ul class="simple">
-<li>最先入队的 <em class="xref std std-ref">SET</em> 命令被放在了事务队列的索引 <code class="docutils literal"><span class="pre">0</span></code> 位置上。</li>
-<li>第二入队的 <em class="xref std std-ref">GET</em> 命令被放在了事务队列的索引 <code class="docutils literal"><span class="pre">1</span></code> 位置上。</li>
-<li>第三入队的另一个 <em class="xref std std-ref">SET</em> 命令被放在了事务队列的索引 <code class="docutils literal"><span class="pre">2</span></code> 位置上。</li>
-<li>最后入队的另一个 <em class="xref std std-ref">GET</em> 命令被放在了事务队列的索引 <code class="docutils literal"><span class="pre">3</span></code> 位置上。</li>
+<li>最先入队的 <span class="xref std std-ref">SET</span> 命令被放在了事务队列的索引 <code class="docutils literal"><span class="pre">0</span></code> 位置上。</li>
+<li>第二入队的 <span class="xref std std-ref">GET</span> 命令被放在了事务队列的索引 <code class="docutils literal"><span class="pre">1</span></code> 位置上。</li>
+<li>第三入队的另一个 <span class="xref std std-ref">SET</span> 命令被放在了事务队列的索引 <code class="docutils literal"><span class="pre">2</span></code> 位置上。</li>
+<li>最后入队的另一个 <span class="xref std std-ref">GET</span> 命令被放在了事务队列的索引 <code class="docutils literal"><span class="pre">3</span></code> 位置上。</li>
 </ul>
 <p class="graphviz">
 <img src="../../_images/graphviz-245806f251029ebb86048d1b4015ebefd3dc3fbb.png" alt="digraph {
@@ -288,8 +288,8 @@
 </div>
 <div class="section" id="id5">
 <h2>执行事务<a class="headerlink" href="#id5" title="Permalink to this headline">¶</a></h2>
-<p>当一个处于事务状态的客户端向服务器发送 <em class="xref std std-ref">EXEC</em> 命令时，
-这个 <em class="xref std std-ref">EXEC</em> 命令将立即被服务器执行：
+<p>当一个处于事务状态的客户端向服务器发送 <span class="xref std std-ref">EXEC</span> 命令时，
+这个 <span class="xref std std-ref">EXEC</span> 命令将立即被服务器执行：
 服务器会遍历这个客户端的事务队列，
 执行队列中保存的所有命令，
 最后将执行命令所得的结果全部返回给客户端。</p>
@@ -320,7 +320,7 @@
 <span class="mi">4</span><span class="p">)</span> <span class="s">&quot;Peter Seibel&quot;</span>
 </pre></div>
 </div>
-<p><em class="xref std std-ref">EXEC</em> 命令的实现原理可以用以下伪代码来描述：</p>
+<p><span class="xref std std-ref">EXEC</span> 命令的实现原理可以用以下伪代码来描述：</p>
 <div class="highlight-python"><div class="highlight"><pre><span class="k">def</span> <span class="nf">EXEC</span><span class="p">():</span>
 
     <span class="c"># 创建空白的回复队列</span>
@@ -391,7 +391,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2015, 黄健宏（huangz）.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3b1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.
     </div>
   </body>
 </html>
