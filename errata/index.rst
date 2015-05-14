@@ -12,6 +12,7 @@
    chp4
    chp5
    chp6
+   chp7
    chp8
    chp9
    chp10
@@ -27,6 +28,8 @@
 - `第 40 页 <http://redisbook.com/errata/chp5.html#id2>`_
 
 - `第 45 页 <http://redisbook.com/errata/chp5.html#id5>`_
+
+- `第 52 页 <http://redisbook.com/errata/chp7.html#id2>`_
 
 - `第 77 页 <http://redisbook.com/errata/chp8.html#id6>`_
 
