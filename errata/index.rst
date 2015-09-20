@@ -47,3 +47,7 @@
 
 - `第 189 页 <http://redisbook.com/errata/chp14.html#id6>`_
 
+购买了本书第五次印刷的读者，
+只需要修改以下错误即可：
+
+- `第 359 页 <http://redisbook.com/errata/chp21.html#id2>`_
