@@ -57,9 +57,9 @@
 </div>
 <p><span class="xref std std-ref">GETBIT</span> 命令的执行过程如下：</p>
 <ol class="arabic simple">
-<li>计算 <img class="math" src="../../_images/math/0528efecd54859d8bd81ed6d2f5d0f8bef759dd1.png" alt="byte = \lfloor offset \div 8 \rfloor"/> ，
+<li>计算 <span class="math">byte = \lfloor offset \div 8 \rfloor</span> ，
 <code class="docutils literal"><span class="pre">byte</span></code> 值记录了 <code class="docutils literal"><span class="pre">offset</span></code> 偏移量指定的二进制位保存在位数组的哪个字节。</li>
-<li>计算 <img class="math" src="../../_images/math/5ab28b4fea12ad7b9341b29ac86d4742ec6801ff.png" alt="bit = (offset \bmod 8) + 1"/> ，
+<li>计算 <span class="math">bit = (offset \bmod 8) + 1</span> ，
 <code class="docutils literal"><span class="pre">bit</span></code> 值记录了 <code class="docutils literal"><span class="pre">offset</span></code> 偏移量指定的二进制位是 <code class="docutils literal"><span class="pre">byte</span></code> 字节的第几个二进制位。</li>
 <li>根据 <code class="docutils literal"><span class="pre">byte</span></code> 值和 <code class="docutils literal"><span class="pre">bit</span></code> 值，
 在位数组 <code class="docutils literal"><span class="pre">bitarray</span></code> 中定位 <code class="docutils literal"><span class="pre">offset</span></code> 偏移量指定的二进制位，
@@ -73,8 +73,8 @@
 </div>
 <p>将执行以下操作：</p>
 <ol class="arabic simple">
-<li><img class="math" src="../../_images/math/1721dd1d82c7ae1408c58f1620383a1751f3b7a6.png" alt="\lfloor 3 \div 8 \rfloor"/> 的值为 <code class="docutils literal"><span class="pre">0</span></code> 。</li>
-<li><img class="math" src="../../_images/math/1576d13c07fbe5c3ce8050089dd396b4dde39525.png" alt="(3 \bmod 8) + 1"/> 的值为 <code class="docutils literal"><span class="pre">4</span></code> 。</li>
+<li><span class="math">\lfloor 3 \div 8 \rfloor</span> 的值为 <code class="docutils literal"><span class="pre">0</span></code> 。</li>
+<li><span class="math">(3 \bmod 8) + 1</span> 的值为 <code class="docutils literal"><span class="pre">4</span></code> 。</li>
 <li>定位到 <code class="docutils literal"><span class="pre">buf[0]</span></code> 字节上面，
 然后取出该字节上的第 <code class="docutils literal"><span class="pre">4</span></code> 个二进制位（从左向右数）的值。</li>
 <li>向客户端返回二进制位的值 <code class="docutils literal"><span class="pre">1</span></code> 。</li>
@@ -112,8 +112,8 @@
 </div>
 <p>将执行以下操作：</p>
 <ol class="arabic simple">
-<li><img class="math" src="../../_images/math/103c1ae78a8a60c7bccba3da4c7392423a918086.png" alt="\lfloor 10 \div 8 \rfloor"/> 的值为 <code class="docutils literal"><span class="pre">1</span></code> 。</li>
-<li><img class="math" src="../../_images/math/23407ec5f1634bce27c142827943e3592455b748.png" alt="(10 \bmod 8) + 1"/> 的值为 <code class="docutils literal"><span class="pre">3</span></code> 。</li>
+<li><span class="math">\lfloor 10 \div 8 \rfloor</span> 的值为 <code class="docutils literal"><span class="pre">1</span></code> 。</li>
+<li><span class="math">(10 \bmod 8) + 1</span> 的值为 <code class="docutils literal"><span class="pre">3</span></code> 。</li>
 <li>定位到 <code class="docutils literal"><span class="pre">buf[1]</span></code> 字节上面，
 然后取出该字节上的第 <code class="docutils literal"><span class="pre">3</span></code> 个二进制位的值。</li>
 <li>向客户端返回二进制位的值 <code class="docutils literal"><span class="pre">0</span></code> 。</li>
@@ -146,7 +146,7 @@
 }" />
 </p>
 <p>因为 <span class="xref std std-ref">GETBIT</span> 命令执行的所有操作都可以在常数时间内完成，
-所以该命令的算法复杂度为 <img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</p>
+所以该命令的算法复杂度为 <span class="math">O(1)</span> 。</p>
 </div>
 
 
@@ -188,7 +188,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2015, 黄健宏（huangz）.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.3.
     </div>
   </body>
 </html>

@@ -69,68 +69,68 @@
 <tbody valign="top">
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">sdsnew</span></code></td>
 <td>创建一个包含给定 C 字符串的 SDS 。</td>
-<td><img class="math" src="../../_images/math/4d51d3f476c76dc066b26271168bc3b67f49d2be.png" alt="O(N)"/> ， <code class="docutils literal"><span class="pre">N</span></code> 为给定 C 字符串的长度。</td>
+<td><span class="math">O(N)</span> ， <code class="docutils literal"><span class="pre">N</span></code> 为给定 C 字符串的长度。</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">sdsempty</span></code></td>
 <td>创建一个不包含任何内容的空 SDS 。</td>
-<td><img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/></td>
+<td><span class="math">O(1)</span></td>
 </tr>
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">sdsfree</span></code></td>
 <td>释放给定的 SDS 。</td>
-<td><img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/></td>
+<td><span class="math">O(1)</span></td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">sdslen</span></code></td>
 <td>返回 SDS 的已使用空间字节数。</td>
 <td>这个值可以通过读取 SDS 的 <code class="docutils literal"><span class="pre">len</span></code> 属性来直接获得，
-复杂度为 <img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</td>
+复杂度为 <span class="math">O(1)</span> 。</td>
 </tr>
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">sdsavail</span></code></td>
 <td>返回 SDS 的未使用空间字节数。</td>
 <td>这个值可以通过读取 SDS 的 <code class="docutils literal"><span class="pre">free</span></code> 属性来直接获得，
-复杂度为 <img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</td>
+复杂度为 <span class="math">O(1)</span> 。</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">sdsdup</span></code></td>
 <td>创建一个给定 SDS 的副本（copy）。</td>
-<td><img class="math" src="../../_images/math/4d51d3f476c76dc066b26271168bc3b67f49d2be.png" alt="O(N)"/> ， <code class="docutils literal"><span class="pre">N</span></code> 为给定 SDS 的长度。</td>
+<td><span class="math">O(N)</span> ， <code class="docutils literal"><span class="pre">N</span></code> 为给定 SDS 的长度。</td>
 </tr>
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">sdsclear</span></code></td>
 <td>清空 SDS 保存的字符串内容。</td>
-<td>因为惰性空间释放策略，复杂度为 <img class="math" src="../../_images/math/87179e0d3fbdda1c2b257b186368b665fe0d2b5e.png" alt="O(1)"/> 。</td>
+<td>因为惰性空间释放策略，复杂度为 <span class="math">O(1)</span> 。</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">sdscat</span></code></td>
 <td>将给定 C 字符串拼接到 SDS
 字符串的末尾。</td>
-<td><img class="math" src="../../_images/math/4d51d3f476c76dc066b26271168bc3b67f49d2be.png" alt="O(N)"/> ， <code class="docutils literal"><span class="pre">N</span></code> 为被拼接 C 字符串的长度。</td>
+<td><span class="math">O(N)</span> ， <code class="docutils literal"><span class="pre">N</span></code> 为被拼接 C 字符串的长度。</td>
 </tr>
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">sdscatsds</span></code></td>
 <td>将给定 SDS 字符串拼接到另一个 SDS
 字符串的末尾。</td>
-<td><img class="math" src="../../_images/math/4d51d3f476c76dc066b26271168bc3b67f49d2be.png" alt="O(N)"/> ， <code class="docutils literal"><span class="pre">N</span></code> 为被拼接 SDS 字符串的长度。</td>
+<td><span class="math">O(N)</span> ， <code class="docutils literal"><span class="pre">N</span></code> 为被拼接 SDS 字符串的长度。</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">sdscpy</span></code></td>
 <td>将给定的 C 字符串复制到 SDS 里面，
 覆盖 SDS 原有的字符串。</td>
-<td><img class="math" src="../../_images/math/4d51d3f476c76dc066b26271168bc3b67f49d2be.png" alt="O(N)"/> ， <code class="docutils literal"><span class="pre">N</span></code> 为被复制 C 字符串的长度。</td>
+<td><span class="math">O(N)</span> ， <code class="docutils literal"><span class="pre">N</span></code> 为被复制 C 字符串的长度。</td>
 </tr>
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">sdsgrowzero</span></code></td>
 <td>用空字符将 SDS 扩展至给定长度。</td>
-<td><img class="math" src="../../_images/math/4d51d3f476c76dc066b26271168bc3b67f49d2be.png" alt="O(N)"/> ， <code class="docutils literal"><span class="pre">N</span></code> 为扩展新增的字节数。</td>
+<td><span class="math">O(N)</span> ， <code class="docutils literal"><span class="pre">N</span></code> 为扩展新增的字节数。</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">sdsrange</span></code></td>
 <td>保留 SDS 给定区间内的数据，
 不在区间内的数据会被覆盖或清除。</td>
-<td><img class="math" src="../../_images/math/4d51d3f476c76dc066b26271168bc3b67f49d2be.png" alt="O(N)"/> ， <code class="docutils literal"><span class="pre">N</span></code> 为被保留数据的字节数。</td>
+<td><span class="math">O(N)</span> ， <code class="docutils literal"><span class="pre">N</span></code> 为被保留数据的字节数。</td>
 </tr>
 <tr class="row-even"><td><code class="docutils literal"><span class="pre">sdstrim</span></code></td>
 <td>接受一个 SDS 和一个 C 字符串作为参数，
 从 SDS 左右两端分别移除所有在 C
 字符串中出现过的字符。</td>
-<td><img class="math" src="../../_images/math/3d44cc77fa3b9f3f60c9a414b0f9e50f6afff40b.png" alt="O(M*N)"/> ， <code class="docutils literal"><span class="pre">M</span></code> 为 SDS 的长度，
+<td><span class="math">O(M*N)</span> ， <code class="docutils literal"><span class="pre">M</span></code> 为 SDS 的长度，
 <code class="docutils literal"><span class="pre">N</span></code> 为给定 C 字符串的长度。</td>
 </tr>
 <tr class="row-odd"><td><code class="docutils literal"><span class="pre">sdscmp</span></code></td>
 <td>对比两个 SDS 字符串是否相同。</td>
-<td><img class="math" src="../../_images/math/4d51d3f476c76dc066b26271168bc3b67f49d2be.png" alt="O(N)"/> ， <code class="docutils literal"><span class="pre">N</span></code> 为两个 SDS 中较短的那个 SDS
+<td><span class="math">O(N)</span> ， <code class="docutils literal"><span class="pre">N</span></code> 为两个 SDS 中较短的那个 SDS
 的长度。</td>
 </tr>
 </tbody>
@@ -176,7 +176,7 @@
     </div>
     <div class="footer">
         &copy; Copyright 2015, 黄健宏（huangz）.
-      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.1.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.3.3.
     </div>
   </body>
 </html>
