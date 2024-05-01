@@ -1,0 +1,11 @@
+.. redirect documentation master file, created by
+   sphinx-quickstart on Wed May  1 15:55:05 2024.
+   You can adapt this file completely to your liking, but it should at least
+   contain the root `toctree` directive.
+
+网址变更提示
+===============
+
+        《Redis设计与实现》的读者支持网站已变更为 `huangz.works/redisbook1e <https://huangz.works/redisbook1e>`_ ，请移步至新网站继续进行访问，谢谢！ 
+        
+        2024.5.1
