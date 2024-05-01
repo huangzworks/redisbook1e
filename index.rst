@@ -3,15 +3,15 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Redis 设计与实现
+Redis设计与实现
 =======================================
 
 .. image:: image/cover.png
    :align: left
 
-欢迎来到《Redis 设计与实现》的支持网站！
+欢迎来到《Redis设计与实现》的读者服务网站！
 
-《Redis 设计与实现》一书全面而完整地讲解了 Redis 的内部运行机制，
+《Redis设计与实现》一书全面而完整地讲解了 Redis 的内部运行机制，
 对 Redis 的大多数单机功能以及所有多机功能的实现原理进行了介绍，
 展示了这些功能的核心数据结构以及关键的算法思想。
 通过阅读本书，
@@ -19,14 +19,15 @@ Redis 设计与实现
 从而学会如何更高效地使用 Redis 。
 
 你可以通过访问本站，
-或者关注本书作者的\ `微博 <http://weibo.com/huangz1990>`_\ 、\ `twitter <https://twitter.com/huangz1990>`_\ 和\ `豆瓣 <http://www.douban.com/people/i_m_huangz/>`_\ 来获知本书的最新消息。
+或者关注本书作者的\ `微博 <https://weibo.com/u/3219474004>`_\ 、\ `twitter <https://twitter.com/huangzworks>`_\ 和\ `豆瓣 <https://www.douban.com/people/273300993>`_\ 来获知本书的最新消息。
+
+购买
+---------
 
 购买本书请访问：
 `京东商城 <http://item.jd.com/11486101.html>`_ 、
-`互动出版网（china-pub） <http://product.china-pub.com/3770218>`_ 、
-`亚马逊 <http://www.amazon.cn/%E6%95%B0%E6%8D%AE%E5%BA%93%E6%8A%80%E6%9C%AF%E4%B8%9B%E4%B9%A6-Redis%E8%AE%BE%E8%AE%A1%E4%B8%8E%E5%AE%9E%E7%8E%B0-%E9%BB%84%E5%81%A5%E5%AE%8F/dp/B00L4XHH0S>`_ 、
 `当当网 <http://product.dangdang.com/23501734.html>`_ ，
-另外本书的 `Kindle 版本 <http://www.amazon.cn/Redis/dp/B00LZNV5B4>`_ 、 `多看阅读版本 <http://www.duokan.com/book/53962>`_ 和 `豆瓣阅读版本 <http://read.douban.com/ebook/7519526/>`_ 也已有售。
+另外本书的 `多看阅读版本 <http://www.duokan.com/book/53962>`_ 和 `豆瓣阅读版本 <http://read.douban.com/ebook/7519526/>`_ 也已有售。
 
 ..
     另外，
@@ -305,29 +306,30 @@ Redis 设计与实现
 
 为了帮助有需要的读者进一步了解 Redis 的实现细节，
 本书附带了一份包含详细中文注释的 Redis 3.0 版本源码可供参考：
-`https://github.com/huangz1990/redis-3.0-annotated <https://github.com/huangz1990/redis-3.0-annotated>`_ 。
+`https://github.com/huangzworks/redis-3.0-annotated <https://github.com/huangzworks/redis-3.0-annotated>`_ 。
 
 
 相关资源
 -----------------
 
-`《如何阅读 Redis 源码》 <http://blog.huangz.me/diary/2014/how-to-read-redis-source-code.html>`_ ——
+`《如何阅读 Redis 源码》 <http://huangz.blog/2014/how-to-read-redis-source-code.html>`_ ——
 文章给出了一个推荐的 Redis 源码阅读顺序以供参考，
 读者可以在阅读完本书之后，
 根据文章描述的顺序来尝试阅读源码，
 从而进一步提高对 Redis 的了解。
 
-`《Redis 设计与实现》图片集 <http://1e-gallery.redisbook.com>`_ ——
+`《Redis 设计与实现》图片集 <http://huangz.works/redisbook1e-gallery>`_ ——
 展示了本书包含的绝大多数图片以及图片的源码，
 方便读者在写博客、记笔记或者做演讲稿时引用本书的图片，
 或者通过阅读图片的源码来学习 dot 语言和 Graphviz 图片生成工具。
 
-`《Redis 多机特性工作原理简介》 <http://www.chinahadoop.cn/course/31>`_ ——
-这个课程对 Redis 的复制、Sentinel 和集群三个特性的工作原理进行了基本的介绍。
-因为课程的内容都提取自本书的《复制》、《Sentinel》和《集群》三个章节，
-所以可以把这个课程看作是这三个章节的简介版本。
+..
+        `《Redis 多机特性工作原理简介》 <http://www.chinahadoop.cn/course/31>`_ ——
+        这个课程对 Redis 的复制、Sentinel 和集群三个特性的工作原理进行了基本的介绍。
+        因为课程的内容都提取自本书的《复制》、《Sentinel》和《集群》三个章节，
+        所以可以把这个课程看作是这三个章节的简介版本。
 
-`旧版《Redis 设计与实现》 <http://origin.redisbook.com>`_ ——
+`旧版《Redis 设计与实现》 <http://huangz.works/redisbook>`_ ——
 本书的上一版，
 介绍了 Redis 2.6 的内部运作机制和单机功能。
 要了解本书和旧版之间的区别，
@@ -344,4 +346,4 @@ Redis 设计与实现
 
 如果读者发现了勘误页面目前尚未记录的新错误，
 可以在本页面的 disqus 论坛进行反馈，
-又或者通过 `huangz.me <http://huangz.me>`_ 页面展示的任意一种联系方式来联系作者。
+又或者通过 `huangz.works <http://huangz.works>`_ 页面展示的任意一种联系方式来联系作者。
